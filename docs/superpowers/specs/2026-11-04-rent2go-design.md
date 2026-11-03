@@ -1,6 +1,6 @@
 # Rent2Go functional design — review draft
 
-Date: 4 November 2026. Status: awaiting user review; this is a specification, not an implementation claim.
+Date: 4 November 2026. Status: approved by the user; this is a specification, not an implementation claim.
 
 ## 1. Purpose and source authority
 
@@ -19,7 +19,7 @@ User-approved changes and constraints:
 7. Prioritize agency partner applications collecting business information, terms, pricing, and payment settings.
 8. Add clearly labeled demo simulations for methods such as card, GCash, and PayPal. They do not represent live gateway integration or settlement.
 
-The meaning of agency "how they'll pay" is awaiting clarification: platform fees, accepted renter methods, or both. No fees or contracts will be invented as real business policy.
+User clarified agency payments cover both platform payments and accepted renter methods. User approved default consigned allocation: Cosigner 70%, agency 10%, Rent2Go 10%, maintenance 10%, configurable per agency/Cosigner agreement and totaling 100%. Calculation basis proposed: eligible rental service revenue excluding refundable deposits. Maintenance custody and agency-owned allocation require explicit agreement configuration before settlement; no subscription charge is inferred.
 
 ## 2. Approach and engineering calls
 
@@ -209,6 +209,6 @@ Manuscript tests TST-01–09, 11–12 map to the modules above. TST-10 GPS is ex
 
 These are dependent delivery slices, not grounds for silently dropping later modules. Each slice gets a reproducible checkpoint and a concise account of remaining gaps. Publish code only to the specified new GitHub repository; never push environment files, manuscript copies, real personal documents, or old source/database artifacts. Graphify analysis depends on the user having a Graphify workspace/index of that repository; local implementation need not block on this external setup.
 
-## 16. Approval sought
+## 16. Approval record
 
-Review the overall design and especially the proposal to make business policies explicit agency configuration; distinguish live/manual and demo payment records; require both agency and platform vehicle approval; preserve the existing visual identity; and defer standalone social login/realtime chat. Agency-to-platform payment meaning is still pending. No real commercial fee, refund formula, retention duration, legal text, or research result is approved by this document.
+The user approved this design and instructed beginning agency onboarding on 4 November 2026. Approval includes versioned configurable policies, demo/live separation, agency/platform vehicle approval, visual continuity, and deferring standalone realtime chat/social login. The user subsequently supplied the default allocation recorded above. No unspecified refund formula, retention duration, legal text, subscription fee, or research result is inferred.

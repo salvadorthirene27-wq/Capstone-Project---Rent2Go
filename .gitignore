@@ -1,0 +1,12 @@
+node_modules/
+.next/
+.env*
+!.env.example
+.neon
+.superpowers/
+.private-storage/
+coverage/
+test-results/
+playwright-report/
+*.tsbuildinfo
+local-accounts.json

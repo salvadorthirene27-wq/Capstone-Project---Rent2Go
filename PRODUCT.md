@@ -35,7 +35,7 @@ The immediate target is a local demonstration, with a new Neon database. Interne
 - GPS, geofencing, device integration, route history, and remote vehicle controls are excluded.
 - Start from the new repository and new database. Do not reuse the old environment file, database, source implementation, or main-branch files.
 - Sensitive renter documents, ownership documents, signatures, receipts, and inspection evidence require private storage and authorized access.
-- Financial rates and policies are agency/platform configuration, with versioned snapshots. No binding commercial amounts have been supplied.
+- Default consigned-vehicle allocation approved by the user: Cosigner 70%, agency 10%, Rent2Go 10%, maintenance 10%. Agreements may alter these percentages and must total 100%. Agency applications cover payments to Rent2Go and methods accepted from renters. Preserve versioned snapshots.
 
 ## Brand Commitments
 
@@ -59,6 +59,6 @@ Responsive web interfaces must support keyboard operation, readable text and err
 
 ## Open Decisions
 
-- Clarify whether agency payment settings cover agency-to-Rent2Go fees, renter payment methods, or both (question pending).
-- Review and approve the functional design before implementation.
+- Functional design approved on 4 November 2026; begin agency onboarding.
+- Calculation basis proposed by engineering: eligible rental service revenue excluding refundable deposits. Maintenance custody and agency-owned allocation must be explicit before financial settlement implementation.
 - Configure new provider credentials where needed; no production email, OCR, storage, or payment validation has occurred.
