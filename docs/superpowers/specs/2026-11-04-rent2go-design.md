@@ -19,7 +19,7 @@ User-approved changes and constraints:
 7. Prioritize agency partner applications collecting business information, terms, pricing, and payment settings.
 8. Add clearly labeled demo simulations for methods such as card, GCash, and PayPal. They do not represent live gateway integration or settlement.
 
-User clarified agency payments cover both platform payments and accepted renter methods. User approved default consigned allocation: Cosigner 70%, agency 10%, Rent2Go 10%, maintenance 10%, configurable per agency/Cosigner agreement and totaling 100%. Calculation basis proposed: eligible rental service revenue excluding refundable deposits. Maintenance custody and agency-owned allocation require explicit agreement configuration before settlement; no subscription charge is inferred.
+User clarified agency payments cover both platform payments and accepted renter methods. User approved default consigned allocation: Cosigner 70%, agency 10%, Rent2Go 10%, maintenance 10%, configurable per agency/Cosigner agreement and totaling 100%. Additional confirmed defaults: agency-owned cars use agency 80%, Rent2Go 10%, maintenance 10%; tour-only uses agency 90%, Rent2Go 10%. The agency holds vehicle maintenance separately. The agency-owned allocation must never replace the Cosigner's share for a consigned vehicle. Calculation basis proposed: eligible service revenue excluding refundable deposits, made explicit in the accepted agreement. No subscription charge is inferred.
 
 ## 2. Approach and engineering calls
 

@@ -4,7 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev --webpack -p 3100",
-    "build": "next build --webpack",
+    "build": "node scripts/build.mjs",
     "start": "next start -p 3100",
     "test": "vitest run tests/unit",
     "test:integration": "vitest run tests/integration --maxWorkers=1",
@@ -14,7 +14,10 @@
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1000.0",
-    "@neondatabase/auth": "0.7.0-beta",
+    "@fontsource/inter": "^5.3.0",
+    "@fontsource/outfit": "^5.3.0",
+    "@fontsource/poppins": "^5.3.0",
+    "@neon/auth": "0.8.2",
     "lucide-react": "^0.577.0",
     "next": "16.4.5",
     "pg": "^8.16.3",
@@ -23,10 +26,13 @@
     "zod": "4.6.7"
   },
   "devDependencies": {
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
     "@types/node": "^24.0.0",
     "@types/pg": "8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
+    "jsdom": "^26.1.0",
     "tsx": "^4.20.0",
     "typescript": "5.9.3",
     "vitest": "5.1.0"

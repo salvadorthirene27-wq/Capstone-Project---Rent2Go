@@ -36,6 +36,7 @@ The immediate target is a local demonstration, with a new Neon database. Interne
 - Start from the new repository and new database. Do not reuse the old environment file, database, source implementation, or main-branch files.
 - Sensitive renter documents, ownership documents, signatures, receipts, and inspection evidence require private storage and authorized access.
 - Default consigned-vehicle allocation approved by the user: Cosigner 70%, agency 10%, Rent2Go 10%, maintenance 10%. Agreements may alter these percentages and must total 100%. Agency applications cover payments to Rent2Go and methods accepted from renters. Preserve versioned snapshots.
+- Additional confirmed defaults: agency-owned cars allocate 80% agency / 10% Rent2Go / 10% maintenance; tour-only services allocate 90% agency / 10% Rent2Go. Agencies hold maintenance allocations separately for vehicle maintenance. The Cosigner's 70% share always applies to consigned cars; the agency-owned rule does not replace it.
 
 ## Brand Commitments
 
@@ -60,5 +61,5 @@ Responsive web interfaces must support keyboard operation, readable text and err
 ## Open Decisions
 
 - Functional design approved on 4 November 2026; begin agency onboarding.
-- Calculation basis proposed by engineering: eligible rental service revenue excluding refundable deposits. Maintenance custody and agency-owned allocation must be explicit before financial settlement implementation.
+- Calculation basis proposed by engineering: eligible service revenue excluding refundable deposits; reflect clearly in the agreement before settlement implementation. Default categories and maintenance custody are now confirmed.
 - Configure new provider credentials where needed; no production email, OCR, storage, or payment validation has occurred.
