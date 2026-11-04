@@ -1,4 +1,5 @@
 import type { ApplicationInput } from "@/modules/partners/schema";
+import { driverFeeUnitLabels } from "@/modules/pricing/units";
 import {
   businessFields,
   termFields,
@@ -47,6 +48,14 @@ export function ApplicationSummary({
           <div>
             <dt>Rental billing unit</dt>
             <dd>{p.billingUnit.replaceAll("_", " ").toLowerCase()}</dd>
+          </div>
+          <div>
+            <dt>Driver fee unit</dt>
+            <dd>
+              {p.driverFeeUnit
+                ? driverFeeUnitLabels[p.driverFeeUnit]
+                : "Not set"}
+            </dd>
           </div>
           {(
             [

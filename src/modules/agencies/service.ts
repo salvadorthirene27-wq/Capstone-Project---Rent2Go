@@ -43,6 +43,7 @@ function publicProjection(row: AgencyRow) {
       rentalCentavos: p.dailyRateCentavos,
       depositCentavos: p.depositCentavos,
       driverCentavos: p.driverFeeCentavos,
+      driverFeeUnit: p.driverFeeUnit,
       groupPerPersonCentavos: p.perPersonCentavos,
       privatePerPartyCentavos: p.perPartyCentavos,
       inclusions: p.inclusions,

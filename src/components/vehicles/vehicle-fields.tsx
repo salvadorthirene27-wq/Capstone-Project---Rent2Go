@@ -1,5 +1,6 @@
 "use client";
 import type { VehicleFacts, VehicleTerms } from "@/modules/vehicles/schema";
+import { driverFeeUnitLabels } from "@/modules/pricing/units";
 export const emptyFacts: VehicleFacts = {
   make: "",
   model: "",
@@ -174,6 +175,27 @@ export function VehicleTermsFields({
           </select>
         </label>
         {cash("driverFeeCentavos", "Driver charge (PHP; 0 if included)")}
+        <label>
+          Driver fee unit
+          <select
+            value={value.driverFeeUnit ?? ""}
+            required={value.modes.includes("WITH_DRIVER")}
+            onChange={(e) =>
+              onChange({
+                ...value,
+                driverFeeUnit: (e.target.value ||
+                  null) as VehicleTerms["driverFeeUnit"],
+              })
+            }
+          >
+            <option value="">Choose the driver fee unit</option>
+            {Object.entries(driverFeeUnitLabels).map(([key, label]) => (
+              <option key={key} value={key}>
+                {label}
+              </option>
+            ))}
+          </select>
+        </label>
       </div>
       <div className="checkbox-group" role="group" aria-label="Rental modes">
         {(["SELF_DRIVE", "WITH_DRIVER"] as const).map((m) => (

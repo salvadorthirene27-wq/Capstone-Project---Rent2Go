@@ -41,6 +41,32 @@ export function validApplication() {
 }
 
 describe("partner application", () => {
+  it("requires an explicit agency-chosen driver fee unit for with-driver service", () => {
+    const input = {
+      ...validApplication(),
+      services: ["SELF_DRIVE", "WITH_DRIVER"],
+      driverFeeCentavos: 100000,
+    };
+    expect(completeApplicationSchema.safeParse(input).success).toBe(false);
+    expect(
+      completeApplicationSchema.safeParse({
+        ...input,
+        driverFeeUnit: "PER_BOOKING",
+      }).success,
+    ).toBe(true);
+    expect(
+      completeApplicationSchema.safeParse({
+        ...input,
+        driverFeeUnit: "PER_HOUR",
+      }).success,
+    ).toBe(true);
+    expect(
+      completeApplicationSchema.safeParse({
+        ...input,
+        driverFeeUnit: "UNKNOWN",
+      }).success,
+    ).toBe(false);
+  });
   it("accepts a complete application and preserves 70/10/10/10 defaults", () => {
     const result = completeApplicationSchema.parse(validApplication());
     expect(result.split).toEqual({

@@ -91,10 +91,10 @@ Evidence:42 unit/UI, full52 isolated DB,69 production tour HTTP/S3 checks, build
 
 ### Task 5: Marketplace browsing and honest recommendations
 
-- [ ] Write failing search/projection tests: tenant visibility, published-version filtering, seats/party capacity, price units, date availability, sorting/pagination, and exclusion of all private fields.
-- [ ] Build public rental/tour search with keyword, agency/service area, capacity, rate/unit and relevant vehicle/tour filters. Show source agency and per-person/per-party/per-billing-unit prices explicitly.
-- [ ] Rank recommendations by eligibility/availability first, then declared budget/preference fit with an explanation. No invented popularity, reviews, stock imagery claims or metrics. Completed-booking popularity is added only once booking records can support it.
-- [ ] Show real empty states and working detail links. Booking cart and request checkout are the next plan; do not add nonfunctional booking/payment controls.
+- [x] Write failing search/projection tests: tenant visibility, published-version filtering, seats/party capacity, price units, date availability, sorting/pagination, and exclusion of all private fields.
+- [x] Build public rental/tour search with keyword, agency/service area, capacity, rate/unit and relevant vehicle/tour filters. Show source agency and per-person/per-party/per-billing-unit prices explicitly.
+- [x] Rank recommendations by eligibility/availability first, then declared budget/preference fit with an explanation. No invented popularity, reviews, stock imagery claims or metrics. Completed-booking popularity is added only once booking records can support it.
+- [x] Show real empty states and working detail links. Booking cart and request checkout are the next plan; do not add nonfunctional booking/payment controls.
 - [ ] Batch desktop/mobile, keyboard and error-state inspection. Fix important observed defects, run tests/build/audit/secret checks and fresh whole-branch code review.
 - [ ] Update STATUS/continuation and push the verified slice to the authorized new repository.
 

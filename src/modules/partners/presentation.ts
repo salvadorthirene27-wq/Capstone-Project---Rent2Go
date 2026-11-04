@@ -35,6 +35,7 @@ export const fieldLabels: Partial<Record<keyof ApplicationInput, string>> = {
   dailyRateCentavos: "Base rental rate (PHP)",
   depositCentavos: "Refundable security deposit (PHP)",
   driverFeeCentavos: "Driver charge (PHP)",
+  driverFeeUnit: "Driver fee unit",
   perPersonCentavos: "Starting group-tour rate per person (PHP)",
   perPartyCentavos: "Starting private-tour rate per party (PHP)",
   holdHours: "Quote hold period (hours)",

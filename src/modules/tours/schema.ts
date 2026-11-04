@@ -41,6 +41,22 @@ export const tourSchema = z
       });
   });
 export type TourInput = z.infer<typeof tourSchema>;
+export const publicTourDatesSchema = z
+  .object({
+    page: z.coerce.number().int().min(1).max(10000).default(1),
+    dateFrom: z.iso.date().optional(),
+    dateTo: z.iso.date().optional(),
+    partySize: z.coerce.number().int().min(1).max(500).optional(),
+  })
+  .strict()
+  .superRefine((v, c) => {
+    if (v.dateFrom && v.dateTo && v.dateTo < v.dateFrom)
+      c.addIssue({
+        code: "custom",
+        path: ["dateTo"],
+        message: "The last departure date must follow the first.",
+      });
+  });
 export const tourSearchSchema = z
   .object({
     search: z.string().trim().max(120).default(""),
@@ -48,11 +64,30 @@ export const tourSearchSchema = z
     mode: z.enum(["GROUP", "PRIVATE"]).optional(),
     partySize: z.coerce.number().int().min(1).max(500).optional(),
     maxPriceCentavos: z.coerce.number().int().min(1).max(100000000).optional(),
+    budgetCentavos: z.coerce.number().int().min(1).max(100000000).optional(),
+    dateFrom: z.iso.date().optional(),
+    dateTo: z.iso.date().optional(),
     page: z.coerce.number().int().min(1).max(10000).default(1),
     pageSize: z.coerce.number().int().min(1).max(48).default(12),
-    sort: z.enum(["NAME", "PRICE_ASC", "PRICE_DESC"]).default("NAME"),
+    sort: z
+      .enum(["NAME", "PRICE_ASC", "PRICE_DESC", "RECOMMENDED"])
+      .default("NAME"),
   })
-  .strict();
+  .strict()
+  .superRefine((v, c) => {
+    if (v.dateFrom && v.dateTo && v.dateTo < v.dateFrom)
+      c.addIssue({
+        code: "custom",
+        path: ["dateTo"],
+        message: "The last departure date must follow the first.",
+      });
+    if (v.budgetCentavos && !v.partySize)
+      c.addIssue({
+        code: "custom",
+        path: ["partySize"],
+        message: "Set the number of guests to compare whole-party costs.",
+      });
+  });
 export const scheduleSchema = z
   .object({
     startAt: z.iso.datetime({ offset: true }),

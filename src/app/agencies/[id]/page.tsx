@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, Mail, Phone, ArrowLeft } from "lucide-react";
 import { publicVehicles } from "@/modules/vehicles/service";
+import { driverFeeUnitLabels } from "@/modules/pricing/units";
 import { publicAgency } from "@/modules/agencies/service";
 import { DomainError } from "@/modules/partners/workflow";
 import {
@@ -32,6 +33,7 @@ export default async function Page({
         <ArrowLeft size={17} />
         All agencies
       </Link>
+      <p className="marketplace-search-actions"><Link href={`/rentals?agencyId=${agency.id}`}>Browse this agency’s rental vehicles</Link><Link href={`/tours?agencyId=${agency.id}`}>Browse this agency’s tour packages</Link></p>
       <header className="agency-profile-heading">
         <span className="status-badge">Approved partner</span>
         <h1>{agency.name}</h1>
@@ -110,7 +112,11 @@ export default async function Page({
                   <dt>Driver charge</dt>
                   <dd>
                     {money(rates.driverCentavos)}{" "}
-                    <small>basis confirmed in quotation</small>
+                    <small>
+                      {rates.driverFeeUnit
+                        ? driverFeeUnitLabels[rates.driverFeeUnit]
+                        : "Fee unit not configured"}
+                    </small>
                   </dd>
                 </div>
               )}

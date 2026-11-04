@@ -15,12 +15,17 @@ export default function Home() {
             together. Find the right service, understand the terms, and follow
             every step of your booking.
           </p>
-          <Link className="button mint" href="/partners">
-            Bring your agency on board <ArrowRight size={18} />
+          <Link className="button mint" href="/rentals">
+            Explore car rentals <ArrowRight size={18} />
           </Link>
+          <p>
+            <Link className="hero-secondary" href="/tours">
+              Explore group and private tours <ArrowRight size={17} />
+            </Link>
+          </p>
           <p className="hero-note">
-            We’re building the marketplace. Agency partnership applications are
-            now open in this demo.
+            Compare approved agency listings and clearly stated service prices
+            in this local demonstration. Booking requests are not available yet.
           </p>
         </div>
         <div className="hero-side">
@@ -80,7 +85,7 @@ export default function Home() {
         </div>
       </section>
       <section className="notice public-section">
-        <h2>Marketplace catalog is in development</h2>
+        <h2>Find the service that suits your plans</h2>
         <p>
           Approved agency profiles, reviewed vehicle partnerships and tour
           package browsing are available. Booking requests, carts and checkout

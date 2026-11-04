@@ -212,3 +212,7 @@ These are dependent delivery slices, not grounds for silently dropping later mod
 ## 16. Approval record
 
 The user approved this design and instructed beginning agency onboarding on 4 November 2026. Approval includes versioned configurable policies, demo/live separation, agency/platform vehicle approval, visual continuity, and deferring standalone realtime chat/social login. The user subsequently supplied the default allocation recorded above. No unspecified refund formula, retention duration, legal text, subscription fee, or research result is inferred.
+
+## Confirmed pricing clarification — 4 November 2026
+
+The user confirmed each agency chooses its driver fee unit. Configuration and exact agreement snapshots distinguish once per booking, per24 hours, per Manila calendar day, per hour and per vehicle billing unit. Missing legacy units are not inferred and do not authorize a with-driver estimate. A changed unit requires the normal revised policy/agreement workflow; old immutable snapshots remain unchanged. Driver compensation/allocation is a separate financial rule to clarify before ledger posting.

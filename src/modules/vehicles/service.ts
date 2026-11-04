@@ -1,3 +1,4 @@
+import { searchVehicles } from "../marketplace/vehicles";
 import { randomUUID, createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { db, transaction } from "../../lib/db";
@@ -108,6 +109,7 @@ export async function createVehicleOffer(actor: Actor, input: unknown) {
         billingUnit: p.billingUnit,
         modes,
         driverFeeCentavos: p.driverFeeCentavos,
+        driverFeeUnit: p.driverFeeUnit ?? null,
         inclusions: p.inclusions,
         exclusions: p.exclusions,
         agreementTerms: p.terms,
@@ -507,34 +509,7 @@ export async function transitionVehicleOffer(
   });
 }
 export async function publicVehicles(id?: string, agencyId?: string) {
-  if (id) idSchema.parse(id);
-  if (agencyId) idSchema.parse(agencyId);
-  const rows = (
-    await db.query(
-      "SELECT o.id,o.agency_id,r.facts,r.terms,r.revision,ar.payload->>'businessName' AS agency_name,COALESCE((SELECT jsonb_agg(f.id ORDER BY f.created_at,f.id) FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id WHERE rf.offer_id=o.id AND rf.revision=o.approved_revision AND f.purpose='PHOTO'),'[]'::jsonb) AS photo_ids FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN agency a ON a.id=o.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor ao ON ao.id=a.owner_id LEFT JOIN app_actor vo ON vo.id=v.owner_actor_id JOIN vehicle_revision r ON r.offer_id=o.id AND r.revision=o.approved_revision WHERE o.state='PUBLISHED' AND o.revision=o.approved_revision AND (r.terms->'modes') <@ (ar.payload->'services') AND a.active AND NOT ao.suspended AND NOT ao.is_test_fixture AND (v.owner_actor_id IS NULL OR (NOT vo.suspended AND NOT vo.is_test_fixture)) AND ($1::uuid IS NULL OR o.id=$1) AND ($2::uuid IS NULL OR o.agency_id=$2) ORDER BY o.id LIMIT 100",
-      [id ?? null, agencyId ?? null],
-    )
-  ).rows;
-  return rows.map((row) => {
-    const t = row.terms as VehicleTerms;
-    return {
-      id: row.id,
-      agencyId: row.agency_id,
-      agencyName: String(row.agency_name),
-      photoIds: row.photo_ids as string[],
-      revision: row.revision,
-      facts: row.facts as VehicleFacts,
-      pricing: {
-        rateCentavos: t.rateCentavos,
-        depositCentavos: t.depositCentavos,
-        billingUnit: t.billingUnit,
-        modes: t.modes,
-        driverFeeCentavos: t.driverFeeCentavos,
-        inclusions: t.inclusions,
-        exclusions: t.exclusions,
-      },
-    };
-  });
+  return (await searchVehicles({ id, agencyId, pageSize: 100 })).items;
 }
 
 export const vehicleQueueSchema = z

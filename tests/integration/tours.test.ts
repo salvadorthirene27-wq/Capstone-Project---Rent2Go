@@ -254,6 +254,60 @@ it("searches published tour details with real capacity and tenant scoping", asyn
     status: 403,
   });
 }, 30000);
+it("filters Manila departure dates and recommends actual whole-party costs", async () => {
+  const title = `Window ${randomUUID()}`;
+  for (const mode of ["GROUP", "PRIVATE"]) {
+    let t = await createTour(operator, {
+      agencyId,
+      payload: { ...facts, title, mode },
+    });
+    t.version = (
+      await attachTourPhoto(operator, t.id, t.version, photo())
+    ).version;
+    t = await publishTour(operator, t.id, t.version);
+    await createTourSchedule(operator, t.id, t.version, {
+      ...slot,
+      capacity: mode === "GROUP" ? 20 : 8,
+    });
+  }
+  const q = {
+    search: title,
+    partySize: 3,
+    dateFrom: "2031-05-01",
+    dateTo: "2031-05-01",
+    budgetCentavos: 200000,
+    sort: "RECOMMENDED",
+  };
+  const found = await publicTours(q);
+  expect(found.total).toBe(2);
+  expect(found.items[0].mode).toBe("PRIVATE");
+  expect(found.items[0].estimatedServiceCentavos).toBe(120000);
+  expect(found.items[1].estimatedServiceCentavos).toBe(360000);
+  expect(found.items[0].reasons.join(" ")).toMatch(/budget/);
+  expect(
+    (await publicTours({ ...q, dateFrom: "2031-05-02", dateTo: "2031-05-02" }))
+      .total,
+  ).toBe(0);
+  expect((await publicTours({ ...q, agencyId: randomUUID() })).total).toBe(0);
+}, 30000);
+it("paginates public dates and retains the requested Manila departure range", async () => {
+  const t = await ready();
+  await db.query(
+    "INSERT INTO tour_schedule(id,tour_id,revision,mode,start_at,end_at,cutoff_at,capacity) SELECT gen_random_uuid(),$1,$2,'GROUP',timestamptz '2031-05-01 08:00+08'+g*interval '1 day',timestamptz '2031-05-01 17:00+08'+g*interval '1 day',timestamptz '2031-04-30 17:00+08'+g*interval '1 day',20 FROM generate_series(1,21) g",
+    [t.id, t.revision],
+  );
+  const second = await publicTour(t.id, { page: 2 });
+  expect(second.scheduleTotal).toBe(21);
+  expect(second.schedules).toHaveLength(1);
+  expect(second.pageCount).toBe(2);
+  const filtered = await publicTour(t.id, {
+    dateFrom: "2031-05-22",
+    dateTo: "2031-05-22",
+    partySize: 3,
+  });
+  expect(filtered.scheduleTotal).toBe(1);
+  expect(filtered.schedules).toHaveLength(1);
+}, 30000);
 it("uses effective service approval and hides tours after eligibility is removed", async () => {
   const t = await ready(),
     app = (

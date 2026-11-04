@@ -28,6 +28,7 @@ The immediate target is a local demonstration, with a new Neon database. Interne
 ## Capabilities and Constraints
 
 - Multiple agencies, with no pilot agency or special status for VSME.
+- Driver fees use an agency-chosen explicit unit, preserved in the vehicle agreement and quotation: once per booking, per24 hours, per Manila calendar day, per hour or per vehicle billing unit.
 - Both scheduled tours sold per person and private tours priced per party; each package declares pricing and capacity rules.
 - Partner applications collect business details, terms and conditions, pricing, and payment settings for review. This is the current implementation priority.
 - Manual GCash receipt review and cash confirmation are manuscript workflows. The user additionally authorized clearly labeled demo payment simulations such as card, GCash, and PayPal; no live gateway settlement is claimed.
@@ -62,4 +63,4 @@ Responsive web interfaces must support keyboard operation, readable text and err
 
 - Functional design approved on 4 November 2026; begin agency onboarding.
 - Calculation basis proposed by engineering: eligible service revenue excluding refundable deposits; reflect clearly in the agreement before settlement implementation. Default categories and maintenance custody are now confirmed.
-- Configure new provider credentials where needed; no production email, OCR, storage, or payment validation has occurred.
+- Configure new provider credentials where needed; production email, OCR and payment validation remain unverified. Private development S3 upload/download byte equality has been tested.

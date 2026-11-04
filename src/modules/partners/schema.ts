@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { driverFeeUnitSchema } from "../pricing/units";
 
 export const serviceOptions = [
   "SELF_DRIVE",
@@ -39,6 +40,7 @@ export const draftApplicationSchema = z
     dailyRateCentavos: cents,
     depositCentavos: cents,
     driverFeeCentavos: cents,
+    driverFeeUnit: driverFeeUnitSchema.nullable().default(null),
     perPersonCentavos: cents,
     perPartyCentavos: cents,
     holdHours: z.number().int().min(1).max(168).nullable(),
@@ -78,6 +80,7 @@ export const defaultApplication: ApplicationInput = {
   dailyRateCentavos: null,
   depositCentavos: null,
   driverFeeCentavos: null,
+  driverFeeUnit: null,
   perPersonCentavos: null,
   perPartyCentavos: null,
   holdHours: null,
@@ -154,6 +157,8 @@ export const completeApplicationSchema = draftApplicationSchema.superRefine(
         "driverFeeCentavos",
         "Set the driver charge, including zero if included.",
       );
+    if (v.services.includes("WITH_DRIVER") && v.driverFeeUnit === null)
+      issue("driverFeeUnit", "Choose how the driver charge is billed.");
     if (v.services.includes("GROUP_TOUR") && !v.perPersonCentavos)
       issue("perPersonCentavos", "Enter the starting per-person tour rate.");
     if (v.services.includes("PRIVATE_TOUR") && !v.perPartyCentavos)

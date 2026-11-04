@@ -9,6 +9,7 @@ import {
   tourSchema,
   scheduleSchema,
   tourSearchSchema,
+  publicTourDatesSchema,
   type TourInput,
 } from "./schema";
 type TourRow = {
@@ -378,7 +379,8 @@ function publicPayload(payload: unknown) {
     fulfillment: p.fulfillment,
   };
 }
-export async function publicTour(id: string) {
+export async function publicTour(id: string, input: unknown = {}) {
+  const q = publicTourDatesSchema.parse(input);
   if (!uuid.safeParse(id).success)
     throw new DomainError("Tour package not found.", 404);
   const r = (
@@ -388,10 +390,29 @@ export async function publicTour(id: string) {
     )
   ).rows[0];
   if (!r) throw new DomainError("Tour package not found.", 404);
+  const scheduleFilter =
+    "tour_id=$1 AND revision=$2 AND status='SCHEDULED' AND cutoff_at>now() AND ($3::date IS NULL OR (start_at AT TIME ZONE 'Asia/Manila')::date>=$3::date) AND ($4::date IS NULL OR (start_at AT TIME ZONE 'Asia/Manila')::date<=$4::date) AND ($5::int IS NULL OR ($5>=$6::int AND $5<=$7::int AND CASE WHEN mode='PRIVATE' THEN capacity>=$5 AND reserved_units=0 ELSE capacity-reserved_units>=$5 END))";
+  const scheduleValues = [
+    id,
+    r.published_revision,
+    q.dateFrom ?? null,
+    q.dateTo ?? null,
+    q.partySize ?? null,
+    r.payload.minParty,
+    r.payload.maxParty,
+  ];
+  const scheduleTotal = Number(
+    (
+      await db.query(
+        `SELECT count(*) AS n FROM tour_schedule WHERE ${scheduleFilter}`,
+        scheduleValues,
+      )
+    ).rows[0].n,
+  );
   const schedules = (
       await db.query(
-        "SELECT id,start_at,end_at,cutoff_at,capacity,CASE WHEN mode='PRIVATE' THEN 1-reserved_units ELSE capacity-reserved_units END AS remaining_units FROM tour_schedule WHERE tour_id=$1 AND revision=$2 AND status='SCHEDULED' AND cutoff_at>now() ORDER BY start_at,id LIMIT 100",
-        [id, r.published_revision],
+        `SELECT id,start_at,end_at,cutoff_at,capacity,CASE WHEN mode='PRIVATE' THEN 1-reserved_units ELSE capacity-reserved_units END AS remaining_units FROM tour_schedule WHERE ${scheduleFilter} ORDER BY start_at,id LIMIT 20 OFFSET $8`,
+        [...scheduleValues, (q.page - 1) * 20],
       )
     ).rows,
     photos = (
@@ -408,6 +429,9 @@ export async function publicTour(id: string) {
     payload: publicPayload(r.payload),
     priceUnit: r.payload.mode === "GROUP" ? "PER_PERSON" : "PER_PARTY",
     schedules,
+    scheduleTotal,
+    page: q.page,
+    pageCount: Math.max(1, Math.ceil(scheduleTotal / 20)),
     photos,
   };
 }
@@ -444,13 +468,19 @@ export async function listTours(actor: Actor, agencyId: string, page = 1) {
 export async function publicTours(input: unknown = {}) {
   const q = tourSearchSchema.parse(input),
     pattern = `%${q.search.replace(/[\\%_]/g, "\\$&")}%`;
-  const filter = `${visible} AND ((r.payload->>'title') ILIKE $1 OR (r.payload->>'serviceArea') ILIKE $1) AND ($2::uuid IS NULL OR t.agency_id=$2) AND ($3::text IS NULL OR r.mode=$3) AND ($4::int IS NULL OR ((r.payload->>'minParty')::int<=$4 AND (r.payload->>'maxParty')::int>=$4 AND EXISTS(SELECT 1 FROM tour_schedule s WHERE s.tour_id=t.id AND s.revision=t.published_revision AND s.status='SCHEDULED' AND s.cutoff_at>now() AND CASE WHEN r.mode='PRIVATE' THEN s.capacity>=$4 AND s.reserved_units=0 ELSE s.capacity-s.reserved_units>=$4 END))) AND ($5::int IS NULL OR (r.payload->>'priceCentavos')::int<=$5)`;
+  const cost =
+    "((r.payload->>'priceCentavos')::bigint*CASE WHEN r.mode='GROUP' THEN COALESCE($4::int,(r.payload->>'minParty')::int) ELSE 1 END)";
+  const party = "COALESCE($4::int,(r.payload->>'minParty')::int)";
+  const available = `EXISTS(SELECT 1 FROM tour_schedule s WHERE s.tour_id=t.id AND s.revision=t.published_revision AND s.status='SCHEDULED' AND s.cutoff_at>now() AND ($6::date IS NULL OR (s.start_at AT TIME ZONE 'Asia/Manila')::date>=$6::date) AND ($7::date IS NULL OR (s.start_at AT TIME ZONE 'Asia/Manila')::date<=$7::date) AND CASE WHEN r.mode='PRIVATE' THEN s.capacity>=${party} AND s.reserved_units=0 ELSE s.capacity-s.reserved_units>=${party} END)`;
+  const filter = `${visible} AND ((r.payload->>'title') ILIKE $1 OR (r.payload->>'serviceArea') ILIKE $1) AND ($2::uuid IS NULL OR t.agency_id=$2) AND ($3::text IS NULL OR r.mode=$3) AND ($4::int IS NULL OR ((r.payload->>'minParty')::int<=$4 AND (r.payload->>'maxParty')::int>=$4 AND ${cost}<=100000000)) AND (($4::int IS NULL AND $6::date IS NULL AND $7::date IS NULL) OR ${available}) AND ($5::int IS NULL OR (r.payload->>'priceCentavos')::int<=$5)`;
   const values = [
     pattern,
     q.agencyId ?? null,
     q.mode ?? null,
     q.partySize ?? null,
     q.maxPriceCentavos ?? null,
+    q.dateFrom ?? null,
+    q.dateTo ?? null,
   ];
   const total = Number(
     (
@@ -460,29 +490,61 @@ export async function publicTours(input: unknown = {}) {
       )
     ).rows[0].n,
   );
-  const order =
+  let order =
     q.sort === "NAME"
       ? "lower(r.payload->>'title'),t.id"
-      : `(r.payload->>'priceCentavos')::int ${q.sort === "PRICE_ASC" ? "ASC" : "DESC"},t.id`;
+      : q.sort === "RECOMMENDED"
+        ? `${cost} ASC,t.id`
+        : `(r.payload->>'priceCentavos')::int ${q.sort === "PRICE_ASC" ? "ASC" : "DESC"},t.id`;
+  const rowValues = [...values];
+  if (q.sort === "RECOMMENDED" && q.budgetCentavos) {
+    rowValues.push(q.budgetCentavos);
+    order = `(${cost}<= $${rowValues.length}::bigint) DESC,${order}`;
+  }
   const rows = (
     await db.query(
-      `SELECT t.id,t.agency_id,r.payload,ar.payload->>'businessName' AS agency_name,(SELECT file_id FROM tour_revision_file WHERE tour_id=t.id AND revision=t.published_revision ORDER BY file_id LIMIT 1) AS photo_id ${publicJoin} WHERE ${filter} ORDER BY ${order} LIMIT $6 OFFSET $7`,
-      [...values, q.pageSize, (q.page - 1) * q.pageSize],
+      `SELECT t.id,t.agency_id,r.payload,ar.payload->>'businessName' AS agency_name,${cost} AS party_cost,(SELECT file_id FROM tour_revision_file WHERE tour_id=t.id AND revision=t.published_revision ORDER BY file_id LIMIT 1) AS photo_id ${publicJoin} WHERE ${filter} ORDER BY ${order} LIMIT $${rowValues.length + 1} OFFSET $${rowValues.length + 2}`,
+      [...rowValues, q.pageSize, (q.page - 1) * q.pageSize],
     )
   ).rows;
   return {
-    items: rows.map((r) => ({
-      id: String(r.id),
-      agencyId: String(r.agency_id),
-      agencyName: String(r.agency_name),
-      title: String(r.payload.title),
-      mode: r.payload.mode as TourInput["mode"],
-      serviceArea: String(r.payload.serviceArea),
-      priceCentavos: Number(r.payload.priceCentavos),
-      minParty: Number(r.payload.minParty),
-      maxParty: Number(r.payload.maxParty),
-      photoId: String(r.photo_id),
-    })),
+    items: rows.map((r) => {
+      const estimatedServiceCentavos = q.partySize
+          ? Number(r.party_cost)
+          : null,
+        reasons: string[] = [];
+      if (q.partySize || q.dateFrom || q.dateTo)
+        reasons.push(
+          "A published date has capacity for the requested party and departure range.",
+        );
+      else reasons.push("Select guests and departure dates to check capacity.");
+      if (q.partySize)
+        reasons.push(
+          r.payload.mode === "GROUP"
+            ? `Per-person rate multiplied by ${q.partySize} guests.`
+            : "The private rate is charged once for the whole party.",
+        );
+      if (q.budgetCentavos && estimatedServiceCentavos !== null)
+        reasons.push(
+          estimatedServiceCentavos <= q.budgetCentavos
+            ? "Service estimate fits your preferred budget."
+            : "Service estimate exceeds your preferred budget.",
+        );
+      return {
+        id: String(r.id),
+        agencyId: String(r.agency_id),
+        agencyName: String(r.agency_name),
+        title: String(r.payload.title),
+        mode: r.payload.mode as TourInput["mode"],
+        serviceArea: String(r.payload.serviceArea),
+        priceCentavos: Number(r.payload.priceCentavos),
+        minParty: Number(r.payload.minParty),
+        maxParty: Number(r.payload.maxParty),
+        photoId: String(r.photo_id),
+        estimatedServiceCentavos,
+        reasons,
+      };
+    }),
     total,
     page: q.page,
     pageCount: Math.max(1, Math.ceil(total / q.pageSize)),

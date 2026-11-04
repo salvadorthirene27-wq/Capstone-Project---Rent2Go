@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Save, FileUp } from "lucide-react";
 import { ApplicationSummary } from "@/components/application-summary";
+import { driverFeeUnitLabels } from "@/modules/pricing/units";
 import {
   serviceOptions,
   paymentOptions,
@@ -540,6 +541,30 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                       "bufferMinutes",
                     ] as const
                   ).map(numberField)}
+                  <label className="field">
+                    Driver fee unit
+                    <select
+                      value={data.driverFeeUnit ?? ""}
+                      onChange={(e) =>
+                        update(
+                          "driverFeeUnit",
+                          (e.target.value ||
+                            null) as ApplicationInput["driverFeeUnit"],
+                        )
+                      }
+                    >
+                      <option value="">
+                        Choose a unit for with-driver service
+                      </option>
+                      {Object.entries(driverFeeUnitLabels).map(
+                        ([value, label]) => (
+                          <option key={value} value={value}>
+                            {label}
+                          </option>
+                        ),
+                      )}
+                    </select>
+                  </label>
                   {field("inclusions", true)}
                   {field("exclusions", true)}
                   <p className="muted full">

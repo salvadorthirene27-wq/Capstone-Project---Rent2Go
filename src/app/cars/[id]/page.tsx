@@ -3,16 +3,37 @@ import { notFound } from "next/navigation";
 import { publicVehicle } from "@/modules/vehicles/service";
 import { DomainError } from "@/modules/partners/workflow";
 import { money } from "@/modules/partners/presentation";
+import {
+  rentalFilters,
+  queryString,
+  type RawFilters,
+} from "@/modules/marketplace/filters";
+import { searchVehicles } from "@/modules/marketplace/vehicles";
+import { driverFeeUnitLabels } from "@/modules/pricing/units";
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
+  searchParams,
 }: {
   params: Promise<{ id: string }>;
+  searchParams: Promise<RawFilters>;
 }) {
   const car = await publicVehicle((await params).id).catch((e) => {
     if (e instanceof DomainError && e.status === 404) notFound();
     throw e;
   });
+  const { query, error } = rentalFilters(await searchParams),
+    selected = query.startAt
+      ? (
+          await searchVehicles({
+            id: car.id,
+            startAt: query.startAt,
+            endAt: query.endAt,
+            mode: query.mode,
+            partySize: query.partySize,
+          })
+        ).items[0]
+      : null;
   return (
     <main id="main-content" className="public-main agency-profile">
       <Link className="back-link" href={`/agencies/${car.agencyId}`}>
@@ -25,6 +46,42 @@ export default async function Page({
         {car.facts.year} · {car.facts.seats} seats ·{" "}
         {car.facts.transmission.toLowerCase()} · {car.facts.fuel.toLowerCase()}
       </p>
+      {error && (
+        <p className="notice" role="alert">
+          {error}
+        </p>
+      )}
+      {query.startAt && (
+        <section className="notice">
+          <h2>Your selected dates</h2>
+          {selected?.estimate ? (
+            <>
+              <p>
+                {selected.estimateMode === "SELF_DRIVE"
+                  ? "Self-drive"
+                  : "With-driver"}{" "}
+                service estimate: {money(selected.estimate.serviceCentavos)} ·
+                Refundable deposit:{" "}
+                {money(selected.estimate.refundableDepositCentavos)} · Estimated
+                total: {money(selected.estimate.estimatedDueCentavos)}
+              </p>
+              <p>
+                No conflicting block was found. This is subject to the agency’s
+                document review, quotation, agreement and final availability
+                check.
+              </p>
+            </>
+          ) : (
+            <p>
+              This vehicle or a required driver does not match the selected
+              dates, mode or party size. Choose another interval or service.
+            </p>
+          )}
+          <Link href={`/rentals?${queryString(query)}`}>
+            Change dates or compare alternatives
+          </Link>
+        </section>
+      )}
       <div className="vehicle-photo-grid">
         {car.photoIds.map((id) => (
           <img
@@ -60,6 +117,14 @@ export default async function Page({
             }
           </p>
           <p>Refundable deposit: {money(car.pricing.depositCentavos)}</p>
+          {car.pricing.modes.includes("WITH_DRIVER") && (
+            <p>
+              Driver charge: {money(car.pricing.driverFeeCentavos)} ·{" "}
+              {car.pricing.driverFeeUnit
+                ? driverFeeUnitLabels[car.pricing.driverFeeUnit]
+                : "Unit not configured; revised agreement required"}
+            </p>
+          )}
           <p>
             {car.pricing.modes
               .map((m) => (m === "SELF_DRIVE" ? "Self-drive" : "With driver"))

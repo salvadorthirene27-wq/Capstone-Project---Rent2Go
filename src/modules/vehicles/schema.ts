@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { driverFeeUnitSchema } from "../pricing/units";
 import { validateVehicleShares, type VehicleOwnership } from "./workflow";
 export const vehicleFactsSchema = z
   .object({
@@ -41,6 +42,7 @@ export const vehicleTermsSchema = z
       .min(1)
       .max(2),
     driverFeeCentavos: cents.nullable(),
+    driverFeeUnit: driverFeeUnitSchema.nullable().default(null),
     inclusions: z.string().trim().min(1).max(4000),
     exclusions: z.string().trim().min(1).max(4000),
     agreementTerms: z.string().trim().min(10).max(8000),
@@ -56,6 +58,12 @@ export const vehicleTermsSchema = z
   })
   .strict()
   .superRefine((v, c) => {
+    if (v.modes.includes("WITH_DRIVER") && v.driverFeeUnit === null)
+      c.addIssue({
+        code: "custom",
+        path: ["driverFeeUnit"],
+        message: "Choose the driver fee unit for this agreement.",
+      });
     if (v.modes.includes("WITH_DRIVER") && v.driverFeeCentavos === null)
       c.addIssue({
         code: "custom",

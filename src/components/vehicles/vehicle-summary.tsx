@@ -1,5 +1,6 @@
 import type { VehicleFacts, VehicleTerms } from "@/modules/vehicles/schema";
 import { money } from "@/modules/partners/presentation";
+import { driverFeeUnitLabels } from "@/modules/pricing/units";
 export function VehicleSummary({
   facts,
   terms,
@@ -52,7 +53,10 @@ export function VehicleSummary({
           <div>
             <dt>Driver charge</dt>
             <dd>
-              {money(terms.driverFeeCentavos)} · basis specified by agreement
+              {money(terms.driverFeeCentavos)} ·{" "}
+              {terms.driverFeeUnit
+                ? driverFeeUnitLabels[terms.driverFeeUnit]
+                : "Fee unit not configured; revised agreement required"}
             </dd>
           </div>
         )}
