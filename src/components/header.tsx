@@ -56,6 +56,7 @@ export function Header() {
       setBusy(false);
     }
   }
+  if (pathname === "/") return null;
   return (
     <>
       <div className="demo-bar">

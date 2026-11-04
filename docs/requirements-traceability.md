@@ -1,6 +1,6 @@
 # Requirements and manuscript revision register
 
-Source: user-supplied 82-page `RENT2GO_MANUSCRIPT (1).pdf`. References are absolute PDF pages. Do not publish the original PDF or extracted private manuscript text in this repository. This register records requirements, not implementation or testing success.
+Authority updated 5 November 2026: user-approved 82-page `RENT2GO_REFINED_MANUSCRIPT.pdf`, SHA256 `3c6e8265f0b5ba96b54c92f6e654e3abd488a057ada98339f9a2843867521236`. References below are absolute PDF pages; the refined manuscript retains the original pagination. Keep private manuscript text outside this public repository. The revised body, together with user decisions, defines the unified system architecture. The preserved first 11 preliminary pages contain superseded scope wording. Current implementation evidence belongs in STATUS.md; the completion sequence is recorded in docs/superpowers/plans/2026-11-05-manuscript-completion.md.
 
 | Requirement | Source pages | Planned module/evidence |
 | --- | --- | --- |
@@ -31,7 +31,7 @@ Source: user-supplied 82-page `RENT2GO_MANUSCRIPT (1).pdf`. References are absol
 - Agency accommodation is the first implementation priority; application includes terms, pricing, and payment details.
 - Hardcoded **demo** payment simulations (e.g. card, GCash, PayPal) are authorized; no real gateway settlement is represented.
 
-## Manuscript revisions for user/adviser review
+## Historical revision decisions (now reflected in the approved manuscript)
 
 1. Revise abstract/company profile/problem/objectives/scope and client-specific descriptions for multiple agencies. The source interview history may remain accurately attributed; do not rewrite history to claim research with agencies not consulted.
 2. Remove GPS/geofencing from implemented features, objectives, workflow/use-case/architecture figures, tables, TST-10, conclusion and recommendations. Add the approved delimitation rationale. References need reconsideration where unused, rather than pretending integration occurred.
@@ -42,4 +42,4 @@ Source: user-supplied 82-page `RENT2GO_MANUSCRIPT (1).pdf`. References are absol
 
 ## Current evidence status
 
-Manuscript text and the relevant raster diagrams have been studied. New application implementation, new database schema, new provider integration tests, browser walkthroughs, and human acceptance have **not** been completed. Older repository tests do not validate the replacement system.
+The approved manuscript and revised workflow figures have been reviewed. New-system development evidence is recorded per module in STATUS.md; formal human usability results remain uncollected. Tests from Marc Albert's repository do not validate this system.

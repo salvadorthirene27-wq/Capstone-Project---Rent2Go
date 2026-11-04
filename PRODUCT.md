@@ -34,7 +34,7 @@ The immediate target is a local demonstration, with a new Neon database. Interne
 - Manual GCash receipt review and cash confirmation are manuscript workflows. The user additionally authorized clearly labeled demo payment simulations such as card, GCash, and PayPal; no live gateway settlement is claimed.
 - OCR assists an authorized human reviewer; it never approves identity or document authenticity.
 - GPS, geofencing, device integration, route history, and remote vehicle controls are excluded.
-- Start from the new repository and new database. Do not reuse the old environment file, database, source implementation, or main-branch files.
+- Start from the new repository and new database. Do not reuse the old environment file, database, or main-branch files. On 5 November 2026 the user explicitly authorized copying Marc Albert's develop landing UI and its referenced public assets for the home page; operational/authentication code remains the current system.
 - Sensitive renter documents, ownership documents, signatures, receipts, and inspection evidence require private storage and authorized access.
 - Default consigned-vehicle allocation approved by the user: Cosigner 70%, agency 10%, Rent2Go 10%, maintenance 10%. Agreements may alter these percentages and must total 100%. Agency applications cover payments to Rent2Go and methods accepted from renters. Preserve versioned snapshots.
 - Additional confirmed defaults: agency-owned cars allocate 80% agency / 10% Rent2Go / 10% maintenance; tour-only services allocate 90% agency / 10% Rent2Go. Agencies hold maintenance allocations separately for vehicle maintenance. The Cosigner's 70% share always applies to consigned cars; the agency-owned rule does not replace it.

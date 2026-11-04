@@ -1,0 +1,53 @@
+{
+  "repository": "https://github.com/marcalbertbinas/rent2go---Capstone",
+  "ref": "develop",
+  "commit": "c7c9e96",
+  "use": "Landing UI assets reused at the user request; original photographer/license metadata not provided.",
+  "assets": [
+    {
+      "file": "hero.jpg",
+      "sourcePath": "public/assets/hero.jpg",
+      "sha256": "9b287a2b31847071b9d6c62e72884353700aca14303f5c873d7a61d30129b9e6"
+    },
+    {
+      "file": "logo1.png",
+      "sourcePath": "public/assets/logo1.png",
+      "sha256": "6e463e19264cd90c28551108a60a5f3ea27f61668ea2d2deb13418da6070f285"
+    },
+    {
+      "file": "logo2.png",
+      "sourcePath": "public/assets/logo2.png",
+      "sha256": "dd02064ab3f7076221ba2790d4eed1725ad39cdf233ccf86a75e448bf6c47f85"
+    },
+    {
+      "file": "logo3.jpg",
+      "sourcePath": "public/assets/logo3.jpg",
+      "sha256": "9d771d0d049bbbf566e77e8ad34b56b60427ac6fbf71520504e4d3dce7f574da"
+    },
+    {
+      "file": "logo4.png",
+      "sourcePath": "public/assets/logo4.png",
+      "sha256": "5bef6a5495d5c1c8161113cdeb7530de0c64edc8c080339467fc447d99b22bd0"
+    },
+    {
+      "file": "logo5.png",
+      "sourcePath": "public/assets/logo5.png",
+      "sha256": "6d2a390f3a16212c8ba9d806983c55e46b2d921b0fb1bf2fa88039a31a8e2c09"
+    },
+    {
+      "file": "sedan.png",
+      "sourcePath": "public/assets/sedan.png",
+      "sha256": "e36bc0c75610cc4ffcb4acc5dc0f5ef64acbda6f97be82aed5aca4986dd3963c"
+    },
+    {
+      "file": "suv.png",
+      "sourcePath": "public/assets/suv.png",
+      "sha256": "dcb84a173eb39e527edb55f8954f32037e70d012c54f9e49f5950bcfe4f865da"
+    },
+    {
+      "file": "van.jpg",
+      "sourcePath": "public/assets/van.jpg",
+      "sha256": "dea3949684e36f412bf0ecfb6211ee6aaa5ba8e42cd82fe91b2504df44e3df7e"
+    }
+  ]
+}

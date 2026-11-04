@@ -1,8 +1,10 @@
 # Implementation and evidence status
 
-Updated4 November2026. This records development with synthetic data, not capstone usability findings.
+Updated5 November2026. Development resumed against the approved refined manuscript. This records development with synthetic data, not capstone usability findings.
 
 ## Working modules
+
+- Home page now retains Marc Albert's develop landing composition, original nine public assets, scoped original utility styles, font families and green/mint identity. Buttons route to the current rental, tour, agency, cart, partnership and account workflows. Mobile navigation supports forward keyboard access, Escape/focus restoration and a separate account row at narrow widths. Signup links open actual account creation. Source claims about Cosigners acting as guarantors, vehicle tracking, thousands of customers and24/7support were corrected. Asset provenance is recorded without inventing missing image licenses. No old authentication, database or operational code was imported.
 
 - Managed account sign-in/registration and server-owned roles; password recovery UI uses managed OTP. Actual recovery email delivery remains unverified.
 - Persistent six-section agency onboarding with private evidence, validated pricing/policies/payment preferences and configurable consigned shares. Reasons, corrections/resubmission, independent approval, immutable revisions/evidence/history and stale locks are implemented.
@@ -20,6 +22,8 @@ Updated4 November2026. This records development with synthetic data, not capston
 - Private new Neon project, managed Auth, S3 partner-evidence bucket, restricted runtime role and separate test database. Demo and test schemas now both have migrations001–013. Guarded migration013 grants new cart/request tables to existing restricted runtimes without requiring a setup rerun. No old environment/database is used.
 
 ## Verification observed
+
+- Home module:61unit/UIchecks pass, production build and TypeScript pass. Desktop and narrow browser views were observed; the corrected dropdown opens below account controls. All nine served landing assets match source SHA256 values. Independent bounded review identified two mobile navigation issues (wrapping/dropdown placement and forward keyboard focus); both were corrected and verified in source, with a keyboard regression. No unresolved important findings remain in that bounded review. Exact per-pixel comparison against a running source site is not established; do not claim pixel-perfect equivalence.
 
 - Latest full unit suite:57 checks pass. Prior cart checkpoint full database suite:66 checks pass; current booking module separately adds6 passing database cases and32 real HTTP checks across four demo roles. TypeScript, production build and restricted runtime reads pass. Booking cases cover concurrent retry, cross-agency rollback, foreign access, immutable allocations, changed published pricing and partial cart submission. Runtime-grant permission failure was reproduced and corrected through migration013. These are development checks, not usability or security certification.
 - Dedicated demo fixture setup passed68 real HTTP checks including four registrations/sign-ins, approved role transitions, publication, real S3 photo byte equality and scoped access denial. Cart HTTP evidence is recorded separately in local outputs; these are development checks, not usability findings.
