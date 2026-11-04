@@ -56,6 +56,8 @@
 
 ### Task 2: Vehicle ownership, offers and financial agreements
 
+**Checkpoint:** Backend rule/transaction foundation implemented and reviewed on the feature branch; migrations006–007 are test-database-only. Uploads, interfaces, queue discovery, actual restricted-role API/browser checks and resource-aware transfer/removal remain. Do not mark Task2 delivered from backend tests alone. Unpublication enters WITHDRAWN; returning requires owner resubmission/consent and independent review so an agency cannot override an owner/platform stop.
+
 - [ ] Write failing tests for normalized registration duplicates; owner-only edits; agency-only offer review; owner-only acceptance; share totals/category recipients; stale versions; and publication without all approvals.
 - [ ] Create physical vehicle identity and versioned listing/offer records. Agency-owned drafts require active agency access. A personal-owner draft always derives its owner from the actor; arbitrary owner IDs are rejected.
 - [ ] Implement draft → submission to selected agency → agency review/terms proposal → owner acceptance (for consigned cars) → platform compliance → explicit publication. Agency-owned inventory skips owner-agency negotiation but still needs platform compliance. Rejections/corrections retain reasons and old versions.

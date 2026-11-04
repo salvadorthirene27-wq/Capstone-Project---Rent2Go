@@ -64,3 +64,13 @@ GPS/geofencing is deliberately excluded. Standalone realtime chat and social OAu
 | Tour-only | — | 90% | 10% | — |
 
 The user confirmed these adjustable defaults and agency custody of a separate vehicle-maintenance reserve. The Cosigner's 70% applies to consigned cars; the agency-owned rule must never be applied to a Cosigner's car. Booking/vehicle agreements must snapshot the selected rates. Refundable deposits remain separate from service-revenue allocations.
+
+## Vehicle backend foundation (feature branch; not a delivered UI yet)
+
+The catalog feature branch now contains normalized physical-vehicle identity, derived personal/agency ownership, versioned offers, category-specific adjustable shares, agency proposals, exact-revision Cosigner acceptance, independent compliance decisions, explicit publication and durable withdrawal. Signed digests, submitted evidence references and state events are immutable. Effective agency service eligibility is rechecked before consent/approval/publication and in public projections. Actor/offer locks use a consistent order for concurrent approval and owner retries.
+
+This foundation is not yet connected to customer-facing vehicle screens or APIs. Migrations006–007 are applied only to the separate `rent2go_test` database; the local demo database still has migrations001–005. File rows in the backend integration tests are synthetic fixtures, not evidence of a working vehicle upload/S3 round trip. The partner-document S3 checks above remain separate.
+
+Additional evidence: 10 vehicle rule tests and nine live isolated vehicle scenarios pass, including durable owner withdrawal, approved agency service removal, immutable records and a deterministic concurrent approval/retry barrier. An independent review confirmed the three discovered defects were corrected with no remaining important findings in this backend scope. The entire current unit suite passes29 tests; the full integration suite passes27 tests and the final production build passes.
+
+Next: finish vehicle file authorization/upload/download, owner/agency/platform queues and screens, then exercise the real restricted-role APIs and browser workflow before delivering the vehicle module. Vehicle transfer/removal against booking claims, resource calendars/drivers/maintenance, tours, marketplace catalog search, cart, bookings, payments, fulfillment and accounting remain unfinished.
