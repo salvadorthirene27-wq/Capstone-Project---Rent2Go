@@ -19,7 +19,7 @@ export function validateEvidence(
     throw new DomainError(
       "The file content does not match a supported PDF, PNG or JPEG.",
     );
-  if (purpose === "GCASH_QR" && actual === "application/pdf")
-    throw new DomainError("Upload a PNG or JPEG image for the GCash QR.");
+  if (["GCASH_QR", "PHOTO"].includes(purpose) && actual === "application/pdf")
+    throw new DomainError("Upload a PNG or JPEG image for this purpose.");
   return actual;
 }

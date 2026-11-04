@@ -43,6 +43,14 @@ try {
   await pool.query(
     "GRANT SELECT,INSERT,UPDATE ON app_request_budget TO rent2go_app",
   );
+  await pool.query(`DO $$ BEGIN
+    IF to_regclass('public.agency_member') IS NOT NULL THEN GRANT SELECT,INSERT,UPDATE ON agency_member TO rent2go_app; END IF;
+    IF to_regclass('public.vehicle_offer') IS NOT NULL THEN
+      GRANT SELECT,INSERT ON physical_vehicle TO rent2go_app;
+      GRANT SELECT,INSERT,UPDATE ON vehicle_offer,vehicle_file TO rent2go_app;
+      GRANT SELECT,INSERT ON vehicle_revision,vehicle_agreement,vehicle_event,vehicle_revision_file TO rent2go_app;
+    END IF;
+  END $$`);
   const exists = (
     await pool.query("SELECT 1 FROM pg_database WHERE datname='rent2go_test'")
   ).rowCount;

@@ -1661,3 +1661,144 @@ td .text-link {
 .nav-signout:hover {
   background: #dcebe5;
 }
+
+/* Vehicle operations retain the shared green/mint workspace language. */
+.vehicle-editor {
+  max-width: 1040px;
+}
+.vehicle-editor fieldset,
+.workspace-main > fieldset {
+  border: 0;
+  margin: 0;
+  padding: 0;
+  min-width: 0;
+}
+.vehicle-editor label,
+.vehicle-create label,
+.vehicle-actions label {
+  display: grid;
+  gap: 7px;
+  margin-bottom: 18px;
+  font-size: 13px;
+  font-weight: 500;
+}
+.field-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0 22px;
+}
+.vehicle-editor form > h3 {
+  margin-top: 30px;
+}
+.vehicle-create {
+  max-width: 760px;
+}
+.vehicle-specs {
+  margin: 24px 0;
+}
+.vehicle-specs > div {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) minmax(0, 2fr);
+  gap: 18px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--line);
+}
+.vehicle-specs dt {
+  color: var(--muted);
+}
+.vehicle-specs dd {
+  margin: 0;
+}
+.vehicle-files {
+  list-style: none;
+  padding: 0;
+}
+.vehicle-files li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.vehicle-files a {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.vehicle-files strong {
+  display: block;
+  font-size: 13px;
+}
+.vehicle-upload {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 16px;
+  padding-top: 24px;
+}
+.vehicle-upload .button {
+  align-self: end;
+  justify-self: start;
+}
+.vehicle-actions .consent-row {
+  display: flex;
+  align-items: start;
+  gap: 12px;
+  max-width: 75ch;
+}
+.vehicle-actions .consent-row input {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.vehicle-actions .policy-disclosure {
+  margin-top: 24px;
+}
+.vehicle-actions button + button {
+  margin-left: 12px;
+}
+.vehicle-history {
+  padding-left: 22px;
+}
+.vehicle-history li {
+  padding: 14px 0;
+  border-bottom: 1px solid var(--line);
+}
+.vehicle-history small {
+  display: block;
+  color: var(--muted);
+}
+.digest {
+  overflow-wrap: anywhere;
+  font-size: 12px;
+  color: var(--muted);
+}
+.vehicle-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  margin: 30px 0;
+}
+.vehicle-photo-grid img {
+  width: 100%;
+  height: 300px;
+  object-fit: contain;
+  background: var(--soft);
+  border-radius: 12px;
+}
+@media (max-width: 760px) {
+  .field-grid,
+  .vehicle-upload,
+  .vehicle-photo-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .vehicle-files li {
+    align-items: start;
+    flex-direction: column;
+  }
+  .vehicle-specs > div {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 4px;
+  }
+  .vehicle-actions button {
+    margin: 6px 0 !important;
+  }
+}

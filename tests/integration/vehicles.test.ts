@@ -15,6 +15,11 @@ import {
   saveVehicleDraft,
   transitionVehicleOffer,
   publicVehicles,
+  listVehicleOffers,
+  authorizeVehicleUpload,
+  attachVehicleFile,
+  vehicleFileForRead,
+  removeVehicleFile,
 } from "../../src/modules/vehicles/service";
 import type { Actor } from "../../src/modules/partners/workflow";
 const owner: Actor = { id: randomUUID(), role: "RENTER" },
@@ -423,6 +428,222 @@ it("avoids an actor/offer lock cycle during approval and a concurrent owner retr
   expect(results[1].status).toBe("rejected");
   if (results[1].status === "rejected")
     expect(results[1].reason.status).toBe(409);
+}, 30000);
+it("discovers only authorized owned, agency and independent compliance queues", async () => {
+  const offer = await personal();
+  expect(
+    (await listVehicleOffers(owner, { scope: "OWNED" })).items.some(
+      (v) => v.id === offer.id,
+    ),
+  ).toBe(true);
+  expect(
+    (await listVehicleOffers(other, { scope: "OWNED" })).items.some(
+      (v) => v.id === offer.id,
+    ),
+  ).toBe(false);
+  await expect(
+    listVehicleOffers(
+      { ...other, role: "AGENCY_ADMIN" },
+      { scope: "AGENCY", agencyId },
+    ),
+  ).rejects.toMatchObject({ status: 403 });
+  await expect(
+    listVehicleOffers(
+      { ...other, role: "SUPER_ADMIN" },
+      { scope: "COMPLIANCE" },
+    ),
+  ).rejects.toMatchObject({ status: 403 });
+  expect(
+    (
+      await listVehicleOffers(operator, { scope: "AGENCY", agencyId })
+    ).items.some((v) => v.id === offer.id),
+  ).toBe(false);
+  await evidence(offer);
+  await transitionVehicleOffer(owner, offer.id, {
+    action: "SUBMIT",
+    version: offer.version,
+    revision: offer.revision,
+  });
+  expect(
+    (
+      await listVehicleOffers(operator, { scope: "AGENCY", agencyId })
+    ).items.some((v) => v.id === offer.id),
+  ).toBe(true);
+});
+it("binds upload metadata to the owning draft and exposes only approved published photo revisions", async () => {
+  let o = await personal();
+  const metadata = (purpose: "PHOTO" | "OWNERSHIP") => ({
+    id: randomUUID(),
+    purpose,
+    name: "synthetic-evidence.png",
+    mime: "image/png",
+    size: 10,
+    sha256: "0".repeat(64),
+    backend: "local",
+  });
+  await expect(
+    authorizeVehicleUpload(operator, o.id, o.version),
+  ).rejects.toMatchObject({ status: 403 });
+  await expect(
+    authorizeVehicleUpload(other, o.id, o.version),
+  ).rejects.toMatchObject({ status: 403 });
+  const ownership = metadata("OWNERSHIP");
+  let saved = await attachVehicleFile(owner, o.id, o.version, ownership);
+  o.version = saved.version;
+  const photo = metadata("PHOTO");
+  saved = await attachVehicleFile(owner, o.id, o.version, photo);
+  o.version = saved.version;
+  await expect(
+    attachVehicleFile(owner, o.id, o.version - 1, metadata("PHOTO")),
+  ).rejects.toMatchObject({ status: 409 });
+  await expect(vehicleFileForRead(null, photo.id)).rejects.toMatchObject({
+    status: 404,
+  });
+  await expect(vehicleFileForRead(other, ownership.id)).rejects.toMatchObject({
+    status: 404,
+  });
+  expect((await vehicleFileForRead(owner, ownership.id)).objectKey).toBe(
+    `${o.vehicleId}/${ownership.id}`,
+  );
+  o = await transitionVehicleOffer(owner, o.id, {
+    action: "SUBMIT",
+    version: o.version,
+    revision: o.revision,
+  });
+  await expect(
+    authorizeVehicleUpload(owner, o.id, o.version),
+  ).rejects.toMatchObject({ status: 409 });
+  expect((await vehicleFileForRead(operator, ownership.id)).mime).toBe(
+    "image/png",
+  );
+  o = await transitionVehicleOffer(operator, o.id, {
+    action: "PROPOSE",
+    version: o.version,
+    revision: o.revision,
+    terms: o.terms,
+  });
+  o = await transitionVehicleOffer(owner, o.id, {
+    action: "ACCEPT",
+    version: o.version,
+    revision: o.revision,
+  });
+  o = await transitionVehicleOffer(admin, o.id, {
+    action: "APPROVE",
+    version: o.version,
+    revision: o.revision,
+    reason: "Synthetic vehicle evidence reviewed.",
+  });
+  o = await transitionVehicleOffer(operator, o.id, {
+    action: "PUBLISH",
+    version: o.version,
+    revision: o.revision,
+  });
+  expect((await vehicleFileForRead(null, photo.id)).public).toBe(true);
+  await expect(vehicleFileForRead(null, ownership.id)).rejects.toMatchObject({
+    status: 404,
+  });
+  o = await transitionVehicleOffer(owner, o.id, {
+    action: "UNPUBLISH",
+    version: o.version,
+    revision: o.revision,
+    reason: "Withdraw the car from new requests.",
+  });
+  await expect(vehicleFileForRead(null, photo.id)).rejects.toMatchObject({
+    status: 404,
+  });
+  o = await transitionVehicleOffer(owner, o.id, {
+    action: "AMEND",
+    version: o.version,
+    revision: o.revision,
+  });
+  const removed = await removeVehicleFile(owner, o.id, o.version, photo.id);
+  o.version = removed.version;
+  expect(
+    (await vehicleDetail(owner, o.id)).files.find((f) => f.id === photo.id)
+      ?.is_current,
+  ).toBe(false);
+  expect((await vehicleDetail(owner, o.id)).revisions.length).toBe(2);
+}, 30000);
+it("keeps personal draft evidence private and shares corrected content only after resubmission", async () => {
+  let o = await personal();
+  const file = (purpose: "PHOTO" | "OWNERSHIP") => ({
+    id: randomUUID(),
+    purpose,
+    name: "private-draft.png",
+    mime: "image/png",
+    size: 10,
+    sha256: "1".repeat(64),
+    backend: "local",
+  });
+  const first = file("OWNERSHIP");
+  o.version = (await attachVehicleFile(owner, o.id, o.version, first)).version;
+  const photo = file("PHOTO");
+  o.version = (await attachVehicleFile(owner, o.id, o.version, photo)).version;
+  await expect(vehicleDetail(operator, o.id)).rejects.toMatchObject({
+    status: 404,
+  });
+  await expect(vehicleFileForRead(operator, first.id)).rejects.toMatchObject({
+    status: 404,
+  });
+  expect(
+    (
+      await listVehicleOffers(operator, { scope: "AGENCY", agencyId })
+    ).items.some((v) => v.id === o.id),
+  ).toBe(false);
+  o = await transitionVehicleOffer(owner, o.id, {
+    action: "SUBMIT",
+    version: o.version,
+    revision: o.revision,
+  });
+  o = await transitionVehicleOffer(operator, o.id, {
+    action: "REQUEST_CHANGES",
+    version: o.version,
+    revision: o.revision,
+    reason: "Please replace the unreadable ownership evidence.",
+  });
+  o = await saveVehicleDraft(owner, o.id, o.version, {
+    facts: { ...facts, description: "PRIVATE UNSUBMITTED CORRECTION" },
+    terms: o.terms,
+  });
+  const replacement = file("OWNERSHIP");
+  o.version = (
+    await attachVehicleFile(owner, o.id, o.version, replacement)
+  ).version;
+  const agencyView = await vehicleDetail(operator, o.id);
+  expect(agencyView.facts.description).toBe(facts.description);
+  expect(agencyView.files.some((f) => f.id === replacement.id)).toBe(false);
+  expect(agencyView.files.some((f) => f.id === first.id && f.is_current)).toBe(
+    true,
+  );
+  await expect(
+    vehicleFileForRead(operator, replacement.id),
+  ).rejects.toMatchObject({ status: 404 });
+  expect((await vehicleFileForRead(operator, first.id)).mime).toBe("image/png");
+  const agencyWithdrawal = await transitionVehicleOffer(operator, o.id, {
+    action: "UNPUBLISH",
+    version: o.version,
+    revision: o.revision,
+    reason: "Agency stops its review of this offer.",
+  });
+  expect(JSON.stringify(agencyWithdrawal)).not.toContain(
+    "PRIVATE UNSUBMITTED CORRECTION",
+  );
+  o = await transitionVehicleOffer(owner, o.id, {
+    action: "AMEND",
+    version: agencyWithdrawal.version,
+    revision: agencyWithdrawal.revision,
+  });
+  o = await transitionVehicleOffer(owner, o.id, {
+    action: "SUBMIT",
+    version: o.version,
+    revision: o.revision,
+  });
+  expect((await vehicleDetail(operator, o.id)).facts.description).toBe(
+    "PRIVATE UNSUBMITTED CORRECTION",
+  );
+  expect((await vehicleFileForRead(operator, replacement.id)).mime).toBe(
+    "image/png",
+  );
 }, 30000);
 it("withdraws vehicle modes that the effective approved agency policy no longer permits", async () => {
   async function approvedOffer() {

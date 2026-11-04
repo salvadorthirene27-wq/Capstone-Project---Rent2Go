@@ -143,7 +143,7 @@ export function decideVehicleTransition(
     return "PUBLISHED";
   if (
     action === "UNPUBLISH" &&
-    offer.state === "PUBLISHED" &&
+    offer.state !== "WITHDRAWN" &&
     (owner || actor.operatesAgency || independentReviewer)
   )
     return "WITHDRAWN";

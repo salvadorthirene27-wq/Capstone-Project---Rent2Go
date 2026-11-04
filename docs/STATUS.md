@@ -1,76 +1,40 @@
 # Implementation and evidence status
 
-Updated 4 November 2026. This is a development record, not a capstone usability result.
+Updated4 November2026. This records development with synthetic data, not capstone usability findings.
 
-## Working agency-onboarding slice
+## Working modules
 
-- Green/mint public introduction and partner guide; custom responsive sign-in and account creation.
-- Persistent six-section partner application: business/evidence, services, terms, pricing, payment methods, configurable 70/10/10/10 consigned shares, and review/consent.
-- Save/resume, field validation, stale-version protection, private registration/permit/GCash-QR evidence.
-- Super Admin pending queue, full pending count and pagination; review details, request corrections, reject or approve with reasons; no self-approval.
-- Immutable submitted policies/reviews and revision-specific evidence. Replacements supersede current files without deleting history.
-- Approval creates agency access. Further policy revisions retain the prior approved policy until replacement approval. Withdrawn applications may be revised and resubmitted without granting agency access.
-- Server-owned roles, cross-owner authorization, origin/body/type checks, database-backed request budgets, safe private downloads and audit records.
-- Dedicated new Neon PostgreSQL project, managed Auth, private S3 bucket, restricted runtime role and separate automated-test database. No old environment/database used.
+- Managed account sign-in/registration and server-owned roles; password recovery UI uses managed OTP. Actual recovery email delivery remains unverified.
+- Persistent six-section agency onboarding with private evidence, validated pricing/policies/payment preferences and configurable consigned shares. Reasons, corrections/resubmission, independent approval, immutable revisions/evidence/history and stale locks are implemented.
+- Approved agency directory with search/service filters/pagination; effective-policy-only profiles omit registration/identity evidence, settlement details and allocations. Membership-based workspaces and explicit application startup preserve renter/Cosigner context.
+- Personal and agency-owned vehicle drafts; normalized global registration identity; ownership evidence and photos; scoped owner/agency/platform queues; agency terms proposals; explicit exact-revision Cosigner consent; independent platform compliance; publication; durable withdrawal and revised submissions. Agency-owned cars skip Cosigner negotiation but still require compliance review.
+- Agencies see submitted snapshots, not unsubmitted personal drafts or replacement evidence. Uploads recheck owner/state/version before and after storage. Only photos in the approved published revision are anonymous; ownership evidence and withdrawn photos remain protected.
+- Signed digests, evidence references, decisions and history are immutable. Defaults remain consigned70/10/10/10, agency-owned80/10/10 and tour-only90/10, with100% accepted totals and deposits separate. Consigner role is granted after approved personal-vehicle compliance without overwriting other privileged roles.
+- Private new Neon project, managed Auth, S3 partner-evidence bucket, restricted runtime role and separate test database. Demo and test schemas now both have migrations001–007. No old environment/database is used.
 
-## Approved-agency discovery and workspace contexts
+## Verification observed
 
-- Public `/agencies` directory supports agency/service-area search, service filtering, alphabetical ordering and pagination. Profile pages show the effective approved terms, unit-specific starting rates, public business contacts and accepted payment method names.
-- Registration/representative details, private files, GCash account configuration, internal settlement preferences and financial allocations are excluded from the public projection. Unapproved amendments never replace the public policy.
-- Approval backfills/creates explicit owner memberships. Agency operating context requires actual ownership or an active membership and an active agency/owner; a Super Admin role alone does not grant operating access.
-- `/workspace` is a context chooser. `/workspace/application` preserves the saved application with explicit draft creation; visiting a workspace no longer creates an agency application.
-- Responsive navigation supports keyboard Escape, real agency links and recoverable provider sign-out errors.
-- Graphify workspace `gica-s-workspace` now indexes this repository. Its first query verified the source relationships at commit `8616e68`; local uncommitted work is not represented in that snapshot.
+- Full latest suites:34 unit/UI checks and30 isolated live database checks pass. TypeScript and production build pass. Tests include versioned consent, upload privacy, draft-edit preservation, immutable history, service eligibility, owner withdrawal and deterministic approval/retry contention.
+- Real local production API evidence:45 consigned-vehicle checks and13 agency-owned checks passed using new managed Auth/database and real S3 upload/downloads. They exercise forged ownership/tenant denial, pre-submission privacy, exact agreement revisions, independent compliance, publication, withdrawal and historical/replacement evidence. The agency-owned flow correctly has no Cosigner agreement and keeps category shares.
+- Earlier agency slice:19 storefront/context checks and25 onboarding checks passed; these are separate stage records, not a claim of full-system coverage.
+- Browser: desktop creation form and owner agreement screen; mobile layout/no overflow, explicit consent enabling/disabling, and version disclosures. Existing agency signup/save/reload/review navigation was previously exercised. Synthetic vehicle owner screenshots are retained in outputs.
+- Public bundle check53 JavaScript/map files found no configured database, cookie or S3 secret. Staged source scans run before commits.
+- Independent review identified and verified fixes for pre-submission privacy (including mutation responses) and dirty-edit loss from evidence removal, alongside the earlier service-eligibility/withdrawal/lock-order fixes. No important findings remain within the reviewed vehicle scope.
 
-## Evidence already observed
+## Still required
 
-- 19 unit/UI/configuration tests pass, including the delayed-save and already-pooled hostname regressions.
-- 18 isolated live database tests pass, including concurrent saves/decisions, historical policy/evidence, old pending queue records, revised approved agreements, reopening withdrawn applications, and concurrent rate limits.
-- TypeScript checks and the production build pass with the current `@neon/auth` 0.8.2 SDK.
-- 25 real local API checks passed in production mode using the restricted runtime role: authentication, cross-owner/private-file denial, foreign-origin denial, S3 upload/download byte equality, corrections, resubmission, approval, policy amendment and resulting role. Earlier synthetic signup/session checks also passed.
-- Browser: synthetic agency sign-in, business-form save, reload/session restoration, approved-state display, sign-out, Super Admin queue/all-applications/detail views. Desktop/mobile overflow checks passed. A reviewer-queue screenshot is retained with synthetic records.
-- Public-bundle checks found none of the configured database URLs, cookie secret or storage secret in public JavaScript/map files.
-- Fresh code review found three important issues (in-flight edit loss, evidence replacement ambiguity, queue truncation); regression tests were added and each fix passed. Explicit storage configuration and historical feedback display were also corrected.
+1. Resource calendars, drivers, maintenance/unavailability and transactional conflict constraints; resource-aware agency transfers/removal.
+2. Tours: group departures/per-person seats and private tours/per-party slots, package management and capacity.
+3. Complete marketplace filtering/sorting/details and explainable recommendations; persistent cart grouped by agency and booking requests.
+4. Full request/documents/human review/OCR/approval/quote/agreement lifecycle; manual cash/GCash and labeled demo payment transactions. Current agency methods are preferences, not a gateway transaction simulator.
+5. Release/return inspections and tour fulfillment; separate cancellation/refund/deposit reconciliation.
+6. Immutable earnings/commission/maintenance ledgers, withdrawals/payouts, reporting, notifications/outbox, account/privacy governance, vouchers (bonus), backup/restore exercise and complete role walkthroughs.
+7. Actual human testing/usability evidence and final Chapters4–5. Never fabricate results.
 
-The storefront/context slice additionally passed 19 production-mode HTTP checks for anonymous profiles, public projection privacy, literal wildcard search, validation, authenticated context selection and owner/foreign/reviewer operating boundaries. A fresh independent review found no actionable Task 1 findings. Desktop/mobile inspection exercised search empty states, navigation and policy disclosures; the search-icon spacing and mobile sign-out control were corrected in the bounded inspection pass.
+Ownership transfer is not exposed yet; withdrawing retains history and blocks agency republishing until a new reviewed submission. The public vehicle feed is a bounded interim view; comprehensive search/pagination/availability follows with the marketplace task.
 
-## Provider and dependency boundaries
+GPS/geofencing is excluded. Standalone realtime chat/social OAuth are deferred by the approved design. Local demo only; no real charges or public deployment. Graphify workspace gica-s-workspace is connected; its last confirmed index8616e68 does not represent current uncommitted feature work.
 
-The earlier SDK package was replaced by the current `@neon/auth` package documented by Neon. The production dependency audit now reports zero known vulnerabilities. This is a dependency audit result, not a general security certification. The build-only Windows filesystem fallback retries asynchronous EPERM directory creation synchronously with the same options and OS permissions; genuine failures still propagate.
+## Runtime notes
 
-Production-mode checks caught an already-pooled hostname being given a second pooler suffix during local setup. The normalizer now handles unpooled, pooled and duplicate-suffix inputs; its regression passes and the actual restricted-role S3/application workflow has been exercised. Migrations still use the separate owner connection.
-
-Password-recovery UI is implemented through managed email OTP methods, but actual email delivery/code receipt and human verification have not been demonstrated. Do not claim those external outcomes.
-
-## Required work remaining
-
-1. Vehicles, ownership/Cosigner partnerships, platform compliance, drivers and maintenance; tours and departure/private-slot capacity.
-2. Marketplace search/filter/sort/details, explainable rule-based recommendations, persistent booking cart grouped by agency, and request checkout.
-3. Booking state machine and transactional availability/capacity, requirement review/OCR, quotations, electronic agreements.
-4. Manual GCash/cash payment evidence and demo gateway transaction adapters (current form only collects method preferences; it does not execute a gateway simulation yet).
-5. Release/return inspections, tour-only fulfillment, cancellation/refund/deposit reconciliation.
-6. Immutable earnings/commission/maintenance ledgers and withdrawal/payout workflows.
-7. Operational reporting, notifications/email outbox, account/security/privacy governance, vouchers (rubric bonus), backup/restore exercise and role walkthrough evidence.
-8. Actual adviser-approved human testing/usability evaluation and final Chapters 4–5.
-
-GPS/geofencing is deliberately excluded. Standalone realtime chat and social OAuth were deferred in the approved design. Graphify is connected and its first indexed-source query has completed.
-
-## Confirmed financial defaults for upcoming modules
-
-| Service/ownership | Cosigner | Agency | Rent2Go | Maintenance reserve |
-| --- | ---: | ---: | ---: | ---: |
-| Consigned vehicle | 70% | 10% | 10% | 10% |
-| Agency-owned vehicle | — | 80% | 10% | 10% |
-| Tour-only | — | 90% | 10% | — |
-
-The user confirmed these adjustable defaults and agency custody of a separate vehicle-maintenance reserve. The Cosigner's 70% applies to consigned cars; the agency-owned rule must never be applied to a Cosigner's car. Booking/vehicle agreements must snapshot the selected rates. Refundable deposits remain separate from service-revenue allocations.
-
-## Vehicle backend foundation (feature branch; not a delivered UI yet)
-
-The catalog feature branch now contains normalized physical-vehicle identity, derived personal/agency ownership, versioned offers, category-specific adjustable shares, agency proposals, exact-revision Cosigner acceptance, independent compliance decisions, explicit publication and durable withdrawal. Signed digests, submitted evidence references and state events are immutable. Effective agency service eligibility is rechecked before consent/approval/publication and in public projections. Actor/offer locks use a consistent order for concurrent approval and owner retries.
-
-This foundation is not yet connected to customer-facing vehicle screens or APIs. Migrations006–007 are applied only to the separate `rent2go_test` database; the local demo database still has migrations001–005. File rows in the backend integration tests are synthetic fixtures, not evidence of a working vehicle upload/S3 round trip. The partner-document S3 checks above remain separate.
-
-Additional evidence: 10 vehicle rule tests and nine live isolated vehicle scenarios pass, including durable owner withdrawal, approved agency service removal, immutable records and a deterministic concurrent approval/retry barrier. An independent review confirmed the three discovered defects were corrected with no remaining important findings in this backend scope. The entire current unit suite passes29 tests; the full integration suite passes27 tests and the final production build passes.
-
-Next: finish vehicle file authorization/upload/download, owner/agency/platform queues and screens, then exercise the real restricted-role APIs and browser workflow before delivering the vehicle module. Vehicle transfer/removal against booking claims, resource calendars/drivers/maintenance, tours, marketplace catalog search, cart, bookings, payments, fulfillment and accounting remain unfinished.
+Use current @neon/auth0.8.2. The production dependency audit previously reported zero known vulnerabilities; it is not a security certification. Already-pooled hostname normalization and build-only Windows EPERM mkdir fallback have regressions/verification. New runtime table grants accompany migrations, with repeatable setup grants for existing tables. Never print or commit the ignored environment or synthetic account credentials.

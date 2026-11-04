@@ -56,16 +56,16 @@
 
 ### Task 2: Vehicle ownership, offers and financial agreements
 
-**Checkpoint:** Backend rule/transaction foundation implemented and reviewed on the feature branch; migrations006–007 are test-database-only. Uploads, interfaces, queue discovery, actual restricted-role API/browser checks and resource-aware transfer/removal remain. Do not mark Task2 delivered from backend tests alone. Unpublication enters WITHDRAWN; returning requires owner resubmission/consent and independent review so an agency cannot override an owner/platform stop.
+**Checkpoint:** Vehicle onboarding/review UI/API implemented; migrations006–007 now in demo and isolated test DBs. Full suites34 unit/UI and30 DB pass; real S3/API45 consigned and13 agency-owned checks pass. Agency draft privacy and mutation-response leaks fixed and reviewed. Withdrawal can stop an offer before publication. Resource-aware transfer/removal is the remaining cross-task dependency; do not expose transfer until resource/booking claims can be checked.
 
-- [ ] Write failing tests for normalized registration duplicates; owner-only edits; agency-only offer review; owner-only acceptance; share totals/category recipients; stale versions; and publication without all approvals.
-- [ ] Create physical vehicle identity and versioned listing/offer records. Agency-owned drafts require active agency access. A personal-owner draft always derives its owner from the actor; arbitrary owner IDs are rejected.
-- [ ] Implement draft → submission to selected agency → agency review/terms proposal → owner acceptance (for consigned cars) → platform compliance → explicit publication. Agency-owned inventory skips owner-agency negotiation but still needs platform compliance. Rejections/corrections retain reasons and old versions.
-- [ ] Configure rates/billing units/deposits/driver modes and category-appropriate share defaults. A Cosigner's accepted agreement snapshots the version; agency cannot accept for them. The Super Admin reviews changes to platform commission as part of the submitted version.
+- [x] Write failing tests for normalized registration duplicates; owner-only edits; agency-only offer review; owner-only acceptance; share totals/category recipients; stale versions; and publication without all approvals.
+- [x] Create physical vehicle identity and versioned listing/offer records. Agency-owned drafts require active agency access. A personal-owner draft always derives its owner from the actor; arbitrary owner IDs are rejected.
+- [x] Implement draft → submission to selected agency → agency review/terms proposal → owner acceptance (for consigned cars) → platform compliance → explicit publication. Agency-owned inventory skips owner-agency negotiation but still needs platform compliance. Rejections/corrections retain reasons and old versions.
+- [x] Configure rates/billing units/deposits/driver modes and category-appropriate share defaults. A Cosigner's accepted agreement snapshots the version; agency cannot accept for them. The Super Admin reviews changes to platform commission as part of the submitted version.
 - [ ] One active offer per physical car; global normalized registration prevents duplicate inventory. Unpublication preserves ownership/history. Transfers/removal must be blocked against active resource claims rather than deleting evidence.
-- [ ] Grant the Cosigner primary role only through the approved personal-vehicle workflow when the actor is still a Renter; ownership-based capabilities also allow legitimate agency users to manage their own personal vehicles without global privilege escalation.
-- [ ] Add private ownership/photo uploads and revision snapshots. Only approved-published photo purposes are anonymously readable; ownership evidence is limited to owner, assigned authorized reviewer, or Super Admin, with audit.
-- [ ] Build agency/owner/platform review screens preserving the incumbent interface. Verify cross-tenant direct API attempts and upload purpose boundaries; run meaningful tests and commit.
+- [x] Grant the Cosigner primary role only through the approved personal-vehicle workflow when the actor is still a Renter; ownership-based capabilities also allow legitimate agency users to manage their own personal vehicles without global privilege escalation.
+- [x] Add private ownership/photo uploads and revision snapshots. Only approved-published photo purposes are anonymously readable; ownership evidence is limited to owner, assigned authorized reviewer, or Super Admin, with audit.
+- [x] Build agency/owner/platform review screens preserving the incumbent interface. Verify cross-tenant direct API attempts and upload purpose boundaries; run meaningful tests and commit.
 
 ### Task 3: Resource calendars, drivers and maintenance
 

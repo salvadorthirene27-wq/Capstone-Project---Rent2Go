@@ -25,3 +25,9 @@ it("accepts a matching signature and denies disguised content, empty and oversiz
     validateEvidence(Buffer.from("%PDF-1.7"), "application/pdf", "GCASH_QR"),
   ).toThrow(/image/i);
 });
+
+it("requires an image for a public vehicle photo", () => {
+  expect(() =>
+    validateEvidence(Buffer.from("%PDF-1.7"), "application/pdf", "PHOTO"),
+  ).toThrow();
+});

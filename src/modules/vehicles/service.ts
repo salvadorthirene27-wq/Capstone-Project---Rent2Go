@@ -182,10 +182,13 @@ export async function vehicleDetail(actor: Actor, id: string) {
     const user = await actorInTransaction(c, actor),
       row = await findOffer(c, id),
       context = await agencyContext(c, user, row.agency_id);
+    const isOwner = ownerCapability(user, row, context.operatesAgency);
+    const agencySnapshot =
+      context.operatesAgency && !isOwner && user.role !== "SUPER_ADMIN";
     if (
-      !ownerCapability(user, row, context.operatesAgency) &&
-      !context.operatesAgency &&
-      user.role !== "SUPER_ADMIN"
+      !isOwner &&
+      user.role !== "SUPER_ADMIN" &&
+      (!context.operatesAgency || row.revision === 0)
     )
       throw new DomainError("Vehicle offer not found.", 404);
     const revisions = (
@@ -212,7 +215,49 @@ export async function vehicleDetail(actor: Actor, id: string) {
         [row.vehicle_id],
       )
     ).rows;
-    return { ...view(row), revisions, agreements, events, files };
+    const revisionFiles = (
+      await c.query(
+        "SELECT rf.revision,f.id,f.purpose,f.original_name FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id WHERE rf.offer_id=$1 ORDER BY rf.revision,f.created_at",
+        [id],
+      )
+    ).rows;
+    const submitted = revisions.find((r) => r.revision === row.revision);
+    const submittedFileIds = new Set(
+      revisionFiles.filter((f) => f.revision === row.revision).map((f) => f.id),
+    );
+    return {
+      ...view(
+        agencySnapshot && submitted
+          ? {
+              ...row,
+              draft_facts: submitted.facts,
+              draft_terms: submitted.terms,
+            }
+          : row,
+      ),
+      viewMode: agencySnapshot ? "SUBMITTED_SNAPSHOT" : "OWNER_DRAFT",
+      agencyName: context.policy.businessName,
+      revisions: revisions.map((r) => ({
+        ...r,
+        files: revisionFiles.filter((f) => f.revision === r.revision),
+      })),
+      agreements,
+      events,
+      files: agencySnapshot
+        ? files
+            .filter((f) => submittedFileIds.has(f.id))
+            .map((f) => ({ ...f, is_current: true }))
+        : files,
+      capabilities: {
+        isOwner: ownerCapability(user, row, context.operatesAgency),
+        isAgency: context.operatesAgency,
+        independentReviewer:
+          user.role === "SUPER_ADMIN" &&
+          !context.operatesAgency &&
+          user.id !== row.owner_actor_id,
+        agencyActive: context.active,
+      },
+    };
   });
 }
 export async function saveVehicleDraft(
@@ -325,6 +370,16 @@ export async function transitionVehicleOffer(
     const row = await findOffer(c, id, true),
       user = await actorInTransaction(c, actor),
       context = await agencyContext(c, user, row.agency_id);
+    if (
+      row.ownership === "CONSIGNED" &&
+      row.revision === 0 &&
+      row.owner_actor_id !== user.id &&
+      user.role !== "SUPER_ADMIN"
+    )
+      throw new DomainError(
+        "This personal draft has not been submitted to the agency.",
+        403,
+      );
     const next = decideVehicleTransition(
       { ...user, operatesAgency: context.operatesAgency },
       {
@@ -452,13 +507,35 @@ export async function transitionVehicleOffer(
       previousState: row.state,
       nextState: next,
     });
-    return view(await findOffer(c, id));
+    const updated = await findOffer(c, id);
+    if (
+      !ownerCapability(user, updated, context.operatesAgency) &&
+      user.role !== "SUPER_ADMIN"
+    ) {
+      const submitted = (
+        await c.query(
+          "SELECT facts,terms FROM vehicle_revision WHERE offer_id=$1 AND revision=$2",
+          [id, updated.revision],
+        )
+      ).rows[0];
+      if (!submitted)
+        throw new DomainError("Submitted vehicle version not found.", 404);
+      return view({
+        ...updated,
+        draft_facts: submitted.facts,
+        draft_terms: submitted.terms,
+      });
+    }
+    return view(updated);
   });
 }
-export async function publicVehicles() {
+export async function publicVehicles(id?: string, agencyId?: string) {
+  if (id) idSchema.parse(id);
+  if (agencyId) idSchema.parse(agencyId);
   const rows = (
     await db.query(
-      "SELECT o.id,o.agency_id,r.facts,r.terms,r.revision FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN agency a ON a.id=o.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor ao ON ao.id=a.owner_id LEFT JOIN app_actor vo ON vo.id=v.owner_actor_id JOIN vehicle_revision r ON r.offer_id=o.id AND r.revision=o.approved_revision WHERE o.state='PUBLISHED' AND o.revision=o.approved_revision AND (r.terms->'modes') <@ (ar.payload->'services') AND a.active AND NOT ao.suspended AND NOT ao.is_test_fixture AND (v.owner_actor_id IS NULL OR (NOT vo.suspended AND NOT vo.is_test_fixture)) ORDER BY o.id LIMIT 100",
+      "SELECT o.id,o.agency_id,r.facts,r.terms,r.revision,ar.payload->>'businessName' AS agency_name,COALESCE((SELECT jsonb_agg(f.id ORDER BY f.created_at,f.id) FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id WHERE rf.offer_id=o.id AND rf.revision=o.approved_revision AND f.purpose='PHOTO'),'[]'::jsonb) AS photo_ids FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN agency a ON a.id=o.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor ao ON ao.id=a.owner_id LEFT JOIN app_actor vo ON vo.id=v.owner_actor_id JOIN vehicle_revision r ON r.offer_id=o.id AND r.revision=o.approved_revision WHERE o.state='PUBLISHED' AND o.revision=o.approved_revision AND (r.terms->'modes') <@ (ar.payload->'services') AND a.active AND NOT ao.suspended AND NOT ao.is_test_fixture AND (v.owner_actor_id IS NULL OR (NOT vo.suspended AND NOT vo.is_test_fixture)) AND ($1::uuid IS NULL OR o.id=$1) AND ($2::uuid IS NULL OR o.agency_id=$2) ORDER BY o.id LIMIT 100",
+      [id ?? null, agencyId ?? null],
     )
   ).rows;
   return rows.map((row) => {
@@ -466,6 +543,8 @@ export async function publicVehicles() {
     return {
       id: row.id,
       agencyId: row.agency_id,
+      agencyName: String(row.agency_name),
+      photoIds: row.photo_ids as string[],
       revision: row.revision,
       facts: row.facts as VehicleFacts,
       pricing: {
@@ -479,4 +558,283 @@ export async function publicVehicles() {
       },
     };
   });
+}
+
+export const vehicleQueueSchema = z
+  .object({
+    scope: z.enum(["OWNED", "AGENCY", "COMPLIANCE"]).default("OWNED"),
+    agencyId: z.uuid().optional(),
+    state: z
+      .enum([
+        "DRAFT",
+        "SUBMITTED",
+        "AGREEMENT_PENDING",
+        "COMPLIANCE_REVIEW",
+        "APPROVED",
+        "PUBLISHED",
+        "CHANGES_REQUESTED",
+        "REJECTED",
+        "WITHDRAWN",
+      ])
+      .optional(),
+    page: z.coerce.number().int().min(1).max(10000).default(1),
+    pageSize: z.coerce.number().int().min(1).max(48).default(12),
+  })
+  .strict();
+export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
+  const q = vehicleQueueSchema.parse(input);
+  return transaction(async (c) => {
+    const user = await actorInTransaction(c, actor);
+    let scope: string, params: unknown[];
+    if (q.scope === "COMPLIANCE") {
+      if (user.role !== "SUPER_ADMIN")
+        throw new DomainError("Platform review access required.", 403);
+      scope =
+        "v.owner_actor_id IS DISTINCT FROM $1 AND a.owner_id<>$1 AND NOT EXISTS(SELECT 1 FROM agency_member m WHERE m.agency_id=a.id AND m.actor_id=$1 AND m.active)";
+      params = [user.id];
+    } else if (q.scope === "AGENCY") {
+      if (
+        !q.agencyId ||
+        !(await agencyContext(c, user, q.agencyId)).operatesAgency
+      )
+        throw new DomainError("Active agency access required.", 403);
+      scope =
+        "o.agency_id=$1::uuid AND (v.ownership='AGENCY_OWNED' OR (o.revision>0 AND o.state<>'DRAFT'))";
+      params = [q.agencyId];
+    } else {
+      scope = "v.owner_actor_id=$1";
+      params = [user.id];
+    }
+    params.push(
+      q.state ?? (q.scope === "COMPLIANCE" ? "COMPLIANCE_REVIEW" : null),
+    );
+    const joins =
+      "FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN agency a ON a.id=o.agency_id JOIN app_actor ao ON ao.id=a.owner_id JOIN partner_revision ap ON ap.application_id=a.application_id AND ap.revision=a.approved_revision LEFT JOIN vehicle_revision vr ON vr.offer_id=o.id AND vr.revision=o.revision";
+    const where = `(${scope}) AND NOT ao.is_test_fixture AND ($2::text IS NULL OR o.state=$2)`;
+    const total = Number(
+      (await c.query(`SELECT count(*) AS n ${joins} WHERE ${where}`, params))
+        .rows[0].n,
+    );
+    const rows = (
+      await c.query<
+        OfferRow & {
+          agency_name: string;
+          submitted_facts: VehicleFacts | null;
+          submitted_terms: VehicleTerms | null;
+        }
+      >(
+        `SELECT o.*,v.ownership,v.owner_actor_id,v.owner_agency_id,v.registration_normalized,ap.payload->>'businessName' AS agency_name,vr.facts AS submitted_facts,vr.terms AS submitted_terms ${joins} WHERE ${where} ORDER BY o.updated_at DESC,o.id LIMIT $3 OFFSET $4`,
+        [...params, q.pageSize, (q.page - 1) * q.pageSize],
+      )
+    ).rows;
+    return {
+      items: rows.map((r) => ({
+        ...view(
+          q.scope === "AGENCY" &&
+            r.ownership === "CONSIGNED" &&
+            r.owner_actor_id !== user.id &&
+            r.submitted_facts &&
+            r.submitted_terms
+            ? {
+                ...r,
+                draft_facts: r.submitted_facts,
+                draft_terms: r.submitted_terms,
+              }
+            : r,
+        ),
+        agencyName: r.agency_name,
+      })),
+      total,
+      page: q.page,
+      pageCount: Math.max(1, Math.ceil(total / q.pageSize)),
+    };
+  });
+}
+async function editableVehicle(
+  c: PoolClient,
+  actor: Actor,
+  id: string,
+  version: number,
+) {
+  const row = await findOffer(c, id, true),
+    user = await actorInTransaction(c, actor),
+    context = await agencyContext(c, user, row.agency_id);
+  if (!ownerCapability(user, row, context.operatesAgency))
+    throw new DomainError(
+      "Only the vehicle owner can upload or remove evidence.",
+      403,
+    );
+  if (row.version !== version)
+    throw new DomainError(
+      "This vehicle draft changed. Reload before uploading.",
+      409,
+    );
+  if (!["DRAFT", "CHANGES_REQUESTED"].includes(row.state))
+    throw new DomainError(
+      "Evidence is locked for review. Start a new draft to change it.",
+      409,
+    );
+  return { row, user };
+}
+export async function authorizeVehicleUpload(
+  actor: Actor,
+  id: string,
+  version: number,
+) {
+  return transaction(async (c) => {
+    const { row } = await editableVehicle(c, actor, id, version);
+    return { vehicleId: row.vehicle_id };
+  });
+}
+const fileMetadataSchema = z
+  .object({
+    id: z.uuid(),
+    purpose: z.enum(["OWNERSHIP", "PHOTO"]),
+    name: z.string().min(1).max(160),
+    mime: z.enum(["application/pdf", "image/png", "image/jpeg"]),
+    size: z.number().int().min(1).max(8388608),
+    sha256: z.string().regex(/^[a-f0-9]{64}$/),
+    backend: z.enum(["local", "s3"]),
+  })
+  .strict();
+/** Internal metadata, constructed after validated file bytes are stored; never deserialize this from a client request. */
+export async function attachVehicleFile(
+  actor: Actor,
+  id: string,
+  version: number,
+  input: unknown,
+) {
+  const f = fileMetadataSchema.parse(input);
+  if (f.purpose === "PHOTO" && f.mime === "application/pdf")
+    throw new DomainError("A vehicle photo must be PNG or JPEG.");
+  return transaction(async (c) => {
+    const { row, user } = await editableVehicle(c, actor, id, version);
+    if (
+      f.purpose === "PHOTO" &&
+      Number(
+        (
+          await c.query(
+            "SELECT count(*) AS n FROM vehicle_file WHERE vehicle_id=$1 AND purpose='PHOTO' AND is_current",
+            [row.vehicle_id],
+          )
+        ).rows[0].n,
+      ) >= 10
+    )
+      throw new DomainError("Keep at most 10 current vehicle photos.");
+    if (f.purpose === "OWNERSHIP")
+      await c.query(
+        "UPDATE vehicle_file SET is_current=false WHERE vehicle_id=$1 AND purpose='OWNERSHIP' AND is_current",
+        [row.vehicle_id],
+      );
+    await c.query(
+      "INSERT INTO vehicle_file(id,vehicle_id,uploader_id,purpose,object_key,original_name,mime,size_bytes,sha256,backend) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+      [
+        f.id,
+        row.vehicle_id,
+        user.id,
+        f.purpose,
+        `${row.vehicle_id}/${f.id}`,
+        f.name,
+        f.mime,
+        f.size,
+        f.sha256,
+        f.backend,
+      ],
+    );
+    await c.query(
+      "UPDATE vehicle_offer SET version=version+1,updated_at=now() WHERE id=$1",
+      [id],
+    );
+    await audit(c, user, "VEHICLE_FILE_UPLOADED", id, {
+      fileId: f.id,
+      purpose: f.purpose,
+    });
+    return { id: f.id, version: version + 1 };
+  });
+}
+export async function removeVehicleFile(
+  actor: Actor,
+  id: string,
+  version: number,
+  fileId: string,
+) {
+  idSchema.parse(fileId);
+  return transaction(async (c) => {
+    const { row, user } = await editableVehicle(c, actor, id, version);
+    const result = await c.query(
+      "UPDATE vehicle_file SET is_current=false WHERE vehicle_id=$1 AND id=$2 AND is_current RETURNING id",
+      [row.vehicle_id, fileId],
+    );
+    if (!result.rowCount)
+      throw new DomainError("Current vehicle file not found.", 404);
+    await c.query(
+      "UPDATE vehicle_offer SET version=version+1,updated_at=now() WHERE id=$1",
+      [id],
+    );
+    await audit(c, user, "VEHICLE_FILE_REMOVED_FROM_DRAFT", id, { fileId });
+    return { version: version + 1 };
+  });
+}
+export async function vehicleFileForRead(actor: Actor | null, fileId: string) {
+  if (!idSchema.safeParse(fileId).success)
+    throw new DomainError("File not found.", 404);
+  return transaction(async (c) => {
+    const f = (
+      await c.query(
+        "SELECT f.*,o.id AS offer_id FROM vehicle_file f JOIN vehicle_offer o ON o.vehicle_id=f.vehicle_id WHERE f.id=$1",
+        [fileId],
+      )
+    ).rows[0];
+    if (!f) throw new DomainError("File not found.", 404);
+    const published =
+      f.purpose === "PHOTO" &&
+      Boolean(
+        (
+          await c.query(
+            "SELECT 1 FROM vehicle_revision_file rf JOIN vehicle_offer o ON o.id=rf.offer_id AND o.approved_revision=rf.revision JOIN vehicle_revision r ON r.offer_id=o.id AND r.revision=o.approved_revision JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN agency a ON a.id=o.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor ao ON ao.id=a.owner_id LEFT JOIN app_actor vo ON vo.id=v.owner_actor_id WHERE rf.file_id=$1 AND o.state='PUBLISHED' AND o.revision=o.approved_revision AND (r.terms->'modes') <@ (ar.payload->'services') AND a.active AND NOT ao.suspended AND NOT ao.is_test_fixture AND (v.owner_actor_id IS NULL OR (NOT vo.suspended AND NOT vo.is_test_fixture))",
+            [fileId],
+          )
+        ).rowCount,
+      );
+    if (!published) {
+      if (!actor) throw new DomainError("File not found.", 404);
+      const user = await actorInTransaction(c, actor),
+        row = await findOffer(c, f.offer_id),
+        context = await agencyContext(c, user, row.agency_id);
+      const submittedToAgency =
+        context.operatesAgency &&
+        Boolean(
+          (
+            await c.query(
+              "SELECT 1 FROM vehicle_revision_file WHERE offer_id=$1 AND file_id=$2 LIMIT 1",
+              [row.id, fileId],
+            )
+          ).rowCount,
+        );
+      if (
+        !ownerCapability(user, row, context.operatesAgency) &&
+        user.role !== "SUPER_ADMIN" &&
+        !submittedToAgency
+      )
+        throw new DomainError("File not found.", 404);
+      await audit(c, user, "VEHICLE_PRIVATE_FILE_DOWNLOADED", f.offer_id, {
+        fileId,
+      });
+    }
+    return {
+      objectKey: String(f.object_key),
+      mime: String(f.mime),
+      name: String(f.original_name),
+      backend: String(f.backend),
+      public: published,
+    };
+  });
+}
+
+export async function publicVehicle(id: string) {
+  if (!idSchema.safeParse(id).success)
+    throw new DomainError("Vehicle not found.", 404);
+  const vehicle = (await publicVehicles(id))[0];
+  if (!vehicle) throw new DomainError("Vehicle not found.", 404);
+  return vehicle;
 }

@@ -82,9 +82,9 @@ export default function Home() {
       <section className="notice public-section">
         <h2>Marketplace catalog is in development</h2>
         <p>
-          The current working module is agency application and review. Vehicle
-          listings, tour browsing, booking carts, and checkout will follow as
-          the remaining modules are implemented.
+          Approved agency profiles and reviewed vehicle partnerships are
+          available. Tour browsing, booking requests, carts and checkout are
+          still being built.
         </p>
         <Link className="text-link" href="/partners">
           See how agency partnership works <ArrowRight size={17} />

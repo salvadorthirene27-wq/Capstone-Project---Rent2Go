@@ -10,8 +10,7 @@ export default function Login() {
           next chapter.
         </h1>
         <p>
-          Manage your partnership application and build your agency’s place in
-          the marketplace.
+          Manage agency applications, vehicle partnerships and your workspace.
         </p>
       </aside>
       <AuthForm />

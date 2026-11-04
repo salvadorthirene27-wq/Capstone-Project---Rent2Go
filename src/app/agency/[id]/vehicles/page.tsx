@@ -1,0 +1,44 @@
+import Link from "next/link";
+import { Workspace } from "@/components/workspace";
+import { VehicleQueue } from "@/components/vehicles/vehicle-queue";
+import { pageActor } from "@/lib/page-actor";
+import { requireAgencyAccess } from "@/modules/agencies/service";
+export const dynamic = "force-dynamic";
+export default async function Page({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>;
+  searchParams: Promise<{ page?: string }>;
+}) {
+  const actor = await pageActor(),
+    agency = await requireAgencyAccess(actor, (await params).id),
+    q = await searchParams,
+    page = Math.min(10000, Math.max(1, parseInt(q.page ?? "1", 10) || 1));
+  return (
+    <Workspace actor={actor}>
+      <Link className="back-link" href={`/agency/${agency.id}`}>
+        Agency workspace
+      </Link>
+      <div className="page-title">
+        <div>
+          <h1>{agency.name} vehicles</h1>
+          <p>
+            Review Cosigner submissions, propose agreements and manage
+            agency-owned cars.
+          </p>
+        </div>
+        <Link className="button" href={`/agency/${agency.id}/vehicles/new`}>
+          Add agency-owned car
+        </Link>
+      </div>
+      <VehicleQueue
+        actor={actor}
+        scope="AGENCY"
+        agencyId={agency.id}
+        page={page}
+        basePath={`/agency/${agency.id}/vehicles`}
+      />
+    </Workspace>
+  );
+}

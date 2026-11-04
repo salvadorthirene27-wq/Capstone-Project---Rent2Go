@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { MapPin, Mail, Phone, ArrowLeft } from "lucide-react";
+import { publicVehicles } from "@/modules/vehicles/service";
 import { publicAgency } from "@/modules/agencies/service";
 import { DomainError } from "@/modules/partners/workflow";
 import {
@@ -18,6 +19,7 @@ export default async function Page({
     if (e instanceof DomainError && e.status === 404) notFound();
     throw e;
   });
+  const cars = await publicVehicles(undefined, agency.id);
   const rates = agency.startingRates,
     unit = {
       "24_HOUR": "per 24 hours",
@@ -45,6 +47,41 @@ export default async function Page({
       </header>
       <div className="profile-layout">
         <div>
+          <section className="profile-section">
+            <h2>Published vehicles</h2>
+            {cars.length ? (
+              <div className="directory-list">
+                {cars.map((car) => (
+                  <article className="agency-row" key={car.id}>
+                    <div>
+                      <h3>
+                        {car.facts.make} {car.facts.model}
+                      </h3>
+                      <p>
+                        {car.facts.seats} seats ·{" "}
+                        {money(car.pricing.rateCentavos)} /{" "}
+                        {car.pricing.billingUnit
+                          .replaceAll("_", " ")
+                          .toLowerCase()}
+                      </p>
+                    </div>
+                    <Link href={`/cars/${car.id}`}>View vehicle</Link>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <p>No published vehicles available from this agency yet.</p>
+            )}
+            {agency.services.some(
+              (s) => s === "SELF_DRIVE" || s === "WITH_DRIVER",
+            ) && (
+              <p>
+                <Link href={`/workspace/vehicles/new?agency=${agency.id}`}>
+                  Offer your personal car to this agency
+                </Link>
+              </p>
+            )}
+          </section>
           <section className="profile-section">
             <h2>Starting rates, with clear units.</h2>
             <p>

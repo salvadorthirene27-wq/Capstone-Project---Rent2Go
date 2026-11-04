@@ -239,3 +239,16 @@ it("does not let an agency republish an owner or platform withdrawal", () => {
     ),
   ).toBe("DRAFT");
 });
+
+it("allows an owner to withdraw a submitted car before it reaches publication", () => {
+  expect(
+    decideVehicleTransition(
+      owner,
+      base,
+      "UNPUBLISH",
+      2,
+      1,
+      "I am withdrawing this car from the agency.",
+    ),
+  ).toBe("WITHDRAWN");
+});

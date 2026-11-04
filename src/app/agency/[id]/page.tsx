@@ -69,9 +69,12 @@ export default async function Page({
       </section>
       <section className="context-section">
         <h2>Service inventory</h2>
+        <Link className="button" href={`/agency/${agency.id}/vehicles`}>
+          Manage vehicle inventory
+        </Link>
         <p>
-          Vehicle and tour listing setup is the next module being built. Your
-          approved profile is available now.
+          Review submitted cars, agree owner terms and publish compliant
+          inventory.
         </p>
       </section>
     </Workspace>

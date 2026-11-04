@@ -1,5 +1,11 @@
 import Link from "next/link";
-import { Building2, ClipboardList, Home, ShieldCheck } from "lucide-react";
+import {
+  Building2,
+  ClipboardList,
+  Home,
+  ShieldCheck,
+  CarFront,
+} from "lucide-react";
 import type { Actor } from "@/modules/partners/workflow";
 export function Workspace({
   actor,
@@ -22,12 +28,20 @@ export function Workspace({
           <Link href="/workspace">
             <Home size={19} /> Workspace home
           </Link>
+          <Link href="/workspace/vehicles">
+            <CarFront size={19} /> My personal vehicles
+          </Link>
           <Link href="/workspace/application">
             <ClipboardList size={19} /> Agency application
           </Link>
           {actor.role === "SUPER_ADMIN" && (
             <Link href="/admin">
               <ShieldCheck size={19} /> Partner reviews
+            </Link>
+          )}
+          {actor.role === "SUPER_ADMIN" && (
+            <Link href="/admin/vehicles">
+              <CarFront size={19} /> Vehicle compliance
             </Link>
           )}
           <Link href="/partners">
