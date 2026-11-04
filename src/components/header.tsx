@@ -11,7 +11,8 @@ export function Header() {
       ? pathname === "/"
       : pathname === href ||
         pathname.startsWith(`${href}/`) ||
-        (href === "/rentals" && pathname.startsWith("/cars/"));
+        (href === "/rentals" && pathname.startsWith("/cars/")) ||
+        (href === "/cart" && pathname === "/checkout");
   const { data: session, isPending } = authClient.useSession();
   const [open, setOpen] = useState(false),
     [error, setError] = useState(""),

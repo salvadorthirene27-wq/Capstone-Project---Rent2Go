@@ -15,6 +15,10 @@ class Unavailable extends DomainError {
     super(message, 409);
   }
 }
+export {
+  lockSources as lockCartSources,
+  quote as quoteCartSelectionInTransaction,
+};
 type ItemRow = {
   id: string;
   version: number;

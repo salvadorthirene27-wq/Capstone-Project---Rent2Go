@@ -43,6 +43,8 @@
 
 ## Task2: Idempotent grouped request checkout
 
+Checkpoint implementation complete before user-requested manuscript pause. Verified57 unit/UI checks,6 isolated request database cases,32 live four-role HTTP checks, restricted runtime access, build/type and92 public-bundle secret checks. Super Admin foreign reads stay denied; explicit governance UI is deferred rather than granting an unaudited bypass. Browser visual walkthrough remains pending under the documented tool limitation.
+
 - [ ] Write RED tests for all five review-focus conditions, price-change conflicts, unavailable selections, empty checkout, duplicate idempotency keys with different bodies, agency-owned actor self-review and no claim creation.
 - [ ] Add `booking_request`, immutable `booking_request_line`, `booking_event` and actor-scoped checkout idempotency records. Each request belongs to exactly one agency and renter. Store publication/policy/price/unit/financial-category snapshots and separate refundable deposits.
 - [ ] Implement one transaction that locks the actor's cart, validates selected versions and all current selections, and creates one request per agency. If any line is invalid, create no requests and retain the cart for correction.

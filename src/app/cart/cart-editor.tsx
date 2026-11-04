@@ -165,9 +165,14 @@ export function CartEditor({
           </p>
         )}
         <p>
-          Booking request submission is being implemented. Your selections stay
-          saved here; no booking or payment has been created.
+          Request submission shares your selections with the agencies for
+          review. It does not reserve inventory or collect payment.
         </p>
+        {cart.readyToRequest && (
+          <Link className="button" href="/checkout">
+            Review booking requests
+          </Link>
+        )}
       </section>
     </>
   );

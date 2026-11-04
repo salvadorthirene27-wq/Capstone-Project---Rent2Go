@@ -32,6 +32,9 @@ export function Workspace({
           <Link href="/cart">
             <CarFront size={19} /> My cart
           </Link>
+          <Link href="/workspace/bookings">
+            <ClipboardList size={19} /> My booking requests
+          </Link>
           <Link href="/workspace/vehicles">
             <CarFront size={19} /> My personal vehicles
           </Link>

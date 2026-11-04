@@ -1,0 +1,40 @@
+import Link from "next/link";
+import { notFound } from "next/navigation";
+import { Workspace } from "@/components/workspace";
+import { BookingDetail } from "@/components/booking-detail";
+import { pageActor } from "@/lib/page-actor";
+import { requireAgencyAccess } from "@/modules/agencies/service";
+import { getBookingRequest } from "@/modules/bookings/service";
+import { DomainError } from "@/modules/partners/workflow";
+export const dynamic = "force-dynamic";
+export default async function Page({
+  params,
+}: {
+  params: Promise<{ id: string; requestId: string }>;
+}) {
+  const actor = await pageActor(),
+    { id, requestId } = await params;
+  await requireAgencyAccess(actor, id).catch((e) => {
+    if (e instanceof DomainError) notFound();
+    throw e;
+  });
+  const booking = await getBookingRequest(actor, requestId).catch((e) => {
+    if (e instanceof DomainError && e.status === 404) notFound();
+    throw e;
+  });
+  if (booking.agencyId !== id) notFound();
+  return (
+    <Workspace actor={actor}>
+      <Link className="back-link" href={`/agency/${id}/bookings`}>
+        Back to agency requests
+      </Link>
+      {booking.isOwnRequest && (
+        <p className="notice">
+          You submitted this request. An independent authorized operator must
+          review it.
+        </p>
+      )}
+      <BookingDetail booking={booking} />
+    </Workspace>
+  );
+}

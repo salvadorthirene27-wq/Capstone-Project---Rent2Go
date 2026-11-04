@@ -10,7 +10,7 @@ Opening the cart reprices it without changing saved estimates. Each line is curr
 
 Mutations serialize on the cart row. Sources are locked in vehicle-then-tour ID order, then all agencies in ID order, before agency operating context locks actors/members. Queries reuse the same PostgreSQL transaction client rather than acquiring a nested pool connection. Ordinary availability checks remain advisory.
 
-No vehicle occupation, tour seat allocation, booking, quote hold, payment, commission, deposit reconciliation or earnings is created by cart operations. Grouped booking request checkout is the next workflow; until implemented the interface explicitly describes saved selections and provides no payment or fake confirmation control.
+No vehicle occupation, tour seat allocation, booking, quote hold, payment, commission, deposit reconciliation or earnings is created by cart operations. Separate grouped checkout creates requirements-pending requests; see `booking-requests.md`. It still creates no reservation or payment.
 
 The global sticky navigation provides Home, Rentals, Tours, Agencies, Cart, Partnership and authenticated Workspace links; the current section remains indicated on detail pages. Its count endpoint reads only the owner's active item count, without repricing the whole basket. Narrow screens use a scrollable menu; Escape closes it and restores toggle focus. Workspace links indicate the active subsection.
 

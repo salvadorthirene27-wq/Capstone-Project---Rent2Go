@@ -25,7 +25,8 @@ export default function Home() {
           </p>
           <p className="hero-note">
             Compare approved agency listings and clearly stated service prices
-            in this local demonstration. Booking requests are not available yet.
+            in this local demonstration. Save your selections in the cart and
+            submit requests for agency review.
           </p>
         </div>
         <div className="hero-side">

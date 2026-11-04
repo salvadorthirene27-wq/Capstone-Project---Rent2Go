@@ -70,6 +70,11 @@ export default async function Page({
       <section className="context-section">
         <h2>Service inventory</h2>
         <p>
+          <Link href={`/agency/${agency.id}/bookings`}>
+            Booking requests and guest requirements
+          </Link>
+        </p>
+        <p>
           <Link href={`/agency/${agency.id}/tours`}>
             Tour packages and departure dates
           </Link>
