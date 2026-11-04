@@ -1,3 +1,4 @@
+import type { PoolClient } from "pg";
 import { z } from "zod";
 import { db } from "../../lib/db";
 import { storedActor } from "../partners/service";
@@ -124,4 +125,56 @@ export async function publicAgency(id: string) {
   );
   if (!rows.length) throw new DomainError("Agency not found.", 404);
   return publicProjection(rows[0]);
+}
+
+export async function agencyOperatingContext(
+  c: PoolClient,
+  actor: Actor,
+  id: string,
+) {
+  const row = (
+    await c.query("SELECT * FROM agency WHERE id=$1 FOR SHARE", [id])
+  ).rows[0];
+  if (!row) throw new DomainError("Agency not found.", 404);
+  // A waiting lock can observe a newly approved revision. Read its immutable
+  // payload in a fresh statement, after acquiring the agency lock.
+  const revision = (
+    await c.query(
+      "SELECT payload FROM partner_revision WHERE application_id=$1 AND revision=$2",
+      [row.application_id, row.approved_revision],
+    )
+  ).rows[0];
+  // Policy approval locks agency before promoting its owner. Keep the same order.
+  await c.query(
+    "SELECT id FROM app_actor WHERE id=ANY($1::text[]) ORDER BY id FOR SHARE",
+    [[...new Set([row.owner_id, actor.id])]],
+  );
+  const current = await storedActor(actor, c);
+  if (current.role !== actor.role)
+    throw new DomainError(
+      "Your access changed. Reload the workspace before continuing.",
+      409,
+    );
+  const owner = (
+    await c.query(
+      "SELECT suspended,is_test_fixture FROM app_actor WHERE id=$1",
+      [row.owner_id],
+    )
+  ).rows[0];
+  const member = (
+    await c.query(
+      "SELECT active FROM agency_member WHERE agency_id=$1 AND actor_id=$2 FOR SHARE",
+      [id, actor.id],
+    )
+  ).rows[0];
+  const active = Boolean(
+    row.active && !owner.suspended && !owner.is_test_fixture,
+  );
+  return {
+    active,
+    operatesAgency:
+      active && (row.owner_id === actor.id || Boolean(member?.active)),
+    policy: draftApplicationSchema.parse(revision.payload),
+    revision: Number(row.approved_revision),
+  };
 }

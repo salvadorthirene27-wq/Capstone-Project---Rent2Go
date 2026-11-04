@@ -69,6 +69,11 @@ export default async function Page({
       </section>
       <section className="context-section">
         <h2>Service inventory</h2>
+        <p>
+          <Link href={`/agency/${agency.id}/resources`}>
+            Availability, maintenance and drivers
+          </Link>
+        </p>
         <Link className="button" href={`/agency/${agency.id}/vehicles`}>
           Manage vehicle inventory
         </Link>

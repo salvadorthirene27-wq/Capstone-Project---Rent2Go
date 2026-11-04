@@ -1,6 +1,7 @@
 import { randomUUID, createHash } from "node:crypto";
 import type { PoolClient } from "pg";
 import { db, transaction } from "../../lib/db";
+import { agencyOperatingContext } from "../agencies/service";
 import { storedActor, audit } from "../partners/service";
 import {
   draftApplicationSchema,
@@ -58,31 +59,7 @@ function view(r: OfferRow) {
   };
 }
 async function actorInTransaction(c: PoolClient, actor: Actor) {
-  await c.query("SELECT id FROM app_actor WHERE id=$1 FOR SHARE", [actor.id]);
   return storedActor(actor, c);
-}
-async function agencyContext(c: PoolClient, actor: Actor, id: string) {
-  const row = (
-    await c.query(
-      "SELECT a.*,ao.suspended,ao.is_test_fixture,r.payload FROM agency a JOIN app_actor ao ON ao.id=a.owner_id JOIN partner_revision r ON r.application_id=a.application_id AND r.revision=a.approved_revision WHERE a.id=$1 FOR SHARE OF a,ao",
-      [id],
-    )
-  ).rows[0];
-  if (!row) throw new DomainError("Agency not found.", 404);
-  const member = (
-    await c.query(
-      "SELECT active FROM agency_member WHERE agency_id=$1 AND actor_id=$2 FOR SHARE",
-      [id, actor.id],
-    )
-  ).rows[0];
-  const active = Boolean(row.active && !row.suspended && !row.is_test_fixture);
-  return {
-    active,
-    operatesAgency:
-      active && (row.owner_id === actor.id || Boolean(member?.active)),
-    policy: draftApplicationSchema.parse(row.payload),
-    revision: Number(row.approved_revision),
-  };
 }
 async function findOffer(c: PoolClient, id: string, lock = false) {
   if (!idSchema.safeParse(id).success)
@@ -113,7 +90,7 @@ export async function createVehicleOffer(actor: Actor, input: unknown) {
   try {
     return await transaction(async (c) => {
       const user = await actorInTransaction(c, actor),
-        context = await agencyContext(c, user, data.agencyId);
+        context = await agencyOperatingContext(c, user, data.agencyId);
       if (!context.active)
         throw new DomainError("Choose an active approved agency.", 403);
       if (data.ownership === "AGENCY_OWNED" && !context.operatesAgency)
@@ -181,7 +158,7 @@ export async function vehicleDetail(actor: Actor, id: string) {
   return transaction(async (c) => {
     const user = await actorInTransaction(c, actor),
       row = await findOffer(c, id),
-      context = await agencyContext(c, user, row.agency_id);
+      context = await agencyOperatingContext(c, user, row.agency_id);
     const isOwner = ownerCapability(user, row, context.operatesAgency);
     const agencySnapshot =
       context.operatesAgency && !isOwner && user.role !== "SUPER_ADMIN";
@@ -274,7 +251,7 @@ export async function saveVehicleDraft(
     // Lock the offer before actor rows so owner retries cannot deadlock role promotion.
     const row = await findOffer(c, id, true),
       user = await actorInTransaction(c, actor),
-      context = await agencyContext(c, user, row.agency_id);
+      context = await agencyOperatingContext(c, user, row.agency_id);
     if (!ownerCapability(user, row, context.operatesAgency))
       throw new DomainError("Only the vehicle owner can edit this draft.", 403);
     if (row.version !== version)
@@ -369,7 +346,7 @@ export async function transitionVehicleOffer(
     // Lock the offer before actor rows so owner retries cannot deadlock role promotion.
     const row = await findOffer(c, id, true),
       user = await actorInTransaction(c, actor),
-      context = await agencyContext(c, user, row.agency_id);
+      context = await agencyOperatingContext(c, user, row.agency_id);
     if (
       row.ownership === "CONSIGNED" &&
       row.revision === 0 &&
@@ -595,7 +572,7 @@ export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
     } else if (q.scope === "AGENCY") {
       if (
         !q.agencyId ||
-        !(await agencyContext(c, user, q.agencyId)).operatesAgency
+        !(await agencyOperatingContext(c, user, q.agencyId)).operatesAgency
       )
         throw new DomainError("Active agency access required.", 403);
       scope =
@@ -658,7 +635,7 @@ async function editableVehicle(
 ) {
   const row = await findOffer(c, id, true),
     user = await actorInTransaction(c, actor),
-    context = await agencyContext(c, user, row.agency_id);
+    context = await agencyOperatingContext(c, user, row.agency_id);
   if (!ownerCapability(user, row, context.operatesAgency))
     throw new DomainError(
       "Only the vehicle owner can upload or remove evidence.",
@@ -800,7 +777,7 @@ export async function vehicleFileForRead(actor: Actor | null, fileId: string) {
       if (!actor) throw new DomainError("File not found.", 404);
       const user = await actorInTransaction(c, actor),
         row = await findOffer(c, f.offer_id),
-        context = await agencyContext(c, user, row.agency_id);
+        context = await agencyOperatingContext(c, user, row.agency_id);
       const submittedToAgency =
         context.operatesAgency &&
         Boolean(

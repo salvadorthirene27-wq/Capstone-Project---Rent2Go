@@ -5,6 +5,7 @@ import {
   Home,
   ShieldCheck,
   CarFront,
+  CalendarDays,
 } from "lucide-react";
 import type { Actor } from "@/modules/partners/workflow";
 export function Workspace({
@@ -30,6 +31,9 @@ export function Workspace({
           </Link>
           <Link href="/workspace/vehicles">
             <CarFront size={19} /> My personal vehicles
+          </Link>
+          <Link href="/workspace/resources">
+            <CalendarDays size={19} /> My vehicle calendars
           </Link>
           <Link href="/workspace/application">
             <ClipboardList size={19} /> Agency application

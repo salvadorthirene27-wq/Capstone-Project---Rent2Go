@@ -31,7 +31,10 @@ export default async function Page({
         Back to vehicles
       </Link>
       <p>
-        Operating agency:{" "}
+        <Link href={`/workspace/resources/${detail.vehicleId}`}>
+          Availability and maintenance
+        </Link>{" "}
+        · Operating agency:{" "}
         <Link href={`/agencies/${detail.agencyId}`}>{detail.agencyName}</Link>
         {detail.state === "PUBLISHED" && (
           <>

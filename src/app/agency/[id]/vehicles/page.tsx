@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Workspace } from "@/components/workspace";
 import { VehicleQueue } from "@/components/vehicles/vehicle-queue";
 import { pageActor } from "@/lib/page-actor";
-import { requireAgencyAccess } from "@/modules/agencies/service";
+import { pageAgency } from "@/lib/page-agency";
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
@@ -12,7 +12,7 @@ export default async function Page({
   searchParams: Promise<{ page?: string }>;
 }) {
   const actor = await pageActor(),
-    agency = await requireAgencyAccess(actor, (await params).id),
+    agency = await pageAgency(actor, (await params).id),
     q = await searchParams,
     page = Math.min(10000, Math.max(1, parseInt(q.page ?? "1", 10) || 1));
   return (

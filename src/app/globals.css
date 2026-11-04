@@ -1802,3 +1802,51 @@ td .text-link {
     margin: 6px 0 !important;
   }
 }
+
+.resource-editor {
+  max-width: 980px;
+}
+.resource-editor fieldset,
+.vehicle-create fieldset {
+  border: 0;
+  min-width: 0;
+  padding: 0;
+  margin: 0;
+}
+.resource-editor label,
+.driver-create label {
+  display: grid;
+  gap: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  margin-bottom: 18px;
+}
+.resource-editor label.consent-row,
+.vehicle-create label.consent-row {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+}
+.resource-editor label.consent-row input,
+.vehicle-create label.consent-row input {
+  margin-top: 4px;
+}
+.resource-history {
+  list-style: none;
+  margin: 26px 0;
+  padding: 0;
+}
+.resource-history > li {
+  padding: 22px 0;
+  border-bottom: 1px solid var(--line);
+}
+.resource-history .page-title {
+  margin-bottom: 8px;
+}
+.resource-history form {
+  padding: 22px 0;
+  max-width: 680px;
+}
+.resource-history .status {
+  flex-shrink: 0;
+}

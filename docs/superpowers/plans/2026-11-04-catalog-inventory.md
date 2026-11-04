@@ -69,12 +69,14 @@
 
 ### Task 3: Resource calendars, drivers and maintenance
 
-- [ ] Verify Neon supports the required `btree_gist` extension from official documentation before migration.
-- [ ] Write live failing tests: overlapping concurrent occupations fail, adjacent half-open intervals succeed, invalid/end-before-start ranges fail, and other agencies cannot block a vehicle/driver.
-- [ ] Add shared `resource` records for vehicles/drivers and `resource_occupation` with a PostgreSQL exclusion constraint. Manual unavailability and maintenance use this table; later booking claims will use the same invariant.
-- [ ] Add agency driver roster and maintenance/service records with private contact data. Owner/operating-agency authorization is explicit; no location or tracking records.
-- [ ] Implement availability queries that exclude inactive listings and occupied intervals. Never offer an unavailable car merely because its UI status says available.
-- [ ] Add calendar/block forms with explicit Manila times, history, validation and conflict feedback; test and commit.
+- [x] Verify Neon supports the required `btree_gist` extension from official documentation before migration.
+- [x] Write live failing tests: overlapping concurrent occupations fail, adjacent half-open intervals succeed, invalid/end-before-start ranges fail, and other agencies cannot block a vehicle/driver.
+- [x] Add shared `resource` records for vehicles/drivers and `resource_occupation` with a PostgreSQL exclusion constraint. Manual unavailability and maintenance use this table; later booking claims will use the same invariant.
+- [x] Add agency driver roster and maintenance/service records with private contact data. Owner/operating-agency authorization is explicit; no location or tracking records.
+- [x] Implement availability queries that exclude inactive listings and occupied intervals. Never offer an unavailable car merely because its UI status says available.
+- [x] Add calendar/block forms with explicit Manila times, history, validation and conflict feedback; test and commit.
+
+Evidence:38 unit/UI,45 DB scenarios across the interrupted suite and clean vehicle rerun,43 production HTTP checks, typecheck/build and63-file public secret scan. Browser visual inspection remains pending after Computer Use refused the current Chrome URL.
 
 ### Task 4: Tour packages, departures and private slots
 
