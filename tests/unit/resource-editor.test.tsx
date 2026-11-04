@@ -10,14 +10,12 @@ afterEach(() => {
   vi.unstubAllGlobals();
 });
 it("protects unsaved driver changes from calendar updates and failed saves", async () => {
-  const fetcher = vi
-    .fn()
-    .mockResolvedValue({
-      ok: false,
-      json: async () => ({
-        error: "Save rejected. Reload the current record.",
-      }),
-    });
+  const fetcher = vi.fn().mockResolvedValue({
+    ok: false,
+    json: async () => ({
+      error: "Save rejected. Reload the current record.",
+    }),
+  });
   vi.stubGlobal("fetch", fetcher);
   render(
     <ResourceEditor
@@ -57,5 +55,13 @@ it("protects unsaved driver changes from calendar updates and failed saves", asy
   expect(
     screen.getByRole("button", { name: "Save block" }).matches(":disabled"),
   ).toBe(true);
+  expect((name as HTMLInputElement).value).toBe("Updated driver");
+  fetcher.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ version: 2 }),
+  });
+  await user.click(screen.getByRole("button", { name: "Save driver details" }));
+  expect(name.matches(":disabled")).toBe(true);
+  await user.type(name, " changes during refresh");
   expect((name as HTMLInputElement).value).toBe("Updated driver");
 });

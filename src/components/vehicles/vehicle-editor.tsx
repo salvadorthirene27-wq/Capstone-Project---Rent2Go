@@ -13,6 +13,7 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
     [terms, setTerms] = useState(initial.terms),
     [dirty, setDirty] = useState(false),
     [busy, setBusy] = useState(false),
+    [refreshing, setRefreshing] = useState(false),
     [actionBusy, setActionBusy] = useState(false),
     [error, setError] = useState("");
   const editable =
@@ -66,10 +67,10 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
             : data.error || "Unable to update this vehicle.",
         );
       setDirty(false);
+      setRefreshing(true);
       router.refresh();
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to finish. Try again.");
-    } finally {
       setBusy(false);
     }
   }
@@ -108,6 +109,17 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
             Reload current version
           </button>
         </div>
+      )}
+      {refreshing && (
+        <p role="status">
+          Loading saved records…{" "}
+          <button
+            className="button secondary"
+            onClick={() => window.location.reload()}
+          >
+            Reload saved records
+          </button>
+        </p>
       )}
       <fieldset disabled={busy || actionBusy} className="vehicle-editor-fields">
         <section className="context-section">
@@ -278,6 +290,8 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
           dirty={dirty}
           onBusyChange={setActionBusy}
           onComplete={() => {
+            setBusy(true);
+            setRefreshing(true);
             setDirty(false);
             router.refresh();
           }}

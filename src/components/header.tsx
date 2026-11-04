@@ -56,6 +56,9 @@ export function Header() {
           <Link href="/agencies" onClick={() => setOpen(false)}>
             Agencies
           </Link>
+          <Link href="/tours" onClick={() => setOpen(false)}>
+            Tours
+          </Link>
           <Link href="/partners" onClick={() => setOpen(false)}>
             For agencies <ArrowUpRight size={15} />
           </Link>

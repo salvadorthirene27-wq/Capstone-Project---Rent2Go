@@ -22,6 +22,7 @@ function WindowFields() {
 export function ResourceEditor({ initial }: { initial: Detail }) {
   const router = useRouter(),
     [busy, setBusy] = useState(false),
+    [refreshing, setRefreshing] = useState(false),
     [driverDirty, setDriverDirty] = useState(false),
     [error, setError] = useState(""),
     [result, setResult] = useState<{
@@ -74,13 +75,13 @@ export function ResourceEditor({ initial }: { initial: Detail }) {
                 .join("; ")
             : data.error || "Unable to finish this update.",
         );
+      setRefreshing(true);
       router.refresh();
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : "Unable to finish. Try again.");
-      return false;
-    } finally {
       setBusy(false);
+      return false;
     }
   }
   function windowFrom(form: HTMLFormElement) {
@@ -115,6 +116,17 @@ export function ResourceEditor({ initial }: { initial: Detail }) {
             Reload current records
           </button>
         </div>
+      )}
+      {refreshing && (
+        <p role="status">
+          Loading saved records…{" "}
+          <button
+            className="button secondary"
+            onClick={() => window.location.reload()}
+          >
+            Reload saved records
+          </button>
+        </p>
       )}
       <fieldset disabled={busy}>
         {initial.driver && (

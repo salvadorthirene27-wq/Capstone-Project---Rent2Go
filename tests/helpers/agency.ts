@@ -11,7 +11,11 @@ import {
   type ApplicationInput,
 } from "../../src/modules/partners/schema";
 import type { Actor } from "../../src/modules/partners/workflow";
-export async function approvedAgency(owner: Actor, reviewer: Actor) {
+export async function approvedAgency(
+  owner: Actor,
+  reviewer: Actor,
+  overrides: Partial<ApplicationInput> = {},
+) {
   const app = await createApplication(owner);
   const payload: ApplicationInput = {
     ...defaultApplication,
@@ -39,6 +43,7 @@ export async function approvedAgency(owner: Actor, reviewer: Actor) {
     bufferMinutes: 30,
     acceptedMethods: ["CASH"],
     consent: true,
+    ...overrides,
   };
   await saveDraft(owner, app.id, payload, 1);
   await db.query(

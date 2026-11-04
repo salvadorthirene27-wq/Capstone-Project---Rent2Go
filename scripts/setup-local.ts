@@ -50,6 +50,10 @@ try {
       GRANT SELECT,INSERT,UPDATE ON vehicle_offer,vehicle_file TO rent2go_app;
       GRANT SELECT,INSERT ON vehicle_revision,vehicle_agreement,vehicle_event,vehicle_revision_file TO rent2go_app;
     END IF;
+    IF to_regclass('public.tour_package') IS NOT NULL THEN
+      GRANT SELECT,INSERT,UPDATE ON tour_package,tour_file,tour_schedule TO rent2go_app;
+      GRANT SELECT,INSERT ON tour_revision,tour_revision_file TO rent2go_app;
+    END IF;
     IF to_regclass('public.resource') IS NOT NULL THEN GRANT SELECT,INSERT,UPDATE ON agency_driver,resource,resource_occupation,vehicle_maintenance TO rent2go_app; END IF;
   END $$`);
   const exists = (

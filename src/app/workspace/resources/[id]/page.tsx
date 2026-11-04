@@ -45,7 +45,7 @@ export default async function Page({
         )}
       </p>
       <ResourceEditor
-        key={`${detail.id}:${detail.total}:${detail.driver?.version ?? 0}`}
+        key={`${detail.id}:${detail.total}:${detail.page}:${detail.driver?.version ?? 0}:${detail.occupations.map((o) => `${o.id}:${o.cancelled_at}:${o.maintenance_version}`).join("|")}`}
         initial={detail}
       />
       {detail.pageCount > 1 && (

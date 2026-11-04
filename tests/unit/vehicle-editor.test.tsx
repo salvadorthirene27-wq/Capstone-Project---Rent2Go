@@ -86,4 +86,13 @@ it("protects unsaved facts from the file-removal refresh", async () => {
       }) as HTMLInputElement
     ).value,
   ).toBe("Honda");
+  fetcher.mockResolvedValueOnce({
+    ok: true,
+    json: async () => ({ version: 2 }),
+  });
+  await user.click(screen.getByRole("button", { name: "Save vehicle draft" }));
+  const make = screen.getByRole("textbox", { name: "Make" });
+  expect(make.matches(":disabled")).toBe(true);
+  await user.type(make, " changes during refresh");
+  expect((make as HTMLInputElement).value).toBe("Honda");
 });

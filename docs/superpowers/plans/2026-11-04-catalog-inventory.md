@@ -80,12 +80,14 @@ Evidence:38 unit/UI,45 DB scenarios across the interrupted suite and clean vehic
 
 ### Task 4: Tour packages, departures and private slots
 
-- [ ] Write failing tests: per-person versus per-party price semantics, party/capacity limits, empty itinerary/rates/terms, overlapping exclusive private slots, stale updates, and cross-agency management.
-- [ ] Add versioned tour packages, itineraries/inclusions/exclusions, model `GROUP` or `PRIVATE`, published photos and approved-agency eligibility.
-- [ ] Group departures declare start/end, cutoff and seat capacity. Private slots declare start/end and party capacity; default one party per slot with overlapping exclusive slots rejected.
-- [ ] Tour-only transport inclusions do not implicitly become renter vehicle rentals or require inspections. A separately sold rental component is deferred to the booking-composition task, where its vehicle gates can actually be enforced.
-- [ ] Add agency creation/edit/publication and public detail/availability screens. Preserve cancelled/deleted-history semantics; no paid booking exists yet, and future booking foreign keys must prevent destructive removal.
-- [ ] Verify group/private workflows and database constraints, then commit.
+- [x] Write failing tests: per-person versus per-party price semantics, party/capacity limits, empty itinerary/rates/terms, overlapping exclusive private slots, stale updates, and cross-agency management.
+- [x] Add versioned tour packages, itineraries/inclusions/exclusions, model `GROUP` or `PRIVATE`, published photos and approved-agency eligibility.
+- [x] Group departures declare start/end, cutoff and seat capacity. Private slots declare start/end and party capacity; default one party per slot with overlapping exclusive slots rejected.
+- [x] Tour-only transport inclusions do not implicitly become renter vehicle rentals or require inspections. A separately sold rental component is deferred to the booking-composition task, where its vehicle gates can actually be enforced.
+- [x] Add agency creation/edit/publication and public detail/availability screens. Preserve cancelled/deleted-history semantics; no paid booking exists yet, and future booking foreign keys must prevent destructive removal.
+- [x] Verify group/private workflows and database constraints, then commit.
+
+Evidence:42 unit/UI, full52 isolated DB,69 production tour HTTP/S3 checks, build and77-file secret scan. The review refresh race was fixed with three editor regressions. Browser visual verification remains blocked and is retained for Task5. Tour booking allocation is not implemented by this catalog task.
 
 ### Task 5: Marketplace browsing and honest recommendations
 
