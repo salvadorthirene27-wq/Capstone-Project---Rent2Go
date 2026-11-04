@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Workspace } from "@/components/workspace";
 import { BookingDetail } from "@/components/booking-detail";
+import { BookingRequirements } from "@/components/booking-requirements";
 import { pageActor } from "@/lib/page-actor";
 import { getBookingRequest } from "@/modules/bookings/service";
 import { DomainError } from "@/modules/partners/workflow";
@@ -23,6 +24,7 @@ export default async function Page({
         Back to your requests
       </Link>
       <BookingDetail booking={booking} />
+      <BookingRequirements requestId={(await params).id} />
     </Workspace>
   );
 }

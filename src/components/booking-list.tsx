@@ -1,6 +1,13 @@
 import Link from "next/link";
 import type { listBookingRequests } from "@/modules/bookings/service";
 import { date } from "@/modules/partners/presentation";
+const statusLabels: Record<string, string> = {
+  REQUIREMENTS_PENDING: "Requirements pending",
+  UNDER_REVIEW: "Under review",
+  CHANGES_REQUESTED: "Changes requested",
+  READY_FOR_APPROVAL: "Ready for approval",
+  REJECTED: "Rejected",
+};
 export function BookingList({
   list,
   base,
@@ -25,7 +32,7 @@ export function BookingList({
                   {r.contact.name} · {date(r.createdAt)}
                 </small>
               </span>
-              <span>Requirements pending</span>
+              <span>{statusLabels[r.status] ?? r.status.replaceAll("_", " ")}</span>
             </Link>
           ))}
         </div>

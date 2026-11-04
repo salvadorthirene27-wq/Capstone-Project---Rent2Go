@@ -2058,3 +2058,8 @@ td .text-link {
   align-items: center;
   gap: 8px;
 }
+
+/* Booking evidence follows the workspace's existing form and document styles. */
+.booking-requirements .document-field p { font-size: 0.875rem; overflow-wrap: anywhere; }
+.booking-requirements fieldset { display: grid; gap: 16px; }
+.booking-requirements .document-field { margin-bottom: 28px; }

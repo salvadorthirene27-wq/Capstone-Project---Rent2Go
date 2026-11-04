@@ -44,6 +44,9 @@ try {
     "GRANT SELECT,INSERT,UPDATE ON app_request_budget TO rent2go_app",
   );
   await pool.query(`DO $$ BEGIN
+    IF to_regclass('public.booking_requirement_file') IS NOT NULL THEN
+      GRANT SELECT,INSERT ON booking_requirement_file,booking_requirement_submission,booking_requirement_selection,booking_requirement_decision TO rent2go_app;
+    END IF;
     IF to_regclass('public.booking_request') IS NOT NULL THEN
       GRANT SELECT,INSERT,UPDATE ON booking_request,booking_notification TO rent2go_app;
       GRANT SELECT,INSERT ON booking_request_line,booking_event,booking_checkout_command TO rent2go_app;
