@@ -13,15 +13,26 @@ Updated 4 November 2026. This is a development record, not a capstone usability 
 - Server-owned roles, cross-owner authorization, origin/body/type checks, database-backed request budgets, safe private downloads and audit records.
 - Dedicated new Neon PostgreSQL project, managed Auth, private S3 bucket, restricted runtime role and separate automated-test database. No old environment/database used.
 
+## Approved-agency discovery and workspace contexts
+
+- Public `/agencies` directory supports agency/service-area search, service filtering, alphabetical ordering and pagination. Profile pages show the effective approved terms, unit-specific starting rates, public business contacts and accepted payment method names.
+- Registration/representative details, private files, GCash account configuration, internal settlement preferences and financial allocations are excluded from the public projection. Unapproved amendments never replace the public policy.
+- Approval backfills/creates explicit owner memberships. Agency operating context requires actual ownership or an active membership and an active agency/owner; a Super Admin role alone does not grant operating access.
+- `/workspace` is a context chooser. `/workspace/application` preserves the saved application with explicit draft creation; visiting a workspace no longer creates an agency application.
+- Responsive navigation supports keyboard Escape, real agency links and recoverable provider sign-out errors.
+- Graphify workspace `gica-s-workspace` now indexes this repository. Its first query verified the source relationships at commit `8616e68`; local uncommitted work is not represented in that snapshot.
+
 ## Evidence already observed
 
-- 17 unit/UI/configuration tests pass, including the delayed-save and already-pooled hostname regressions.
-- 11 isolated live database tests pass, including concurrent saves/decisions, historical policy/evidence, old pending queue records, revised approved agreements, reopening withdrawn applications, and concurrent rate limits.
+- 19 unit/UI/configuration tests pass, including the delayed-save and already-pooled hostname regressions.
+- 18 isolated live database tests pass, including concurrent saves/decisions, historical policy/evidence, old pending queue records, revised approved agreements, reopening withdrawn applications, and concurrent rate limits.
 - TypeScript checks and the production build pass with the current `@neon/auth` 0.8.2 SDK.
 - 25 real local API checks passed in production mode using the restricted runtime role: authentication, cross-owner/private-file denial, foreign-origin denial, S3 upload/download byte equality, corrections, resubmission, approval, policy amendment and resulting role. Earlier synthetic signup/session checks also passed.
 - Browser: synthetic agency sign-in, business-form save, reload/session restoration, approved-state display, sign-out, Super Admin queue/all-applications/detail views. Desktop/mobile overflow checks passed. A reviewer-queue screenshot is retained with synthetic records.
-- A public-bundle check found none of the configured database URLs, cookie secret or storage secret in 35 public JavaScript/map files.
+- Public-bundle checks found none of the configured database URLs, cookie secret or storage secret in public JavaScript/map files.
 - Fresh code review found three important issues (in-flight edit loss, evidence replacement ambiguity, queue truncation); regression tests were added and each fix passed. Explicit storage configuration and historical feedback display were also corrected.
+
+The storefront/context slice additionally passed 19 production-mode HTTP checks for anonymous profiles, public projection privacy, literal wildcard search, validation, authenticated context selection and owner/foreign/reviewer operating boundaries. A fresh independent review found no actionable Task 1 findings. Desktop/mobile inspection exercised search empty states, navigation and policy disclosures; the search-icon spacing and mobile sign-out control were corrected in the bounded inspection pass.
 
 ## Provider and dependency boundaries
 
@@ -33,7 +44,7 @@ Password-recovery UI is implemented through managed email OTP methods, but actua
 
 ## Required work remaining
 
-1. Approved agency storefronts; vehicles, ownership/Cosigner partnerships, platform compliance, drivers and maintenance; tours and departure/private-slot capacity.
+1. Vehicles, ownership/Cosigner partnerships, platform compliance, drivers and maintenance; tours and departure/private-slot capacity.
 2. Marketplace search/filter/sort/details, explainable rule-based recommendations, persistent booking cart grouped by agency, and request checkout.
 3. Booking state machine and transactional availability/capacity, requirement review/OCR, quotations, electronic agreements.
 4. Manual GCash/cash payment evidence and demo gateway transaction adapters (current form only collects method preferences; it does not execute a gateway simulation yet).
@@ -42,7 +53,7 @@ Password-recovery UI is implemented through managed email OTP methods, but actua
 7. Operational reporting, notifications/email outbox, account/security/privacy governance, vouchers (rubric bonus), backup/restore exercise and role walkthrough evidence.
 8. Actual adviser-approved human testing/usability evaluation and final Chapters 4–5.
 
-GPS/geofencing is deliberately excluded. Standalone realtime chat and social OAuth were deferred in the approved design. Graphify has no workspace/index yet, so graph analysis has not been performed.
+GPS/geofencing is deliberately excluded. Standalone realtime chat and social OAuth were deferred in the approved design. Graphify is connected and its first indexed-source query has completed.
 
 ## Confirmed financial defaults for upcoming modules
 

@@ -1334,3 +1334,330 @@ td .text-link {
     transition: none !important;
   }
 }
+
+/* Agency discovery and operating contexts */
+.navigation-toggle {
+  display: none;
+}
+.header-error {
+  margin: 0;
+  padding: 12px 5%;
+  color: var(--error);
+  background: #fff1f1;
+}
+.directory-main {
+  max-width: 1240px;
+  margin: auto;
+}
+.directory-heading {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 32px;
+  padding: 54px 0 34px;
+}
+.directory-heading h1 {
+  font-size: clamp(2rem, 4vw, 3rem);
+}
+.directory-heading p {
+  max-width: 60ch;
+}
+.directory-heading > a,
+.context-section > a:not(.button),
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+.directory-filters {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(200px, 300px) auto;
+  align-items: end;
+  gap: 18px;
+  padding: 24px;
+  background: var(--soft);
+  border-radius: var(--radius);
+}
+.directory-filters label {
+  display: grid;
+  gap: 8px;
+  font-weight: 500;
+  font-size: 13px;
+}
+.directory-filters input,
+.directory-filters select {
+  width: 100%;
+  min-height: 46px;
+  border: 1px solid #9ab3a9;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: white;
+  color: var(--ink);
+}
+.search-field {
+  position: relative;
+}
+.search-field svg {
+  position: absolute;
+  left: 12px;
+  top: 14px;
+  color: var(--muted);
+}
+.directory-filters .search-field input {
+  padding-left: 40px;
+}
+.result-count {
+  color: var(--muted);
+  margin: 28px 0 16px;
+  font-size: 13px;
+}
+.directory-list {
+  border-top: 1px solid var(--line);
+}
+.agency-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 24px;
+  padding: 30px 0;
+  border-bottom: 1px solid var(--line);
+}
+.agency-row h2 {
+  margin: 12px 0 8px;
+}
+.agency-row h2 a {
+  text-decoration: none;
+}
+.service-area {
+  display: flex;
+  align-items: start;
+  gap: 8px;
+  color: var(--muted);
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.service-area svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.service-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.service-tags span {
+  background: var(--soft);
+  color: var(--deep);
+  font-size: 12px;
+  padding: 5px 10px;
+  border-radius: 6px;
+}
+.directory-empty {
+  padding: 48px 20px;
+  text-align: center;
+}
+.pagination {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 24px;
+  padding: 30px 0;
+}
+.agency-profile {
+  max-width: 1200px;
+  margin: auto;
+}
+.agency-profile-heading {
+  padding: 36px 0;
+  border-bottom: 1px solid var(--line);
+}
+.agency-profile-heading h1 {
+  margin-top: 16px;
+  overflow-wrap: anywhere;
+}
+.profile-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  gap: 60px;
+  padding: 36px 0;
+}
+.profile-section {
+  margin-bottom: 40px;
+}
+.profile-section > p {
+  max-width: 70ch;
+}
+.rate-list {
+  margin: 24px 0;
+  font-variant-numeric: tabular-nums;
+}
+.rate-list > div {
+  display: flex;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 16px 0;
+  border-bottom: 1px solid var(--line);
+}
+.rate-list dd {
+  margin: 0;
+  text-align: right;
+  font-weight: 600;
+}
+.rate-list dd small {
+  display: block;
+  color: var(--muted);
+  font-weight: 400;
+}
+.preserve-lines {
+  white-space: pre-line;
+  overflow-wrap: anywhere;
+}
+.policy-disclosure {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+.policy-disclosure summary {
+  cursor: pointer;
+  font-weight: 500;
+  color: var(--forest);
+}
+.policy-disclosure p {
+  margin-bottom: 4px;
+}
+.profile-contact {
+  background: var(--soft);
+  padding: 26px;
+  border-radius: var(--radius);
+  align-self: start;
+}
+.profile-contact h2 {
+  font-size: 1.15rem;
+}
+.profile-contact > a {
+  display: flex;
+  align-items: start;
+  gap: 10px;
+  margin: 14px 0;
+  overflow-wrap: anywhere;
+}
+.profile-contact > a svg {
+  flex-shrink: 0;
+  margin-top: 4px;
+}
+.profile-contact h3 {
+  margin-top: 26px;
+}
+.profile-contact ul {
+  padding-left: 18px;
+}
+.profile-contact .muted {
+  font-size: 12px;
+  color: #425c51;
+}
+.context-section {
+  padding: 30px 0;
+  border-bottom: 1px solid var(--line);
+}
+.context-section p {
+  max-width: 72ch;
+}
+.context-link {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 20px;
+  padding: 22px 0;
+  text-decoration: none;
+  border-bottom: 1px solid var(--line);
+}
+.context-link small {
+  display: block;
+  color: var(--muted);
+  margin-top: 4px;
+}
+@media (max-width: 900px) {
+  .profile-layout {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+  }
+  .directory-heading {
+    align-items: start;
+    flex-direction: column;
+    gap: 14px;
+  }
+  .directory-filters {
+    grid-template-columns: 1fr 1fr;
+  }
+  .directory-filters .button {
+    grid-column: 1 / -1;
+  }
+}
+@media (max-width: 760px) {
+  .site-header {
+    position: relative;
+  }
+  .navigation-toggle {
+    display: inline-flex;
+  }
+  .site-header nav {
+    display: none;
+  }
+  .site-header nav.navigation-open {
+    display: flex;
+    position: absolute;
+    z-index: 20;
+    top: 100%;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    background: white;
+    border-bottom: 1px solid var(--line);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 4px;
+  }
+  .site-header nav > a {
+    font-size: 14px;
+    min-height: 44px;
+    padding: 10px;
+  }
+  .site-header nav .nav-signout {
+    justify-content: start;
+    width: 100%;
+    padding: 12px;
+  }
+  .directory-heading {
+    padding: 28px 0;
+  }
+  .directory-filters {
+    grid-template-columns: minmax(0, 1fr);
+    padding: 18px;
+  }
+  .agency-row {
+    align-items: start;
+    flex-direction: column;
+    gap: 18px;
+  }
+  .profile-contact {
+    padding: 22px;
+  }
+  .profile-layout {
+    padding-top: 26px;
+  }
+}
+
+.nav-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 0;
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--soft);
+  color: var(--forest);
+  font-size: 13px;
+  font-weight: 500;
+}
+.nav-signout:hover {
+  background: #dcebe5;
+}

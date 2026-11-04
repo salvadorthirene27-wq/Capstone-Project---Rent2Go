@@ -20,7 +20,10 @@ export function Workspace({
         </div>
         <nav aria-label="Workspace navigation">
           <Link href="/workspace">
-            <ClipboardList size={19} /> My application
+            <Home size={19} /> Workspace home
+          </Link>
+          <Link href="/workspace/application">
+            <ClipboardList size={19} /> Agency application
           </Link>
           {actor.role === "SUPER_ADMIN" && (
             <Link href="/admin">

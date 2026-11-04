@@ -21,7 +21,7 @@ export default function Partners() {
             set your pricing and terms, and choose the payment arrangements that
             work for your business.
           </p>
-          <Link className="button" href="/workspace">
+          <Link className="button" href="/workspace/application">
             Start your application <ArrowRight size={18} />
           </Link>
           <small>Already started? Sign in to continue your saved draft.</small>

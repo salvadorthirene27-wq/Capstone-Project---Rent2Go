@@ -102,6 +102,15 @@ export async function createApplication(actor: Actor) {
     );
   });
 }
+export async function myApplication(actor: Actor) {
+  const user = await storedActor(actor);
+  const row = (
+    await db.query("SELECT * FROM partner_application WHERE owner_id=$1", [
+      user.id,
+    ])
+  ).rows[0];
+  return row ? map(row) : null;
+}
 export async function listApplications(actor: Actor) {
   const user = await storedActor(actor);
   const rows = (
@@ -318,6 +327,10 @@ export async function reviewApplication(
       await c.query(
         "INSERT INTO agency(id,application_id,owner_id,approved_revision) VALUES($1,$2,$3,$4) ON CONFLICT(application_id) DO UPDATE SET approved_revision=EXCLUDED.approved_revision",
         [randomUUID(), id, app.ownerId, app.submittedRevision],
+      );
+      await c.query(
+        "INSERT INTO agency_member(agency_id,actor_id,role,created_by) SELECT id,owner_id,'OWNER',$2 FROM agency WHERE application_id=$1 ON CONFLICT(agency_id,actor_id) DO UPDATE SET role='OWNER',active=true",
+        [id, user.id],
       );
       await c.query(
         "UPDATE app_actor SET role='AGENCY_ADMIN' WHERE id=$1 AND role <> 'SUPER_ADMIN'",
