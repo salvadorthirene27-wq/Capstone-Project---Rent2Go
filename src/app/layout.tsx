@@ -6,6 +6,7 @@ import "@fontsource/poppins/600.css";
 import "@fontsource/outfit/600.css";
 import "./globals.css";
 import { Header } from "@/components/header";
+import Link from "next/link";
 export const metadata: Metadata = {
   title: {
     default: "Rent2Go — Rentals, tours & agency partners",
@@ -32,6 +33,9 @@ export default function RootLayout({
           </span>
           <p>Car rentals, tours, and agency partners.</p>
           <small>Local development demonstration · 2026</small>
+          <p>
+            <Link href="/photo-credits">Demo photo credits</Link>
+          </p>
         </footer>
       </body>
     </html>

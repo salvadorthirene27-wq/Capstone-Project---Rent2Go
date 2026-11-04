@@ -1,4 +1,4 @@
-import Link from "next/link";
+import { WorkspaceLink as Link } from "./workspace-link";
 import {
   Building2,
   ClipboardList,
@@ -28,6 +28,9 @@ export function Workspace({
         <nav aria-label="Workspace navigation">
           <Link href="/workspace">
             <Home size={19} /> Workspace home
+          </Link>
+          <Link href="/cart">
+            <CarFront size={19} /> My cart
           </Link>
           <Link href="/workspace/vehicles">
             <CarFront size={19} /> My personal vehicles

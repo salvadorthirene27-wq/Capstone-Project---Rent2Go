@@ -4,7 +4,17 @@ import { DomainError } from "../modules/partners/workflow";
 export const uuid = z.uuid();
 export const versionSchema = z.number().int().positive();
 export function requireOrigin(request: Request) {
-  if (request.headers.get("origin") !== process.env.APP_ORIGIN)
+  const configured = process.env.APP_ORIGIN,
+    allowed = new Set([configured]);
+  if (configured && process.env.LOCAL_DEMO_LOOPBACK_ALIASES === "true") {
+    const local = new URL(configured);
+    if (["localhost", "127.0.0.1"].includes(local.hostname)) {
+      local.hostname =
+        local.hostname === "localhost" ? "127.0.0.1" : "localhost";
+      allowed.add(local.origin);
+    }
+  }
+  if (!allowed.has(request.headers.get("origin") ?? ""))
     throw new DomainError("This request origin is not allowed.", 403);
 }
 export async function boundedBody(request: Request, max = 100000) {

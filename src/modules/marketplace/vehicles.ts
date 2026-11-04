@@ -1,8 +1,12 @@
 import { db } from "../../lib/db";
+import type { PoolClient } from "pg";
 import { vehicleSearchSchema } from "./schema";
 import { rentalEstimate } from "../pricing/rental";
 import type { VehicleFacts, VehicleTerms } from "../vehicles/schema";
-export async function searchVehicles(input: unknown = {}) {
+export async function searchVehicles(
+  input: unknown = {},
+  client: Pick<PoolClient, "query"> = db,
+) {
   const q = vehicleSearchSchema.parse(input),
     values: unknown[] = [],
     bind = (v: unknown) => {
@@ -78,7 +82,7 @@ export async function searchVehicles(input: unknown = {}) {
     : "true";
   const total = Number(
     (
-      await db.query(
+      await client.query(
         `${cte} SELECT count(*) AS n FROM eligible WHERE ${moneySafe}`,
         values,
       )
@@ -105,7 +109,7 @@ export async function searchVehicles(input: unknown = {}) {
     );
   sort.push("id");
   const rows = (
-    await db.query(
+    await client.query(
       `${cte} SELECT * FROM eligible WHERE ${moneySafe} ORDER BY ${sort.join(",")} LIMIT ${bind(q.pageSize)} OFFSET ${bind((q.page - 1) * q.pageSize)}`,
       values,
     )

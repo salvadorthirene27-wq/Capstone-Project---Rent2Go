@@ -148,6 +148,9 @@ hr {
   margin-left: 14px;
 }
 .site-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
   height: 82px;
   display: flex;
   align-items: center;
@@ -171,7 +174,7 @@ hr {
 .site-header nav {
   display: flex;
   align-items: center;
-  gap: 28px;
+  gap: 20px;
 }
 .site-header nav > a {
   display: inline-flex;
@@ -180,6 +183,81 @@ hr {
   text-decoration: none;
   font-size: 13px;
   font-weight: 500;
+  min-height: 44px;
+}
+.site-header nav > a[aria-current="page"] {
+  color: var(--deep);
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 8px;
+  font-weight: 600;
+}
+.sidebar nav a[aria-current="page"] {
+  background: var(--forest);
+  color: white;
+}
+html {
+  scroll-padding-top: 100px;
+}
+.page-navigation {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 16px;
+  margin: 12px 0 24px;
+}
+.cart-fields {
+  border: 0;
+  padding: 0;
+  margin: 20px 0;
+  display: grid;
+  gap: 14px;
+  min-width: 0;
+}
+.cart-fields legend {
+  font-weight: 600;
+  margin-bottom: 12px;
+}
+.cart-fields label {
+  display: grid;
+  gap: 6px;
+}
+.cart-fields input,
+.cart-fields select {
+  width: 100%;
+  min-width: 0;
+}
+.cart-estimate {
+  padding: 20px 0;
+  border-block: 1px solid var(--line);
+  margin: 20px 0;
+}
+.cart-line {
+  padding: 24px 0;
+  border-bottom: 1px solid var(--line);
+}
+.cart-line p {
+  margin-bottom: 10px;
+}
+.cart-totals {
+  max-width: 650px;
+  background: var(--soft);
+  padding: 28px;
+  border-radius: var(--radius);
+  margin: 32px 0;
+}
+.cart-totals dl {
+  font-variant-numeric: tabular-nums;
+}
+.cart-totals dl div {
+  display: flex;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 12px;
+}
+.cart-totals dd {
+  margin: 0;
+  font-weight: 600;
 }
 .button {
   display: inline-flex;
@@ -1592,9 +1670,9 @@ td .text-link {
     grid-column: 1 / -1;
   }
 }
-@media (max-width: 760px) {
+@media (max-width: 1020px) {
   .site-header {
-    position: relative;
+    position: sticky;
   }
   .navigation-toggle {
     display: inline-flex;
@@ -1615,6 +1693,8 @@ td .text-link {
     flex-direction: column;
     align-items: stretch;
     gap: 4px;
+    max-height: calc(100dvh - 100px);
+    overflow-y: auto;
   }
   .site-header nav > a {
     font-size: 14px;
@@ -1626,6 +1706,8 @@ td .text-link {
     width: 100%;
     padding: 12px;
   }
+}
+@media (max-width: 760px) {
   .directory-heading {
     padding: 28px 0;
   }

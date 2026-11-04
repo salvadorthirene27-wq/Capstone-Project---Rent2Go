@@ -33,13 +33,13 @@
 
 ## Task1: Persistent cart and server-owned estimates
 
-- [ ] Write RED tests for owner isolation; anonymous denial; invalid dates/party; unavailable or withdrawn services; explicit fee units; group/private arithmetic; deposit separation; duplicate add; stale update; malicious price/agency overrides.
-- [ ] Add `booking_cart` (one active cart per actor, optimistic version) and `cart_item` (kind, validated selection, source fingerprint, saved server estimate/revision, version). Keep identities stable and bound the basket to20 services with a visible limit.
-- [ ] Add `src/modules/cart/schema.ts`, `service.ts`, `pricing.ts` and `src/app/api/cart/*`. Serialize add/update operations on the cart row. Source fingerprints prevent duplicate clicks from silently adding a second identical car/slot.
-- [ ] For vehicle lines, validate exact offer/mode/date/party and derive effective agency and current published agreement. For tours, select an actual published schedule; validate its current revision, cutoff, capacity, party limits and pricing model.
-- [ ] Reuse rental pricing and tour arithmetic. A cart read reports current eligibility and whether saved prices/terms changed; changing snapshots requires an explicit renter review/update, not silent acceptance.
-- [ ] Add real add-to-cart controls to detail pages, cart count/navigation, grouped agency sections, update/remove and subtotal feedback. No fake reservation timer or payment control.
-- [ ] Verify with unit/live DB/runtime API checks and desktop/mobile review where browser access permits. Commit the independently working cart.
+- [x] Write RED tests for owner isolation; anonymous denial; invalid dates/party; unavailable or withdrawn services; explicit fee units; group/private arithmetic; deposit separation; duplicate add; stale update; malicious price/agency overrides.
+- [x] Add `booking_cart` (one active cart per actor, optimistic version) and `cart_item` (kind, validated selection, source fingerprint, saved server estimate/revision, version). Keep identities stable and bound the basket to20 services with a visible limit.
+- [x] Add `src/modules/cart/schema.ts`, `service.ts`, `pricing.ts` and `src/app/api/cart/*`. Serialize add/update operations on the cart row. Source fingerprints prevent duplicate clicks from silently adding a second identical car/slot.
+- [x] For vehicle lines, validate exact offer/mode/date/party and derive effective agency and current published agreement. For tours, select an actual published schedule; validate its current revision, cutoff, capacity, party limits and pricing model.
+- [x] Reuse rental pricing and tour arithmetic. A cart read reports current eligibility and whether saved prices/terms changed; changing snapshots requires an explicit renter review/update, not silent acceptance.
+- [x] Add real add-to-cart controls to detail pages, cart count/navigation, grouped agency sections, update/remove and subtotal feedback. No fake reservation timer or payment control.
+- [x] Verify with unit/live DB/runtime API checks and desktop/mobile review where browser access permits. Commit the independently working cart. Evidence:56 unit/UI,66 full DB,7 final cart DB,35 live cart HTTP and68 demo-fixture checks; build/type pass. Current desktop/mobile visual walkthrough remains explicitly pending because the available Windows Chrome session does not expose the user's in-app preview.
 
 ## Task2: Idempotent grouped request checkout
 

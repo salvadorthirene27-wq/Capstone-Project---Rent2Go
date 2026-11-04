@@ -1,14 +1,48 @@
 "use client";
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { usePathname } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
 import { LogOut, ArrowUpRight, Menu, X } from "lucide-react";
 export function Header() {
+  const pathname = usePathname();
+  const selected = (href: string) =>
+    href === "/"
+      ? pathname === "/"
+      : pathname === href ||
+        pathname.startsWith(`${href}/`) ||
+        (href === "/rentals" && pathname.startsWith("/cars/"));
   const { data: session, isPending } = authClient.useSession();
   const [open, setOpen] = useState(false),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
+  const [cartCount, setCartCount] = useState<number | null>(null);
+  const userId = session?.user?.id;
+  useEffect(() => {
+    if (!userId) {
+      setCartCount(null);
+      return;
+    }
+    let active = true;
+    async function refresh() {
+      try {
+        const res = await fetch("/api/cart/count");
+        if (res.ok) {
+          const data = await res.json();
+          if (active) setCartCount(data.count);
+        }
+      } catch {
+        /* Retain navigation when the count is temporarily unavailable. */
+      }
+    }
+    void refresh();
+    window.addEventListener("rent2go:cart-changed", refresh);
+    return () => {
+      active = false;
+      window.removeEventListener("rent2go:cart-changed", refresh);
+    };
+  }, [userId, pathname]);
   async function signOut() {
     setBusy(true);
     setError("");
@@ -53,21 +87,61 @@ export function Header() {
           className={open ? "navigation-open" : ""}
           aria-label="Main navigation"
         >
-          <Link href="/agencies" onClick={() => setOpen(false)}>
-            Agencies
+          <Link
+            href="/"
+            aria-current={selected("/") ? "page" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            Home
           </Link>
-          <Link href="/rentals" onClick={() => setOpen(false)}>
+          <Link
+            href="/rentals"
+            aria-current={selected("/rentals") ? "page" : undefined}
+            onClick={() => setOpen(false)}
+          >
             Car rentals
           </Link>
-          <Link href="/tours" onClick={() => setOpen(false)}>
+          <Link
+            href="/tours"
+            aria-current={selected("/tours") ? "page" : undefined}
+            onClick={() => setOpen(false)}
+          >
             Tours
           </Link>
-          <Link href="/partners" onClick={() => setOpen(false)}>
+          <Link
+            href="/agencies"
+            aria-current={selected("/agencies") ? "page" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            Agencies
+          </Link>
+          <Link
+            href="/cart"
+            aria-current={selected("/cart") ? "page" : undefined}
+            onClick={() => setOpen(false)}
+          >
+            Cart{cartCount !== null ? ` (${cartCount})` : ""}
+          </Link>
+          <Link
+            href="/partners"
+            aria-current={selected("/partners") ? "page" : undefined}
+            onClick={() => setOpen(false)}
+          >
             For agencies <ArrowUpRight size={15} />
           </Link>
           {session?.user ? (
             <>
-              <Link href="/workspace" onClick={() => setOpen(false)}>
+              <Link
+                href="/workspace"
+                aria-current={
+                  selected("/workspace") ||
+                  selected("/agency") ||
+                  selected("/admin")
+                    ? "page"
+                    : undefined
+                }
+                onClick={() => setOpen(false)}
+              >
                 Workspace
               </Link>
               <button

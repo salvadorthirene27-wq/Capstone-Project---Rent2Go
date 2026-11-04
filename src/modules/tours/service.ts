@@ -379,12 +379,16 @@ function publicPayload(payload: unknown) {
     fulfillment: p.fulfillment,
   };
 }
-export async function publicTour(id: string, input: unknown = {}) {
+export async function publicTour(
+  id: string,
+  input: unknown = {},
+  client: Pick<PoolClient, "query"> = db,
+) {
   const q = publicTourDatesSchema.parse(input);
   if (!uuid.safeParse(id).success)
     throw new DomainError("Tour package not found.", 404);
   const r = (
-    await db.query(
+    await client.query(
       `SELECT t.id,t.agency_id,t.published_revision,r.payload,ar.payload->>'businessName' AS agency_name ${publicJoin} WHERE ${visible} AND t.id=$1`,
       [id],
     )
@@ -403,20 +407,20 @@ export async function publicTour(id: string, input: unknown = {}) {
   ];
   const scheduleTotal = Number(
     (
-      await db.query(
+      await client.query(
         `SELECT count(*) AS n FROM tour_schedule WHERE ${scheduleFilter}`,
         scheduleValues,
       )
     ).rows[0].n,
   );
   const schedules = (
-      await db.query(
+      await client.query(
         `SELECT id,start_at,end_at,cutoff_at,capacity,CASE WHEN mode='PRIVATE' THEN 1-reserved_units ELSE capacity-reserved_units END AS remaining_units FROM tour_schedule WHERE ${scheduleFilter} ORDER BY start_at,id LIMIT 20 OFFSET $8`,
         [...scheduleValues, (q.page - 1) * 20],
       )
     ).rows,
     photos = (
-      await db.query(
+      await client.query(
         "SELECT file_id AS id FROM tour_revision_file WHERE tour_id=$1 AND revision=$2 ORDER BY file_id",
         [id, r.published_revision],
       )

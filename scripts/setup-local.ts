@@ -44,6 +44,7 @@ try {
     "GRANT SELECT,INSERT,UPDATE ON app_request_budget TO rent2go_app",
   );
   await pool.query(`DO $$ BEGIN
+    IF to_regclass('public.booking_cart') IS NOT NULL THEN GRANT SELECT,INSERT,UPDATE ON booking_cart,cart_item TO rent2go_app; END IF;
     IF to_regclass('public.agency_member') IS NOT NULL THEN GRANT SELECT,INSERT,UPDATE ON agency_member TO rent2go_app; END IF;
     IF to_regclass('public.vehicle_offer') IS NOT NULL THEN
       GRANT SELECT,INSERT ON physical_vehicle TO rent2go_app;
@@ -65,6 +66,9 @@ try {
   test.pathname = "/rent2go_test";
   test.searchParams.set("sslmode", "verify-full");
   let env = await readFile(".env.local", "utf8");
+  env =
+    env.replace(/^LOCAL_DEMO_LOOPBACK_ALIASES=.*\r?\n?/m, "") +
+    "LOCAL_DEMO_LOOPBACK_ALIASES=true\n";
   const cookieSecret = env
     .match(/^NEON_AUTH_COOKIE_SECRET=(.*)$/m)?.[1]
     ?.trim();

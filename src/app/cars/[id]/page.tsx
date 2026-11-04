@@ -10,6 +10,7 @@ import {
 } from "@/modules/marketplace/filters";
 import { searchVehicles } from "@/modules/marketplace/vehicles";
 import { driverFeeUnitLabels } from "@/modules/pricing/units";
+import { CartSelection } from "@/components/cart-selection";
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
@@ -36,6 +37,10 @@ export default async function Page({
       : null;
   return (
     <main id="main-content" className="public-main agency-profile">
+      <nav className="page-navigation" aria-label="Vehicle navigation">
+        <Link href={`/rentals?${queryString(query)}`}>Back to car rentals</Link>
+        <Link href="/cart">Your cart</Link>
+      </nav>
       <Link className="back-link" href={`/agencies/${car.agencyId}`}>
         View {car.agencyName}
       </Link>
@@ -106,6 +111,23 @@ export default async function Page({
           <p className="preserve-lines">{car.pricing.exclusions}</p>
         </section>
         <aside className="profile-contact">
+          <h2>Plan this rental</h2>
+          <CartSelection
+            key={`${car.id}:${car.revision}:${query.startAt}:${query.endAt}:${query.mode}:${query.partySize}`}
+            initial={{
+              kind: "RENTAL",
+              offerId: car.id,
+              startAt:
+                query.startAt ?? new Date(Date.now() + 86400000).toISOString(),
+              endAt:
+                query.endAt ??
+                new Date(Date.now() + 2 * 86400000).toISOString(),
+              mode: query.mode ?? car.pricing.modes[0],
+              partySize: query.partySize ?? 1,
+            }}
+            modes={car.pricing.modes}
+            maxParty={car.facts.seats}
+          />
           <h2>{money(car.pricing.rateCentavos)}</h2>
           <p>
             {

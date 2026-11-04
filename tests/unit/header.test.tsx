@@ -4,6 +4,7 @@ import { afterEach, it, expect, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
+vi.mock("next/navigation", () => ({ usePathname: () => "/cars/demo-car" }));
 vi.mock("../../src/lib/auth-client", () => ({
   authClient: {
     useSession: () => ({ data: { user: { id: "demo" } }, isPending: false }),
@@ -36,5 +37,32 @@ it("shows a recoverable error rather than claiming sign-out when the provider re
     .click(screen.getByRole("button", { name: "Sign out" }));
   expect((await screen.findByRole("alert")).textContent).toContain(
     "Unable to sign out",
+  );
+});
+it("keeps the rental section selected on a car detail page and closes the mobile menu after navigation", async () => {
+  render(<Header />);
+  const user = userEvent.setup();
+  const rentals = screen.getByRole("link", { name: "Car rentals" });
+  expect(rentals.getAttribute("aria-current")).toBe("page");
+  expect(
+    screen.getByRole("link", { name: "Home" }).getAttribute("aria-current"),
+  ).toBeNull();
+  await user.click(screen.getByRole("button", { name: "Open navigation" }));
+  rentals.addEventListener("click", (e) => e.preventDefault());
+  await user.click(rentals);
+  expect(
+    screen
+      .getByRole("button", { name: "Open navigation" })
+      .getAttribute("aria-expanded"),
+  ).toBe("false");
+});
+it("returns keyboard focus to the menu button when Escape closes navigation", async () => {
+  render(<Header />);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Open navigation" }));
+  screen.getByRole("link", { name: "Tours" }).focus();
+  await user.keyboard("{Escape}");
+  expect(document.activeElement).toBe(
+    screen.getByRole("button", { name: "Open navigation" }),
   );
 });

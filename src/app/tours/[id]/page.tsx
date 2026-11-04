@@ -5,6 +5,7 @@ import { queryString, type RawFilters } from "@/modules/marketplace/filters";
 import { publicTour } from "@/modules/tours/service";
 import { DomainError } from "@/modules/partners/workflow";
 import { date, money } from "@/modules/partners/presentation";
+import { CartSelection } from "@/components/cart-selection";
 export const dynamic = "force-dynamic";
 export default async function Page({
   params,
@@ -55,6 +56,32 @@ export default async function Page({
         </p>
       )}
       {partyMessage && <p className="notice">{partyMessage}</p>}
+      {tour.schedules.length > 0 && (
+        <section className="context-section">
+          <h2>Plan this experience</h2>
+          <CartSelection
+            key={`${tour.id}:${tour.revision}:${query.page}:${query.partySize}:${query.dateFrom}:${query.dateTo}`}
+            initial={{
+              kind: "TOUR",
+              tourId: tour.id,
+              scheduleId: tour.schedules[0].id,
+              partySize:
+                query.partySize &&
+                query.partySize >= p.minParty &&
+                query.partySize <= p.maxParty
+                  ? query.partySize
+                  : p.minParty,
+            }}
+            minParty={p.minParty}
+            maxParty={p.maxParty}
+            schedules={tour.schedules.map((s) => ({
+              id: s.id,
+              startAt: new Date(s.start_at).toISOString(),
+              endAt: new Date(s.end_at).toISOString(),
+            }))}
+          />
+        </section>
+      )}
       <div className="vehicle-photo-grid">
         {tour.photos.map((photo) => (
           <img
