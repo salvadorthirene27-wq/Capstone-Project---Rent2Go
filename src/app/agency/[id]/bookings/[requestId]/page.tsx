@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { Workspace } from "@/components/workspace";
 import { BookingDetail } from "@/components/booking-detail";
 import { BookingRequirements } from "@/components/booking-requirements";
+import { BookingQuotation } from "@/components/booking-quotation";
 import { pageActor } from "@/lib/page-actor";
 import { requireAgencyAccess } from "@/modules/agencies/service";
 import { getBookingRequest } from "@/modules/bookings/service";
@@ -36,7 +37,8 @@ export default async function Page({
         </p>
       )}
       <BookingDetail booking={booking} />
-      <BookingRequirements requestId={requestId} />
+      <BookingRequirements key={`requirements-${booking.version}`} requestId={requestId} />
+      <BookingQuotation key={`quotation-${booking.version}`} requestId={requestId} />
     </Workspace>
   );
 }

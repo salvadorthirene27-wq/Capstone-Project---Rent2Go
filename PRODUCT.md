@@ -38,6 +38,7 @@ The immediate target is a local demonstration, with a new Neon database. Interne
 - Sensitive renter documents, ownership documents, signatures, receipts, and inspection evidence require private storage and authorized access.
 - Default consigned-vehicle allocation approved by the user: Cosigner 70%, agency 10%, Rent2Go 10%, maintenance 10%. Agreements may alter these percentages and must total 100%. Agency applications cover payments to Rent2Go and methods accepted from renters. Preserve versioned snapshots.
 - Additional confirmed defaults: agency-owned cars allocate 80% agency / 10% Rent2Go / 10% maintenance; tour-only services allocate 90% agency / 10% Rent2Go. Agencies hold maintenance allocations separately for vehicle maintenance. The Cosigner's 70% share always applies to consigned cars; the agency-owned rule does not replace it.
+- On 5 November2026 the user confirmed that rental revenue INCLUDING the driver fee is divided under the agreed percentages. Do not deduct or pass through that driver fee before applying the allocation. Refundable deposits remain excluded.
 
 ## Brand Commitments
 

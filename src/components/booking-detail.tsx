@@ -22,9 +22,9 @@ export function BookingDetail({
         {booking.agencyName} · Submitted {date(booking.createdAt)}
       </p>
       <p className="notice">
-        This request is not a reservation, confirmed booking or payment receipt.
-        Follow the requirements status below. Booking confirmation requires
-        agency approval, an accepted quotation and agreement, and payment.
+        Follow the workflow status below. A quotation holds inventory only until
+        its stated expiry. Booking confirmation requires agency approval, an
+        accepted quotation, a signed agreement, and confirmed payment.
       </p>
       <section className="context-section">
         <h2>Contact details</h2>

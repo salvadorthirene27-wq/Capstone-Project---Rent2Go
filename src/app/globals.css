@@ -2063,3 +2063,15 @@ td .text-link {
 .booking-requirements .document-field p { font-size: 0.875rem; overflow-wrap: anywhere; }
 .booking-requirements fieldset { display: grid; gap: 16px; }
 .booking-requirements .document-field { margin-bottom: 28px; }
+
+.booking-quotation fieldset { display: grid; gap: 16px; margin-block: 28px; min-width: 0; }
+.booking-quotation .document-field { margin-block: 28px; }
+.booking-quotation p, .booking-quotation li { max-width: 72ch; overflow-wrap: anywhere; }
+.booking-quotation .quotation-consent { display: flex; align-items: flex-start; gap: 12px; max-width: 72ch; }
+.booking-quotation .quotation-consent input { flex-shrink: 0; margin-top: 5px; }
+.booking-quotation .quotation-totals { max-width: 40rem; margin-block: 24px; font-variant-numeric: tabular-nums; }
+.booking-quotation .quotation-totals div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: 8px 24px; padding-block: 8px; }
+.booking-quotation .quotation-totals dd { margin: 0; }
+.booking-quotation .quotation-totals div:last-child { border-top: 1px solid var(--line); font-weight: 600; }
+.booking-quotation .quotation-history { margin-top: 28px; }
+.booking-quotation .quotation-history li { margin-block: 16px; }

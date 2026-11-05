@@ -7,6 +7,10 @@ const statusLabels: Record<string, string> = {
   CHANGES_REQUESTED: "Changes requested",
   READY_FOR_APPROVAL: "Ready for approval",
   REJECTED: "Rejected",
+  QUOTE_PENDING: "Quotation awaiting response",
+  QUOTE_ACCEPTED: "Quotation accepted",
+  QUOTE_DECLINED: "Quotation declined",
+  HOLD_EXPIRED: "Hold expired",
 };
 export function BookingList({
   list,

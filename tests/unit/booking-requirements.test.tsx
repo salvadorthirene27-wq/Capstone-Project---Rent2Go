@@ -60,3 +60,11 @@ it("retires recorded document controls and refreshes server history after a deci
  render(<BookingRequirements requestId="request-1"/>);const user=userEvent.setup();await user.click(await screen.findByRole("button",{name:"Accept identity document"}));
  await waitFor(()=>expect(screen.queryByRole("button",{name:"Accept identity document"})).toBeNull());expect(screen.queryByRole("button",{name:"Request identity document correction"})).toBeNull();expect(refresh).toHaveBeenCalledOnce();expect((screen.getByRole("button",{name:"Complete review"}) as HTMLButtonElement).disabled).toBe(false);
 });
+
+it("keeps accepted documents read-only after the request enters quotation",async()=>{
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue(response({...state,status:"QUOTE_PENDING",canEdit:false,documents:[{...document,status:"ACCEPTED"}]})));
+ render(<BookingRequirements requestId="request-1"/>);
+ expect(await screen.findByRole("heading",{name:"Requirements accepted"})).toBeTruthy();
+ expect(screen.queryByLabelText("Identity document file")).toBeNull();
+ expect(screen.queryByRole("button",{name:"Submit requirements"})).toBeNull();
+});

@@ -10,7 +10,8 @@
     "test:integration": "vitest run tests/integration --maxWorkers=1",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
-    "admin:bootstrap": "tsx --env-file=.env.local scripts/bootstrap.ts"
+    "admin:bootstrap": "tsx --env-file=.env.local scripts/bootstrap.ts",
+    "booking:expire-holds": "tsx --env-file=.env.local scripts/expire-booking-holds.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1000.0",
