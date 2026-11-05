@@ -15,6 +15,8 @@ const statusLabels: Record<string, string> = {
   AGREEMENT_SIGNED: "Agreement signed",
   PAYMENT_PARTIAL: "Partially paid",
   READY_FOR_SERVICE: "Ready for service",
+  SERVICE_ACTIVE: "Service in progress",
+  FULFILLMENT_RECONCILIATION_PENDING: "Fulfillment recorded · reconciliation pending",
   PAYMENT_RECONCILIATION_REQUIRED: "Payment reconciliation required",
 };
 export function BookingList({

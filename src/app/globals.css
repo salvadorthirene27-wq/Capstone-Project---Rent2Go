@@ -2124,3 +2124,18 @@ td .text-link {
   .booking-payments .actions { display: flex; flex-wrap: wrap; gap: 12px; }
   .booking-payments .button { white-space: normal; }
 }
+.booking-fulfillment .fulfillment-line { margin-top:36px; padding-top:28px; border-top:1px solid var(--border,#d5dfdb); }
+.booking-fulfillment .fulfillment-line>header { display:flex; align-items:baseline; justify-content:space-between; flex-wrap:wrap; gap:12px; }
+.booking-fulfillment .fulfillment-report { margin:24px 0; padding:20px; background:#eaf2ef; border-radius:12px; overflow-wrap:anywhere; }
+.inspection-document .fulfillment-facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:16px; margin:20px 0; }
+.inspection-document .fulfillment-facts dt { color:#2f5d50; font-size:.875rem; }
+.inspection-document .fulfillment-facts dd { margin:4px 0 0; font-weight:600; }
+.booking-fulfillment .fulfillment-checkbox { display:flex; align-items:flex-start; gap:10px; margin:16px 0; max-width:70ch; }
+.booking-fulfillment .fulfillment-checkbox input { flex:0 0 auto; margin-top:4px; width:18px; height:18px; accent-color:#2f5d50; }
+.booking-fulfillment fieldset { margin:24px 0; padding:0; border:0; min-width:0; }
+.booking-fulfillment legend { font-size:1.125rem; font-weight:600; margin-bottom:12px; }
+.booking-fulfillment .button { margin:8px 12px 8px 0; }
+.booking-fulfillment .fulfillment-photo-choices { display:flex; flex-wrap:wrap; gap:8px 24px; }
+.booking-fulfillment .fulfillment-photo-links { padding-left:20px; }
+.booking-fulfillment .fulfillment-photo-links li { margin:8px 0; }
+.booking-fulfillment input:not([type=checkbox]),.booking-fulfillment select,.booking-fulfillment textarea { font-size:1rem; max-width:100%; }

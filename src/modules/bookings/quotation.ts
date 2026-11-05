@@ -50,7 +50,7 @@ async function driverOptions(c: PoolClient, agency: string, line: Line) {
   return (await c.query<{
     id: string;
     name: string;
-  }>(`SELECT d.id,d.name FROM agency_driver d JOIN resource r ON r.id=d.id WHERE d.agency_id=$1 AND r.agency_id=$1 AND d.active AND r.active AND d.license_expiry>=GREATEST((($3::timestamptz-interval '1 microsecond') AT TIME ZONE 'Asia/Manila')::date,(now() AT TIME ZONE 'Asia/Manila')::date) AND NOT EXISTS(SELECT 1 FROM resource_occupation o WHERE o.resource_id=d.id AND o.cancelled_at IS NULL AND o.period && tstzrange($2::timestamptz,$3::timestamptz+$4::int*interval '1 minute','[)')) ORDER BY d.name,d.id`, [agency, q.startAt, q.endAt, Number(line.policy_snapshot.bufferMinutes)])).rows;
+  }>(`SELECT d.id,d.name FROM agency_driver d JOIN resource r ON r.id=d.id WHERE d.agency_id=$1 AND r.agency_id=$1 AND d.active AND r.active AND d.license_expiry>=GREATEST((($3::timestamptz-interval '1 microsecond') AT TIME ZONE 'Asia/Manila')::date,(now() AT TIME ZONE 'Asia/Manila')::date) AND NOT EXISTS(SELECT 1 FROM resource_occupation o WHERE o.resource_id=d.id AND o.cancelled_at IS NULL AND o.period && tstzrange($2::timestamptz,$3::timestamptz+$4::int*interval '1 minute','[)')) AND NOT booking_actual_resource_conflict(d.id,$2::timestamptz,$3::timestamptz+$4::int*interval '1 minute') ORDER BY d.name,d.id`, [agency, q.startAt, q.endAt, Number(line.policy_snapshot.bufferMinutes)])).rows;
 }
 async function projection(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>) {
   const { r, owner, operator } = ctx;
@@ -161,6 +161,10 @@ async function allocate(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>,
   const resources = (await c.query("SELECT id,kind,agency_id,active FROM resource WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE", [resourceIds])).rows;
   if (resources.length !== resourceIds.length || resources.some(v => v.agency_id !== r.agency_id || !v.active))
     throw new DomainError("A selected vehicle or driver is unavailable.", 409);
+  for(const v of rentals){
+    const q=v.line.public_quote;
+    if((await c.query("SELECT 1 FROM unnest($1::uuid[]) AS x(id) WHERE booking_actual_resource_conflict(x.id,$2::timestamptz,$3::timestamptz+$4::int*interval '1 minute') LIMIT 1",[[v.vehicleId,...(v.driverId?[v.driverId]:[])],q.startAt,q.endAt,Number(v.line.policy_snapshot.bufferMinutes)])).rowCount)throw new DomainError("An assigned resource is still out or in its actual return turnaround period.",409);
+  }
   // Driver edits also lock resource first; inspect licenses only after this lock.
   for (const v of rentals)
     if (v.driverId) {

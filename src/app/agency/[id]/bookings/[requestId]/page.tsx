@@ -6,6 +6,7 @@ import { BookingRequirements } from "@/components/booking-requirements";
 import { BookingQuotation } from "@/components/booking-quotation";
 import { BookingAgreement } from "@/components/booking-agreement";
 import { BookingPayments } from "@/components/booking-payments";
+import { BookingFulfillment } from "@/components/booking-fulfillment";
 import { pageActor } from "@/lib/page-actor";
 import { requireAgencyAccess } from "@/modules/agencies/service";
 import { getBookingRequest } from "@/modules/bookings/service";
@@ -43,6 +44,7 @@ export default async function Page({
       <BookingQuotation key={`quotation-${booking.version}`} requestId={requestId} />
       <BookingAgreement key={`agreement-${booking.version}`} requestId={requestId} />
       <BookingPayments key={`payments-${booking.version}`} requestId={requestId} />
+      <BookingFulfillment key={`fulfillment-${booking.version}`} requestId={requestId} />
     </Workspace>
   );
 }

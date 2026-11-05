@@ -347,6 +347,9 @@ export async function createBlock(
           "Maintenance records apply to vehicles. Use unavailability for drivers.",
         );
       const id = randomUUID();
+      // An unsafe returned vehicle still needs a maintenance record. Prevent
+      // physical occupancy conflicts here; the safety hold continues to block sales.
+      if((await c.query("SELECT EXISTS(SELECT 1 FROM booking_actual_occupation a WHERE a.resource_id=$1 AND ((a.closed_at IS NULL AND (a.planned_end<=clock_timestamp() OR tstzrange(a.opened_at,a.planned_end,'[)') && tstzrange($2::timestamptz,$3::timestamptz,'[)'))) OR (a.closed_at IS NOT NULL AND tstzrange(a.opened_at,a.available_at,'[)') && tstzrange($2::timestamptz,$3::timestamptz,'[)')))) AS blocked",[resourceId,data.startAt,data.endAt])).rows[0].blocked)throw new DomainError("This resource is still out or in its actual return turnaround period.",409);
       await c.query(
         "INSERT INTO resource_occupation(id,resource_id,kind,start_at,end_at,note,created_by) VALUES($1,$2,$3,$4,$5,$6,$7)",
         [
@@ -476,7 +479,7 @@ export async function resourceAvailability(
     const ctx = await context(c, actor, id),
       free = !(
         await c.query(
-          "SELECT 1 FROM resource_occupation WHERE resource_id=$1 AND cancelled_at IS NULL AND period && tstzrange($2::timestamptz,$3::timestamptz,'[)') LIMIT 1",
+          "SELECT 1 WHERE booking_actual_resource_conflict($1,$2,$3) OR EXISTS(SELECT 1 FROM resource_occupation WHERE resource_id=$1 AND cancelled_at IS NULL AND period && tstzrange($2::timestamptz,$3::timestamptz,'[)'))",
           [id, q.startAt, q.endAt],
         )
       ).rowCount;
@@ -524,4 +527,13 @@ export async function resourceAvailability(
       endAt: q.endAt,
     };
   });
+}
+export async function resourceActualStatus(actor:Actor,id:string){
+ return transaction(async c=>{
+  await context(c,actor,id);
+  const actual=(await c.query("SELECT opened_at,planned_end,closed_at,available_at,closed_at IS NULL AND planned_end<=clock_timestamp() AS overdue,closed_at IS NOT NULL AND available_at>clock_timestamp() AS turnaround FROM booking_actual_occupation WHERE resource_id=$1 ORDER BY opened_at DESC,id DESC LIMIT 1",[id])).rows[0];
+  const safetyHold=Boolean((await c.query("SELECT 1 FROM booking_actual_occupation a JOIN resource r ON r.id=a.resource_id WHERE a.resource_id=$1 AND r.kind='VEHICLE' AND a.closed_at IS NOT NULL AND booking_return_safety_hold(a.quote_id,a.line_id) LIMIT 1",[id])).rowCount);
+  const upcoming=actual?.overdue?Number((await c.query("SELECT count(*) n FROM resource_occupation WHERE resource_id=$1 AND kind='BOOKING' AND cancelled_at IS NULL AND start_at>clock_timestamp()",[id])).rows[0].n):0;
+  return {active:Boolean(actual&&!actual.closed_at),overdue:Boolean(actual?.overdue),turnaround:Boolean(actual?.turnaround),plannedEnd:actual?(actual.planned_end as Date).toISOString():null,returnedAt:actual?.closed_at?(actual.closed_at as Date).toISOString():null,availableAfter:actual?.available_at?(actual.available_at as Date).toISOString():null,safetyHold,upcomingConflictCount:upcoming};
+ });
 }

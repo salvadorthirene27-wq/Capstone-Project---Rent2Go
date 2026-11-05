@@ -55,6 +55,7 @@ export async function searchVehicles(
     bufferedEnd = `(${end}+COALESCE((ar.payload->>'bufferMinutes')::int,0)*interval '1 minute')`;
     clauses.push(
       `NOT EXISTS(SELECT 1 FROM resource_occupation oc WHERE oc.resource_id=v.id AND oc.cancelled_at IS NULL AND oc.period && tstzrange(${start},${bufferedEnd},'[)'))`,
+      `NOT booking_actual_resource_conflict(v.id,${start},${bufferedEnd})`,
     );
   }
   const driverDate = end
@@ -62,7 +63,7 @@ export async function searchVehicles(
     : `(now() AT TIME ZONE 'Asia/Manila')::date`;
   const driverFree =
     start && bufferedEnd
-      ? `AND NOT EXISTS(SELECT 1 FROM resource_occupation dc WHERE dc.resource_id=d.id AND dc.cancelled_at IS NULL AND dc.period && tstzrange(${start},${bufferedEnd},'[)'))`
+      ? `AND NOT EXISTS(SELECT 1 FROM resource_occupation dc WHERE dc.resource_id=d.id AND dc.cancelled_at IS NULL AND dc.period && tstzrange(${start},${bufferedEnd},'[)')) AND NOT booking_actual_resource_conflict(d.id,${start},${bufferedEnd})`
       : "";
   clauses.push(
     `((${selected})='SELF_DRIVE' OR (r.terms->>'driverFeeUnit' IN ('PER_BOOKING','PER_24_HOURS','PER_CALENDAR_DAY','PER_HOUR','PER_RENTAL_UNIT') AND r.terms->>'driverFeeCentavos' IS NOT NULL AND EXISTS(SELECT 1 FROM agency_driver d JOIN resource dr ON dr.driver_id=d.id WHERE d.agency_id=a.id AND d.active AND dr.active AND d.license_expiry>=GREATEST(${driverDate},(now() AT TIME ZONE 'Asia/Manila')::date) ${driverFree})))`,
