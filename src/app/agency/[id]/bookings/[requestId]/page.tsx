@@ -1,3 +1,4 @@
+import {BookingCancellation} from "@/components/booking-cancellation";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Workspace } from "@/components/workspace";
@@ -40,6 +41,7 @@ export default async function Page({
         </p>
       )}
       <BookingDetail booking={booking} />
+      <BookingCancellation key={`cancellation-${booking.version}`} requestId={requestId} />
       <BookingRequirements key={`requirements-${booking.version}`} requestId={requestId} />
       <BookingQuotation key={`quotation-${booking.version}`} requestId={requestId} />
       <BookingAgreement key={`agreement-${booking.version}`} requestId={requestId} />

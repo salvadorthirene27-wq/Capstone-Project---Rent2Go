@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 
 type Purpose = "IDENTITY" | "DRIVER_LICENSE";
 type Evidence = { id: string; purpose: Purpose; name: string; mime: string; size: number; uploadedAt: string; status: "PENDING" | "ACCEPTED" | "CHANGES_REQUESTED"; reason: string; expiresOn: string | null };
-type Requirements = { requestId: string; requestVersion: number; status: string; canEdit: boolean; isReviewer: boolean; requiredPurposes: Purpose[]; documents: Evidence[] };
+type Requirements = { requestId: string; requestVersion: number; status: string; cancellationPending?:boolean; canEdit: boolean; isReviewer: boolean; requiredPurposes: Purpose[]; documents: Evidence[] };
 const labels: Record<Purpose, string> = { IDENTITY: "Identity document", DRIVER_LICENSE: "Driver license" };
 const statuses: Record<string, string> = { REQUIREMENTS_PENDING: "Requirements pending", UNDER_REVIEW: "Under review", CHANGES_REQUESTED: "Changes requested", READY_FOR_APPROVAL: "Ready for approval", REJECTED: "Rejected", PENDING: "Pending review", ACCEPTED: "Accepted" };
 
@@ -52,7 +52,7 @@ export function BookingRequirements({ requestId }: { requestId: string }) {
     finally { setBusy(false); }
   }
   const editable = data?.canEdit && ["REQUIREMENTS_PENDING", "CHANGES_REQUESTED"].includes(data.status);
-  const reviewing = data?.isReviewer && data.status === "UNDER_REVIEW";
+  const reviewing = !data?.cancellationPending && data?.isReviewer && data.status === "UNDER_REVIEW";
   const blocked = busy || stale;
   return <section className="context-section booking-requirements" aria-labelledby="requirements-heading" aria-busy={busy}>
     <h2 id="requirements-heading">Booking requirements</h2>

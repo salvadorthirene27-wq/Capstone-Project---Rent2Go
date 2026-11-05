@@ -14,7 +14,7 @@ type Agreement = {
 type AgreementState = {
   serverNow: string; requestId: string; requestVersion: number; status: string;
   allocationCommitted?: boolean;
-  isOwner: boolean; isOperator: boolean; canIssue: boolean; canSign: boolean; holdActive: boolean;
+  isOwner: boolean; isOperator: boolean; cancellationPending?:boolean; canIssue: boolean; canSign: boolean; holdActive: boolean;
   acceptedQuote: { id: string; digest: string } | null; agreement: Agreement | null;
   history: { id: string; revision: number; issuedAt: string; outcome: Outcome }[];
 };
@@ -156,7 +156,7 @@ export function BookingAgreement({ requestId }: { requestId: string }) {
   const currentQuote = agreement && data?.acceptedQuote?.id === agreement.quoteId && data.acceptedQuote.digest === agreement.quoteDigest;
   const canIssue = independentOperator && data?.canIssue && data.status === "QUOTE_ACCEPTED" && data.holdActive && data.acceptedQuote;
   const canSign = data?.isOwner && data.canSign && data.status === "AGREEMENT_PENDING" && data.holdActive && currentQuote && outcome === "PENDING";
-  const canWithdraw = independentOperator && data?.status === "AGREEMENT_PENDING" && data.holdActive && currentQuote && outcome === "PENDING";
+  const canWithdraw = !data?.cancellationPending && independentOperator && data?.status === "AGREEMENT_PENDING" && data.holdActive && currentQuote && outcome === "PENDING";
   const nameMatches = agreement && cleanName(name).toLocaleLowerCase("en-US") === cleanName(agreement.body.renterName).toLocaleLowerCase("en-US");
 
   return <section className="context-section booking-agreement" aria-labelledby="agreement-heading" aria-busy={busy}>

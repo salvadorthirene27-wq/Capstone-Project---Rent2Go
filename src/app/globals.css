@@ -2139,3 +2139,13 @@ td .text-link {
 .booking-fulfillment .fulfillment-photo-links { padding-left:20px; }
 .booking-fulfillment .fulfillment-photo-links li { margin:8px 0; }
 .booking-fulfillment input:not([type=checkbox]),.booking-fulfillment select,.booking-fulfillment textarea { font-size:1rem; max-width:100%; }
+.booking-cancellation fieldset { border:0; min-width:0; margin:24px 0; padding:0; }
+.booking-cancellation legend { font-size:1.125rem; font-weight:600; margin-bottom:16px; }
+.booking-cancellation .button { margin:8px 12px 8px 0; white-space:normal; }
+.booking-cancellation .cancellation-check { display:flex; gap:10px; align-items:flex-start; margin:20px 0; max-width:70ch; }
+.booking-cancellation .cancellation-check input { flex:0 0 auto; width:18px; height:18px; margin-top:4px; accent-color:#2f5d50; }
+.booking-cancellation textarea { font-size:1rem; }
+.booking-cancellation .cancellation-review { border-left:3px solid #2f5d50; padding:4px 20px; margin:24px 0; background:#f2f7f5; }
+.booking-cancellation .cancellation-policies { overflow-wrap:anywhere; padding:8px 0; }
+.booking-cancellation dt { font-weight:600; margin-top:16px; }
+.booking-cancellation dd { margin:4px 0; }

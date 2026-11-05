@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { date, money } from "@/modules/partners/presentation";
 
-type Outcome = "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "EXPIRED";
+type Outcome = "CANCELLED" | "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "EXPIRED";
 type Quote = {
   id: string; revision: number; digest: string; issuedAt: string; expiresAt: string;
   lines: { lineId: string; title: string; kind: string; startAt: string; endAt: string; partySize: number; serviceCentavos: number; refundableDepositCentavos: number; driverName: string | null }[];
@@ -14,12 +14,12 @@ type Quote = {
 type Quotation = {
   serverNow?: string;
   allocationCommitted?: boolean;
-  requestId: string; requestVersion: number; status: string; isOwner: boolean; isOperator: boolean; canIssue: boolean; canRespond: boolean;
+  requestId: string; requestVersion: number; status: string; isOwner: boolean; isOperator: boolean; cancellationPending?:boolean; canIssue: boolean; canRespond: boolean;
   driverSelections: { lineId: string; title: string; drivers: { id: string; name: string }[] }[];
   quote: Quote | null;
   history: { id: string; revision: number; issuedAt: string; expiresAt: string; outcome: Outcome }[];
 };
-const outcomeLabels: Record<Outcome, string> = { PENDING: "Awaiting response", ACCEPTED: "Accepted", DECLINED: "Declined", WITHDRAWN: "Withdrawn", EXPIRED: "Expired" };
+const outcomeLabels: Record<Outcome, string> = { CANCELLED:"Allocation cancelled", PENDING: "Awaiting response", ACCEPTED: "Accepted", DECLINED: "Declined", WITHDRAWN: "Withdrawn", EXPIRED: "Expired" };
 const policyLabels = { terms: "Service terms", cancellationPolicy: "Cancellation", refundPolicy: "Refunds", damagePolicy: "Damage and deposit", latePolicy: "Late returns and no-shows" } as const;
 
 export function BookingQuotation({ requestId }: { requestId: string }) {
@@ -101,7 +101,7 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
   const ready = data && ["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(data.status);
   const canIssue = independentOperator && ready && data?.canIssue;
   const canRespond = data?.isOwner && data.canRespond && data.status === "QUOTE_PENDING" && outcome === "PENDING";
-  const canWithdraw = independentOperator && data?.status === "QUOTE_PENDING" && outcome === "PENDING";
+  const canWithdraw = !data?.cancellationPending && independentOperator && data?.status === "QUOTE_PENDING" && outcome === "PENDING";
   const blocked = busy || stale;
   const exactQuote = quote ? { quoteId: quote.id, digest: quote.digest } : {};
 

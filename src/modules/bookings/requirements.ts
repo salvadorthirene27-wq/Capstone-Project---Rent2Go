@@ -1,3 +1,4 @@
+import {assertNoPendingCancellation,cancellationPending} from "./cancellation-guard";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { transaction } from "../../lib/db";
@@ -31,10 +32,10 @@ async function submission(c: PoolClient, id: string) {
   return (await c.query("SELECT id FROM booking_requirement_submission WHERE request_id=$1 ORDER BY version DESC LIMIT 1", [id])).rows[0]?.id as string | undefined;
 }
 async function projection(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>) {
-  const { r, owner, reviewer, purposes } = ctx, batch = await submission(c, r.id);
+  const { r, owner, reviewer, purposes } = ctx, batch = await submission(c, r.id),paused=await cancellationPending(c,r.id);
   const files = (await c.query(`SELECT DISTINCT ON(f.purpose) f.*,f.expires_on::text AS expires_on,d.decision,d.reason FROM booking_requirement_file f LEFT JOIN booking_requirement_selection s ON s.file_id=f.id AND s.submission_id=$2 LEFT JOIN booking_requirement_decision d ON d.file_id=f.id AND d.submission_id=s.submission_id WHERE f.request_id=$1 ${owner && editable(r) ? "" : "AND s.submission_id=$2"} ORDER BY f.purpose,f.created_at DESC,f.id DESC`, [r.id, batch ?? null])).rows;
   return {
-    requestId: r.id, requestVersion: r.version, status: r.status, canEdit: owner && editable(r), isReviewer: reviewer, requiredPurposes: purposes, documents: files.map(f => ({
+    requestId: r.id, requestVersion: r.version, status: r.status, cancellationPending:paused, canEdit: !paused && owner && editable(r), isReviewer: reviewer, requiredPurposes: purposes, documents: files.map(f => ({
       id: f.id, purpose: f.purpose, name: f.name, mime: f.mime, size: f.size, uploadedAt: new Date(f.created_at).toISOString(), status: f.decision ?? "PENDING", reason: f.reason ?? "", expiresOn: f.expires_on ? f.expires_on : null
     }))
   };
@@ -45,6 +46,7 @@ function checkVersion(r: RequestRow, version: number) {
 }
 async function uploadContext(c: PoolClient, actor: Actor, id: string, version: number) {
   const ctx = await context(c, actor, id, true);
+  await assertNoPendingCancellation(c,id);
   checkVersion(ctx.r, versionSchema.parse(version));
   if (!ctx.owner || !editable(ctx.r))
     throw new DomainError("Requirements cannot be edited at this stage.", 409);
@@ -107,6 +109,7 @@ export async function changeRequirements(actor: Actor, id: string, input: unknow
   const command = requirementsCommand.parse(input);
   return transaction(async (c) => {
     const ctx = await context(c, actor, id, true), { r } = ctx;
+    await assertNoPendingCancellation(c,id);
     checkVersion(r, command.version);
     let next = r.status, message = "Review started.";
     if (command.action === "SUBMIT") {

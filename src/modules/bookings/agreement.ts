@@ -1,3 +1,4 @@
+import {assertNoPendingCancellation,cancellationPending} from "./cancellation-guard";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { transaction } from "../../lib/db";
@@ -35,9 +36,9 @@ export type AgreementView=ReturnType<typeof agreementView>;
 async function projection(c:PoolClient,ctx:Context){
  const {r,owner,operator}=ctx,q=await currentQuote(c,r.id),latest=await agreementRow(c,r.id),agreement=latest?agreementView(latest):null;
  const history=(await c.query<{id:string;revision:number;issued_at:Date;outcome:"PENDING"|"SIGNED"|"WITHDRAWN"|"EXPIRED"}>("SELECT a.id,a.revision,a.issued_at,CASE WHEN s.id IS NOT NULL THEN 'SIGNED' WHEN EXISTS(SELECT 1 FROM booking_agreement_event e WHERE e.agreement_id=a.id AND e.action='WITHDRAWN') THEN 'WITHDRAWN' WHEN a.expires_at<=clock_timestamp() OR h.released_at IS NOT NULL THEN 'EXPIRED' ELSE 'PENDING' END AS outcome FROM booking_agreement a JOIN booking_hold h ON h.quote_id=a.quote_id LEFT JOIN booking_agreement_signature s ON s.agreement_id=a.id WHERE a.request_id=$1 ORDER BY a.revision DESC LIMIT 20",[r.id])).rows;
- const holdActive=Boolean(q?.live&&q.accepted),exact=agreement?.quoteId===q?.id&&agreement?.quoteDigest===q?.digest;
+ const paused=await cancellationPending(c,r.id),holdActive=Boolean(q?.live&&q.accepted),exact=agreement?.quoteId===q?.id&&agreement?.quoteDigest===q?.digest;
  const serverNow=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now.toISOString();
- return {serverNow,requestId:r.id,requestVersion:r.version,status:r.status,isOwner:owner,isOperator:operator,allocationCommitted:Boolean(q?.committed),canIssue:operator&&ctx.agencyActive&&r.status==="QUOTE_ACCEPTED"&&holdActive,canSign:owner&&ctx.agencyActive&&r.status==="AGREEMENT_PENDING"&&holdActive&&exact&&agreement?.outcome==="PENDING",holdActive,acceptedQuote:q?.accepted?{id:q.id as string,digest:q.digest as string}:null,agreement,history:history.map(a=>({id:a.id,revision:a.revision,issuedAt:a.issued_at.toISOString(),outcome:a.outcome}))};
+ return {serverNow,requestId:r.id,requestVersion:r.version,status:r.status,isOwner:owner,isOperator:operator,cancellationPending:paused,allocationCommitted:Boolean(q?.committed),canIssue:!paused&&operator&&ctx.agencyActive&&r.status==="QUOTE_ACCEPTED"&&holdActive,canSign:!paused&&owner&&ctx.agencyActive&&r.status==="AGREEMENT_PENDING"&&holdActive&&exact&&agreement?.outcome==="PENDING",holdActive,acceptedQuote:q?.accepted?{id:q.id as string,digest:q.digest as string}:null,agreement,history:history.map(a=>({id:a.id,revision:a.revision,issuedAt:a.issued_at.toISOString(),outcome:a.outcome}))};
 }
 export async function getAgreement(actor:Actor,id:string){
  return transaction(async c=>{await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");return projection(c,await context(c,actor,id));});
@@ -63,6 +64,7 @@ async function setStatus(c:PoolClient,ctx:Context,status:string){
 }
 function checkVersion(ctx:Context,version:number){if(ctx.r.version!==version)throw new DomainError("This request changed. Reload and try again.",409);}
 async function lockLiveQuote(c:PoolClient,ctx:Context,operator:boolean){
+ await assertNoPendingCancellation(c,ctx.r.id);
  const authority=await lockBookingAuthority(c,ctx,[ctx.r.renter_id],operator);
  if((await c.query("SELECT is_test_fixture FROM app_actor WHERE id=$1",[ctx.user.id])).rows[0]?.is_test_fixture)throw new DomainError("Access denied.",403);
  if(!authority.active)throw new DomainError("This agency is currently unavailable.",409);

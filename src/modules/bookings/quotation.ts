@@ -1,3 +1,4 @@
+import {assertNoPendingCancellation,cancellationPending} from "./cancellation-guard";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { db, transaction } from "../../lib/db";
@@ -53,9 +54,9 @@ async function driverOptions(c: PoolClient, agency: string, line: Line) {
   }>(`SELECT d.id,d.name FROM agency_driver d JOIN resource r ON r.id=d.id WHERE d.agency_id=$1 AND r.agency_id=$1 AND d.active AND r.active AND d.license_expiry>=GREATEST((($3::timestamptz-interval '1 microsecond') AT TIME ZONE 'Asia/Manila')::date,(now() AT TIME ZONE 'Asia/Manila')::date) AND NOT EXISTS(SELECT 1 FROM resource_occupation o WHERE o.resource_id=d.id AND o.cancelled_at IS NULL AND o.period && tstzrange($2::timestamptz,$3::timestamptz+$4::int*interval '1 minute','[)')) AND NOT booking_actual_resource_conflict(d.id,$2::timestamptz,$3::timestamptz+$4::int*interval '1 minute') ORDER BY d.name,d.id`, [agency, q.startAt, q.endAt, Number(line.policy_snapshot.bufferMinutes)])).rows;
 }
 async function projection(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>) {
-  const { r, owner, operator } = ctx;
+  const { r, owner, operator } = ctx,paused=await cancellationPending(c,r.id);
   const quotes = (await c.query("SELECT q.*,h.released_at,h.release_reason,EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id) AS committed,EXISTS(SELECT 1 FROM booking_quotation_decision d WHERE d.quote_id=q.id AND d.action='ACCEPTED') AS accepted,q.expires_at<=clock_timestamp() AS elapsed FROM booking_quotation q JOIN booking_hold h ON h.quote_id=q.id WHERE q.request_id=$1 ORDER BY q.revision DESC", [r.id])).rows;
-  const outcome = (q: typeof quotes[number]) => q.release_reason === "EXPIRED" || (!q.released_at && q.elapsed && !q.committed) ? "EXPIRED" : q.release_reason === "DECLINED" ? "DECLINED" : q.release_reason === "WITHDRAWN" ? "WITHDRAWN" : q.accepted ? "ACCEPTED" : "PENDING";
+  const outcome = (q: typeof quotes[number]) => q.release_reason === "CANCELLED" ? "CANCELLED" : q.release_reason === "EXPIRED" || (!q.released_at && q.elapsed && !q.committed) ? "EXPIRED" : q.release_reason === "DECLINED" ? "DECLINED" : q.release_reason === "WITHDRAWN" ? "WITHDRAWN" : q.accepted ? "ACCEPTED" : "PENDING";
   const current = quotes[0];
   const quote = current ? { id: current.id, revision: current.revision, digest: current.digest, issuedAt: new Date(current.issued_at).toISOString(), expiresAt: new Date(current.expires_at).toISOString(), ...current.public_snapshot, outcome: outcome(current) } : null;
   const selections: {
@@ -71,7 +72,7 @@ async function projection(c: PoolClient, ctx: Awaited<ReturnType<typeof context>
       if (line.public_quote.selection.kind === "RENTAL" && line.public_quote.selection.mode === "WITH_DRIVER")
         selections.push({ lineId: line.id, title: line.public_quote.title, drivers: await driverOptions(c, r.agency_id, line) });
   const serverNow=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now.toISOString();
-  return { serverNow, requestId: r.id, requestVersion: r.version, status: r.status, isOwner: owner, isOperator: operator, allocationCommitted:Boolean(current?.committed&&!current?.released_at),canIssue: operator && ["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status), canRespond: owner && ctx.agencyActive && r.status === "QUOTE_PENDING" && quote?.outcome === "PENDING", driverSelections: selections, quote, history: quotes.map(q => ({ id: q.id, revision: q.revision, issuedAt: new Date(q.issued_at).toISOString(), expiresAt: new Date(q.expires_at).toISOString(), outcome: outcome(q) })) };
+  return { serverNow, requestId: r.id, requestVersion: r.version, status: r.status, isOwner: owner, isOperator: operator, cancellationPending:paused, allocationCommitted:Boolean(current?.committed&&!current?.released_at),canIssue: !paused && operator && ["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status), canRespond: !paused && owner && ctx.agencyActive && r.status === "QUOTE_PENDING" && quote?.outcome === "PENDING", driverSelections: selections, quote, history: quotes.map(q => ({ id: q.id, revision: q.revision, issuedAt: new Date(q.issued_at).toISOString(), expiresAt: new Date(q.expires_at).toISOString(), outcome: outcome(q) })) };
 }
 export async function getQuotation(actor: Actor, id: string) {
   return transaction(async (c) => { await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"); return projection(c, await context(c, actor, id)); });
@@ -227,6 +228,7 @@ export async function changeQuotation(actor: Actor, id: string, input: unknown) 
   try {
     return await transaction(async (c) => {
       const ctx = await context(c, actor, id, true), { r, user, owner, operator } = ctx;
+      await assertNoPendingCancellation(c,id);
       if (r.version !== command.version)
         throw new DomainError("This request changed. Reload and try again.", 409);
       if (["ISSUE_QUOTE", "WITHDRAW_QUOTE", "REJECT"].includes(command.action) && !operator)
