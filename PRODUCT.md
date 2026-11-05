@@ -44,6 +44,8 @@ The immediate target is a local demonstration, with a new Neon database. Interne
 
 Name: Rent2Go. The user requires the new interface to complement the existing develop-branch design. Its forest green/mint identity, light surfaces, rounded controls, and familiar dashboard structure are the visual reference. Build directly in code with reviewed screens. Existing misleading copy or incomplete controls are not evidence of approved business behavior.
 
+The user subsequently requested Impeccable refinement for a professional, trustworthy interface serving agencies, Cosigners and renters. Preserve the recognizable landing composition and imagery while improving contrast, responsive layout and shared operational controls. Add purposeful scrolling and hover feedback with reduced-motion support; do not introduce invented endorsements, metrics or payment claims.
+
 ## Evidence on Hand
 
 The supplied 82-page manuscript is the requirements source. Chapters 1–3 define the baseline; Chapters 4–5 contain provisional implementation descriptions and unfilled testing/evaluation templates. No actual new-system test results, adoption figures, endorsements, or usability scores exist yet. Existing develop screens are visual references only. The manuscript and private documents must not be committed to the public repository.

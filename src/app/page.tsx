@@ -1,27 +1,30 @@
 import Link from "next/link";
 import Image from "next/image";
 import { HomeNavigation } from "@/components/home-navigation";
+import { HomeMotion } from "@/components/home-motion";
+import { ArrowUpRight } from "lucide-react";
 import "./landing.css";
 export default function Home() {
   return (
     <main id="main-content" className="marc-home min-h-screen bg-[#FAFAFA] font-sans scroll-smooth">
+      <HomeMotion />
       {/* --- HERO SECTION --- */}
-      <div className="relative w-[96%] mx-auto mt-4 rounded-[40px] h-[800px] overflow-hidden bg-black shadow-2xl">
+      <div className="home-hero relative w-[96%] mx-auto mt-4 rounded-[40px] h-[800px] overflow-hidden bg-black shadow-2xl">
         <Image
           src="/landing/hero.jpg"
           sizes="96vw"
           alt="Luxury Car Rental Philippines"
           fill
           priority
-          className="object-cover object-bottom opacity-50 z-0 scale-105"
+          className="home-hero-image object-cover object-bottom opacity-50 z-0"
         />
 
         <div className="relative z-10 flex flex-col h-full">
           <HomeNavigation />
 
           {/* Hero Content - More humble & mission-focused */}
-          <div className="flex-grow flex flex-col items-center justify-center gap-5 px-4 text-center">
-            <h1 className="text-5xl md:text-6xl font-bold text-white max-w-4xl leading-[1.2] tracking-tight drop-shadow-xl">
+          <div className="home-hero-content flex-grow flex flex-col items-center justify-center gap-5 px-4 text-center">
+            <h1 className="home-hero-title text-5xl md:text-6xl font-bold text-white max-w-4xl leading-[1.2] tracking-tight drop-shadow-xl">
               Bridging the Gap in <br />
               <span className="text-[#ABD1C6]">Philippine Car Rentals.</span>
             </h1>
@@ -33,7 +36,7 @@ export default function Home() {
               <strong>cosigners</strong> share their vehicles through partner agencies.
             </p>
 
-            <div className="mt-4 flex flex-wrap justify-center gap-4">
+            <div className="home-hero-actions mt-4 flex flex-wrap justify-center gap-4">
               <Link href="/rentals" className="px-9 py-3.5 bg-[#ABD1C6] hover:bg-[#c4e3db] text-[#2F5D50] transition-all rounded-full font-bold text-base shadow-xl">Find a Ride</Link>
               <Link href="/partners" className="px-9 py-3.5 border border-white/30 text-white hover:bg-white/10 transition-all rounded-full font-bold text-base">Learn About Partnering</Link>
             </div>
@@ -46,11 +49,11 @@ export default function Home() {
         {" "}
         {/* Changed bg to white */}
         <div className="max-w-6xl mx-auto px-6">
-          <p className="text-center text-[10px] uppercase tracking-[0.3em] font-bold text-gray-400 mb-10">
+          <p className="home-brands-label text-center text-[10px] uppercase tracking-[0.3em] font-bold text-gray-400 mb-10">
             Vehicle brands
           </p>
 
-          <div className="flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700 ease-in-out">
+          <div className="home-brand-strip flex flex-wrap justify-center items-center gap-12 md:gap-20 opacity-30 grayscale hover:grayscale-0 hover:opacity-100 transition-all duration-700 ease-in-out">
             {/* Logo 1 */}
             <div className="relative w-12 h-12 md:w-16 md:h-16">
               <Image
@@ -112,9 +115,9 @@ export default function Home() {
             Helping the Philippine rental community move forward, together.
           </p>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-8 mt-16">
+          <div className="home-role-grid grid grid-cols-1 md:grid-cols-3 gap-8 mt-16" data-home-reveal="">
             {/* Role: Customer */}
-            <div className="p-10 bg-[#F9F9F9] rounded-[32px] border border-gray-100 text-left hover:border-[#ABD1C6] transition-all">
+            <div className="home-role p-10 bg-[#F9F9F9] rounded-[32px] border border-gray-100 text-left hover:border-[#ABD1C6] transition-all">
               <div className="w-14 h-14 rounded-2xl bg-[#2F5D50] text-[#ABD1C6] flex items-center justify-center font-black text-xl mb-6 shadow-lg">
                 01
               </div>
@@ -129,10 +132,11 @@ export default function Home() {
                 <li>• Verified Fleet</li>
                 <li>• Booking Updates</li>
               </ul>
+              <Link className="home-role-link" href="/rentals">Browse rentals <ArrowUpRight size={17} aria-hidden="true" /></Link>
             </div>
 
             {/* Role: Agency */}
-            <div className="p-10 bg-white rounded-[32px] border-2 border-[#2F5D50] text-left shadow-2xl scale-105 relative z-10">
+            <div className="home-role home-role-agency p-10 bg-white rounded-[32px] border-2 border-[#2F5D50] text-left shadow-2xl scale-105 relative z-10">
               <div className="w-14 h-14 rounded-2xl bg-[#ABD1C6] text-[#2F5D50] flex items-center justify-center font-black text-xl mb-6 shadow-lg">
                 02
               </div>
@@ -148,10 +152,11 @@ export default function Home() {
                 <li>• Increased Visibility</li>
                 <li>• Clear Revenue Sharing</li>
               </ul>
+              <Link className="home-role-link" href="/partners">Partner your agency <ArrowUpRight size={17} aria-hidden="true" /></Link>
             </div>
 
             {/* Role: Cosigner */}
-            <div className="p-10 bg-[#F9F9F9] rounded-[32px] border border-gray-100 text-left hover:border-[#ABD1C6] transition-all">
+            <div className="home-role p-10 bg-[#F9F9F9] rounded-[32px] border border-gray-100 text-left hover:border-[#ABD1C6] transition-all">
               <div className="w-14 h-14 rounded-2xl bg-[#2F5D50] text-[#ABD1C6] flex items-center justify-center font-black text-xl mb-6 shadow-lg">
                 03
               </div>
@@ -166,13 +171,14 @@ export default function Home() {
                 <li>• Agency Agreements</li>
                 <li>• Vehicle Ownership</li>
               </ul>
+              <Link className="home-role-link" href="/workspace/vehicles/new">Offer your vehicle <ArrowUpRight size={17} aria-hidden="true" /></Link>
             </div>
           </div>
         </div>
       </section>
 
       {/* --- VEHICLE CATEGORIES --- */}
-      <section className="py-24 px-6 max-w-6xl mx-auto">
+      <section className="home-fleet py-24 px-6 max-w-6xl mx-auto">
         <div className="flex flex-col md:flex-row justify-between items-baseline mb-12 gap-4 border-b border-gray-100 pb-8">
           <div>
             <h2 className="text-3xl font-black text-gray-900 tracking-tighter italic uppercase">
@@ -206,7 +212,7 @@ export default function Home() {
             },
             { name: "Vans", desc: "Group Transport", src: "/landing/van.jpg" },
           ].map((cat) => (
-            <Link key={cat.name} href={`/rentals?bodyType=${cat.name === "Sedans" ? "SEDAN" : cat.name === "SUVs" ? "SUV" : "VAN"}`} className="group cursor-pointer">
+            <Link key={cat.name} href={`/rentals?bodyType=${cat.name === "Sedans" ? "SEDAN" : cat.name === "SUVs" ? "SUV" : "VAN"}`} className="home-fleet-card group cursor-pointer" data-home-reveal="">
               <div className="mb-4 px-1">
                 <h3 className="font-bold text-gray-900 text-xl group-hover:text-[#2F5D50] transition-colors tracking-tight">
                   {cat.name}
@@ -216,7 +222,7 @@ export default function Home() {
                 </p>
               </div>
               <div className="relative w-full h-56 bg-gray-100 rounded-[32px] overflow-hidden border border-gray-50 group-hover:border-[#ABD1C6] transition-all duration-500">
-                <div className="relative w-full h-full z-10 group-hover:scale-110 transition-transform duration-700 ease-in-out">
+                <div className="home-fleet-image relative w-full h-full z-10 group-hover:scale-110 transition-transform duration-700 ease-in-out">
                   <Image
                     src={cat.src}
                     alt={cat.name}
@@ -233,7 +239,7 @@ export default function Home() {
 
       {/* --- MODIFIED FINAL CTA SECTION --- */}
       <section id="booking-guide" className="px-6 pb-24">
-        <div className="max-w-6xl mx-auto bg-[#2F5D50] rounded-[48px] px-10 py-20 text-center relative overflow-hidden shadow-2xl">
+        <div className="home-final-cta max-w-6xl mx-auto bg-[#2F5D50] rounded-[48px] px-10 py-20 text-center relative overflow-hidden shadow-2xl" data-home-reveal="">
           <div className="absolute -top-24 -right-24 w-96 h-96 bg-[#ABD1C6]/10 rounded-full blur-3xl" />
 
           <div className="relative z-10">
@@ -322,7 +328,7 @@ export default function Home() {
             </ul>
           </div>
         </div>
-        <div className="max-w-7xl mx-auto pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase font-bold text-gray-400 tracking-widest">
+        <div className="home-footer-meta max-w-7xl mx-auto pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase font-bold text-gray-400 tracking-widest">
           <p>© 2026 Rent2Go Philippines.</p>
           <div className="flex gap-6">
             <Link href="/photo-credits">Photo credits</Link>

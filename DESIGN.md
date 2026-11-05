@@ -51,3 +51,11 @@ Primary buttons use forest with white text; hover uses deeper forest. Selected s
 - Do keep keyboard focus visible and maintain readable contrast.
 - Don't carry over unsupported controls or false claims from the old app.
 - Don't add GPS/tracking navigation or fictitious metrics/reviews.
+
+## Motion and refinement
+
+The landing page preserves Marc Albert's photographic composition with stronger text contrast, responsive hero sizing, direct routes for each audience, and quieter fleet/role surfaces. The wordmark uses the shared Outfit face; Poppins headings and Inter body remain. Secondary copy must stay readable rather than relying on low opacity.
+
+Use one photographic hero entrance and one-time reveals as visitors reach the audience choices, fleet and final action. Content is visible by default; failure or absence of JavaScript never conceals it. Native IntersectionObserver and animation APIs provide progressive enhancement without a new dependency or continuous scroll listener. Stop ongoing motion when reduced-motion preferences change, and release observers/animations on navigation.
+
+Operational pages use short feedback for fields, buttons, current navigation and list links. Keep editing and review screens steady. Hover styling must also support focus where applicable, and authenticated account links must preserve foreground/background contrast. Reduced motion disables animated movement and smooth scrolling throughout the app.
