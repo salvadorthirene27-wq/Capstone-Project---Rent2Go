@@ -2149,3 +2149,15 @@ td .text-link {
 .booking-cancellation .cancellation-policies { overflow-wrap:anywhere; padding:8px 0; }
 .booking-cancellation dt { font-weight:600; margin-top:16px; }
 .booking-cancellation dd { margin:4px 0; }
+.booking-refunds .refund-record { border-top:1px solid #d5dfdb; padding-top:24px; margin-top:28px; overflow-wrap:anywhere; }
+.booking-refunds .refund-record>header { display:flex; flex-wrap:wrap; align-items:baseline; justify-content:space-between; gap:12px; }
+.booking-refunds .refund-source { padding:18px; margin:20px 0; border:1px solid #d5dfdb; border-radius:12px; overflow-wrap:anywhere; }
+.booking-refunds .refund-capacity { display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:16px; }
+.booking-refunds dt { color:#2f5d50; font-size:.875rem; }
+.booking-refunds dd { margin:4px 0 0; font-weight:600; }
+.booking-refunds fieldset { border:0; min-width:0; margin:24px 0; padding:0; }
+.booking-refunds legend { font-size:1.125rem; font-weight:600; margin-bottom:16px; }
+.booking-refunds .button { margin:8px 12px 8px 0; white-space:normal; }
+.booking-refunds .refund-check { display:flex; gap:10px; align-items:flex-start; margin:20px 0; max-width:70ch; }
+.booking-refunds .refund-check input { flex:0 0 auto; width:18px; height:18px; margin-top:4px; accent-color:#2f5d50; }
+.booking-refunds input:not([type=checkbox]),.booking-refunds select,.booking-refunds textarea { font-size:1rem; max-width:100%; }

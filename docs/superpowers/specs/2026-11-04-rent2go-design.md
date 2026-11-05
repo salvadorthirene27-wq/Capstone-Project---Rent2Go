@@ -216,3 +216,7 @@ The user approved this design and instructed beginning agency onboarding on 4 No
 ## Confirmed pricing clarification — 4 November 2026
 
 The user confirmed each agency chooses its driver fee unit. Configuration and exact agreement snapshots distinguish once per booking, per24 hours, per Manila calendar day, per hour and per vehicle billing unit. Missing legacy units are not inferred and do not authorize a with-driver estimate. A changed unit requires the normal revised policy/agreement workflow; old immutable snapshots remain unchanged. Driver compensation/allocation is a separate financial rule to clarify before ledger posting.
+
+## Confirmed extra-charge allocation — 6 November 2026
+
+The user approved agency-specific allocation configuration per extra-charge type, including damage, fuel and late-return charges, disclosed for explicit renter acceptance. Do not infer a charge amount, percentage or destination for unset configuration. Preserve the exact configured version and allocation with the accepted itemized assessment; later policy edits cannot change history. Rental revenue, including driver fees, follows its existing accepted revenue shares, and refundable deposits remain separate liabilities until an agreed disposition. Inspection acknowledgement alone does not accept a deduction or extra charge. Refund records continue to require independent review and separately recorded execution.

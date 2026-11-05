@@ -1,0 +1,7 @@
+import React from "react";
+import {renderToStaticMarkup} from "react-dom/server";
+import {it,expect} from "vitest";
+import {RefundReceiptDocument} from "../../src/components/refund-receipt-document";
+const receipt={id:"payment",collectionId:"source",environment:"DEMO" as const,amountCentavos:10000,recordedAt:"2032-01-01T00:00:00Z",method:"DEMO_CARD",reference:"DEMO-REFUND",evidenceId:null,collectionReference:"DEMO-SOURCE",agencyName:"Synthetic agency",renterName:"Synthetic renter",reason:"Cancelled synthetic trip"};
+it("retains simulation identity and the original source without implying actual refund or financial completion",()=>{const html=renderToStaticMarkup(<RefundReceiptDocument receipt={receipt}/>);expect(html).toContain("Demo refund — no money moves");expect(html).toContain("DEMO-SOURCE");expect(html).toContain("No actual refund was sent");expect(html).toContain("does not itself complete the booking");});
+it("escapes agency-entered content and links only authorized manual proof",()=>{const html=renderToStaticMarkup(<RefundReceiptDocument receipt={{...receipt,environment:"MANUAL",method:"CASH",reason:"<script>unsafe</script>",evidenceId:"private-proof"}}/>);expect(html).toContain("/api/booking-refund-files/private-proof");expect(html).toContain("&lt;script&gt;unsafe&lt;/script&gt;");expect(html).not.toContain("<script>");expect(html).toContain("does not execute or independently confirm");});
