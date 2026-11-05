@@ -291,13 +291,12 @@ export async function getBookingRequest(actor: Actor, id: string) {
     // Private financial snapshots never appear in renter or ordinary queue views.
     const lines = (
       await c.query(
-        "SELECT id,public_quote AS quote,service_snapshot AS service,policy_snapshot AS policy FROM booking_request_line WHERE request_id=$1 ORDER BY created_at,id",
+        "SELECT id,public_quote AS quote,policy_snapshot AS policy FROM booking_request_line WHERE request_id=$1 ORDER BY created_at,id",
         [id],
       )
     ).rows as {
       id: string;
       quote: CartQuote;
-      service: Record<string, unknown>;
       policy: Record<string, unknown>;
     }[];
     const events = (

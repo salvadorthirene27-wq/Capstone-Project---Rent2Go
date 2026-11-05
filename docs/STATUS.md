@@ -4,6 +4,8 @@ Updated5 November2026. Development resumed against the approved refined manuscri
 
 ## Working modules
 
+- Agency approval now creates an immutable dated quotation and all vehicle/driver/group-seat/private-slot holds transactionally after requirements acceptance. Exact quote acceptance, decline, pending withdrawal, one-time expiry/release, preserved versions, separate deposits and scoped driver names are implemented. Mutation permissions are rechecked under ordered locks; rental revenue includes driver fees in the original agreed split. A guarded local worker expires holds every15seconds. Quotation acceptance is still before signature, payment and fulfillment.
+
 - Home page now retains Marc Albert's develop landing composition, original nine public assets, scoped original utility styles, font families and green/mint identity. Buttons route to the current rental, tour, agency, cart, partnership and account workflows. Mobile navigation supports forward keyboard access, Escape/focus restoration and a separate account row at narrow widths. Signup links open actual account creation. Source claims about Cosigners acting as guarantors, vehicle tracking, thousands of customers and24/7support were corrected. Asset provenance is recorded without inventing missing image licenses. No old authentication, database or operational code was imported.
 
 - Managed account sign-in/registration and server-owned roles; password recovery UI uses managed OTP. Actual recovery email delivery remains unverified.
@@ -23,6 +25,8 @@ Updated5 November2026. Development resumed against the approved refined manuscri
 - Private new Neon project, managed Auth, S3 private evidence bucket, restricted runtime role and separate test database. Demo and test schemas now both have migrations001–014. Guarded migrations grant new runtime tables; repeatable setup includes the four append-only booking requirements tables. No old environment/database is used.
 
 ## Verification observed
+
+- Quotation focused evidence:96 unit/UI checks pass;13 database cases passed in bounded runs (11 lifecycle/allocation cases plus2 deterministic authorization races). Production build/TypeScript pass and33 real HTTP checks pass across the four demo accounts. They exercise complete mixed-service allocation, private projection, strict tenant/origin/version/digest gates, withdrawal/reissue/acceptance, exact claim release, protected financial snapshots and existing manual-calendar/departure cancellation guards. Source review found stale-permission races; ordered actor/member rechecks and deterministic regressions address them. Public request details no longer expose private service snapshots. The broader project database suite is in progress; this record does not claim human usability results or authenticated visual verification.
 
 - Booking requirements:73 unit/UI checks and78 database integration checks pass across the current project; production build and TypeScript pass. The six new database cases cover exact review snapshots, active membership/self-review, expiry/Manila date boundaries, rejection, upload cap and immutable/runtime grants.52 production API checks pass across four synthetic accounts with real managed Auth, restricted runtime and S3. They cover private byte equality/protective download headers, missing evidence, stale versions, no self-review, foreign role/origin denial, submitted snapshot privacy, correction/resubmission, final read-only status, scoped pages/queues, append-only runtime grants and no resource reservation. Independent bounded source review reported no Important/Critical findings. A queue regression reproduced and fixed hardcoded pending labels. Authenticated browser visual review remains pending.
 
@@ -47,9 +51,9 @@ Updated5 November2026. Development resumed against the approved refined manuscri
 ## Still required
 
 1. Resource-aware agency transfers/removal and the resource/tour/rental UI visual walkthrough awaiting browser access.
-2. Transactional booking allocation against tour capacities/slots; the tour catalog does not itself create a booking.
-3. Reservation/quotation and agreement workflows following completed grouped requests and private human review. Catalog search/recommendations and filtered tour dates are implemented.
-4. Advisory OCR adapter and remaining approval/quote/agreement lifecycle; manual cash/GCash and labeled demo payment transactions. Current agency methods are preferences, not a gateway transaction simulator.
+2. Agreement/signature workflow following the completed reviewed request and held quotation.
+3. Payment confirmation/hold commitment, following the accepted quotation and signed agreement. Catalog search/recommendations and filtered tour dates are implemented.
+4. Advisory OCR adapter; manual cash/GCash and labeled demo payment transactions. Current agency methods are preferences, not a gateway transaction simulator.
 5. Release/return inspections and tour fulfillment; separate cancellation/refund/deposit reconciliation.
 6. Immutable earnings/commission/maintenance ledgers, withdrawals/payouts, reporting, notifications/outbox, account/privacy governance, vouchers (bonus), backup/restore exercise and complete role walkthroughs.
 7. Actual human testing/usability evidence and final Chapters4–5. Never fabricate results.
