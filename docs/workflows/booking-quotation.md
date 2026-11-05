@@ -6,6 +6,8 @@ Approval, quotation and all allocations succeed in one transaction. Vehicle and 
 
 The deadline is the earliest of the saved agency hold period, service start and applicable tour cutoff. The renter accepts or declines the exact current quotation ID and digest. Acceptance does not extend the hold or establish a signed agreement, payment or confirmed service. Decline releases all linked resources and seats. An agency may withdraw a pending quotation with a reason, release the hold, and issue a new preserved version. Accepted quotations use later cancellation procedures.
 
+Issuance, expiry and acceptance share the PostgreSQL clock. Responses include the current server time; the browser advances it using a monotonic clock for expiry feedback. An incorrect laptop or browser wall clock therefore cannot shorten a newly issued hold or hide a valid quotation. Existing quotation timestamps remain immutable.
+
 The guarded local expiry worker checks every15seconds. It releases expired pending or accepted holds once, preserves claims and quotation history, records an explicit automatic system actor and sets `HOLD_EXPIRED`. Availability remains conservative until cleanup. New allocation attempts also perform bounded cleanup, and an expired quotation cannot be accepted while waiting for the worker. Reads never mutate the workflow.
 
 Mutation locks follow request, source listings, agency, sorted relevant actors, membership, hold, resources and schedules. Actor and membership checks repeat after waiting for those locks. Expiry handles one request per transaction, avoiding a batch-wide inversion of resource order.

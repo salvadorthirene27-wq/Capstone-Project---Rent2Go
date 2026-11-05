@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { date, money } from "@/modules/partners/presentation";
 
@@ -12,6 +12,7 @@ type Quote = {
   outcome: Outcome;
 };
 type Quotation = {
+  serverNow?: string;
   requestId: string; requestVersion: number; status: string; isOwner: boolean; isOperator: boolean; canIssue: boolean; canRespond: boolean;
   driverSelections: { lineId: string; title: string; drivers: { id: string; name: string }[] }[];
   quote: Quote | null;
@@ -31,11 +32,15 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
   const [drivers, setDrivers] = useState<Record<string, string>>({});
   const [reason, setReason] = useState("");
   const [expired, setExpired] = useState(false);
+  const clock = useRef({ epoch: Date.now(), receivedAt: performance.now() });
+  const quotationNow = () => clock.current.epoch + performance.now() - clock.current.receivedAt;
   const endpoint = `/api/booking-requests/${encodeURIComponent(requestId)}/quotation`;
 
   function receive(result: Quotation) {
+    const serverNow = Date.parse(result.serverNow ?? "");
+    clock.current = { epoch: Number.isFinite(serverNow) ? serverNow : Date.now(), receivedAt: performance.now() };
     setData(result); setReviewed(false); setDrivers({}); setReason(""); setStale(false);
-    setExpired(Boolean(result.quote && Date.parse(result.quote.expiresAt) <= Date.now()));
+    setExpired(Boolean(result.quote && Date.parse(result.quote.expiresAt) <= quotationNow()));
   }
   useEffect(() => {
     const controller = new AbortController();
@@ -55,7 +60,7 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
     const expiresAt = Date.parse(data.quote.expiresAt);
     let timer: ReturnType<typeof setTimeout>;
     function checkExpiry() {
-      const remaining = expiresAt - Date.now();
+      const remaining = expiresAt - quotationNow();
       if (remaining <= 0) { setExpired(true); return; }
       // Browser timers cap at a signed 32-bit integer; check again for longer holds.
       timer = setTimeout(checkExpiry, Math.min(remaining, 2_147_483_647));
@@ -76,7 +81,7 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
   }
   async function mutate(body: Record<string, unknown>, confirmation: string) {
     if (!data || busy || stale) return;
-    if (["ACCEPT_QUOTE", "DECLINE_QUOTE"].includes(String(body.action)) && (!data.quote || Date.parse(data.quote.expiresAt) <= Date.now())) {
+    if (["ACCEPT_QUOTE", "DECLINE_QUOTE"].includes(String(body.action)) && (!data.quote || Date.parse(data.quote.expiresAt) <= quotationNow())) {
       setExpired(true); setReviewed(false); setError("This quotation has expired. Reload quotation to check the current request."); return;
     }
     setBusy(true); setError(""); setMessage("");

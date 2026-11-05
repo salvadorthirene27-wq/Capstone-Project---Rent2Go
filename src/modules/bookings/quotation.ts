@@ -70,7 +70,8 @@ async function projection(c: PoolClient, ctx: Awaited<ReturnType<typeof context>
     for (const line of await lines(c, r.id))
       if (line.public_quote.selection.kind === "RENTAL" && line.public_quote.selection.mode === "WITH_DRIVER")
         selections.push({ lineId: line.id, title: line.public_quote.title, drivers: await driverOptions(c, r.agency_id, line) });
-  return { requestId: r.id, requestVersion: r.version, status: r.status, isOwner: owner, isOperator: operator, canIssue: operator && ["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status), canRespond: owner && ctx.agencyActive && r.status === "QUOTE_PENDING" && quote?.outcome === "PENDING", driverSelections: selections, quote, history: quotes.map(q => ({ id: q.id, revision: q.revision, issuedAt: new Date(q.issued_at).toISOString(), expiresAt: new Date(q.expires_at).toISOString(), outcome: outcome(q) })) };
+  const serverNow=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now.toISOString();
+  return { serverNow, requestId: r.id, requestVersion: r.version, status: r.status, isOwner: owner, isOperator: operator, canIssue: operator && ["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status), canRespond: owner && ctx.agencyActive && r.status === "QUOTE_PENDING" && quote?.outcome === "PENDING", driverSelections: selections, quote, history: quotes.map(q => ({ id: q.id, revision: q.revision, issuedAt: new Date(q.issued_at).toISOString(), expiresAt: new Date(q.expires_at).toISOString(), outcome: outcome(q) })) };
 }
 export async function getQuotation(actor: Actor, id: string) {
   return transaction(async (c) => { await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"); return projection(c, await context(c, actor, id)); });
@@ -167,7 +168,7 @@ async function allocate(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>,
       v.driverName = d.name;
     }
   const schedules = (await c.query("SELECT * FROM tour_schedule WHERE id=ANY($1::uuid[]) ORDER BY id FOR UPDATE", [tourSlots.map(s => s.scheduleId)])).rows;
-  const now = Date.now(), expiryInputs: {
+  const now = (await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now.getTime(), expiryInputs: {
     holdHours: number;
     startAt: string;
     cutoffAt?: string;

@@ -64,6 +64,14 @@ it("refuses renter acceptance after agency deactivation while preserving readabl
     await db.query("UPDATE agency SET active=true WHERE id=$1", [agency]);
   }
 });
+
+it("issues deadlines from the same database clock used to expire holds",async()=>{
+ const s=await issue(await request([rental(car,30)]));
+ const now=(await db.query("SELECT clock_timestamp() AS value")).rows[0].value;
+ expect(Math.abs(Date.parse(s.quote!.issuedAt)-new Date(now).getTime())).toBeLessThan(5000);
+ expect(Date.parse(s.quote!.expiresAt)-Date.parse(s.quote!.issuedAt)).toBe(24*60*60*1000);
+ expect(Math.abs(Date.parse(s.serverNow)-new Date(now).getTime())).toBeLessThan(5000);
+});
 it("requires ready review, scoped active actors, current versions and no self approval", async () => {
   const s = await request([rental(car, 1)], false);
   await expect(issue(s)).rejects.toMatchObject({ status: 409 });

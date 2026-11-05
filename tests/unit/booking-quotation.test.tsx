@@ -154,3 +154,12 @@ it("recovers a failed quotation load through the reload action", async () => {
   expect(await screen.findByRole("button", { name: "Approve and issue quotation" })).toBeTruthy();
   expect(screen.queryByRole("alert")).toBeNull();
 });
+
+it("uses the supplied server clock when the browser clock is incorrect",async()=>{
+ vi.useFakeTimers();vi.setSystemTime(new Date("2032-01-01T00:00:00Z"));
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue(response({...owner,serverNow:"2030-01-01T00:00:00Z",quote:{...quote,expiresAt:"2030-01-01T01:00:00Z"}})));
+ await act(async()=>{render(<BookingQuotation requestId="request-1"/>);});
+ expect(screen.getByRole("button",{name:"Accept quotation"})).toBeTruthy();
+ await act(async()=>{await vi.advanceTimersByTimeAsync(61*60*1000);});
+ expect(screen.queryByRole("button",{name:"Accept quotation"})).toBeNull();
+});
