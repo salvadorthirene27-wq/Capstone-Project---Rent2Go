@@ -27,6 +27,14 @@ const response = (body: unknown, status = 200) => ({ ok: status < 400, status, j
 const image = () => new File([new Uint8Array([137,80,78,71,13,10,26,10])], "synthetic-mark.png", { type: "image/png" });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); refresh.mockClear(); });
 
+it("preserves the current funded agreement without an expired-hold warning after inventory commitment",async()=>{
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue(response({...signed,serverNow:"2030-01-02T00:00:00Z",allocationCommitted:true,holdActive:true,status:"READY_FOR_SERVICE"})));
+ render(<BookingAgreement requestId="request-1"/>);
+ expect(await screen.findByText(/inventory is committed/i)).toBeTruthy();
+ expect(screen.queryByText(/temporary hold has expired or is no longer active/)).toBeNull();
+ expect(screen.queryByRole("button",{name:"Sign agreement"})).toBeNull();
+});
+
 it("requires typed matching name, explicit consent and an image before signing the displayed exact agreement", async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(response(owner)).mockResolvedValueOnce(response(signed, 201));
   vi.stubGlobal("fetch", fetcher);

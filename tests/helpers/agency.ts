@@ -50,6 +50,10 @@ export async function approvedAgency(
     "INSERT INTO private_file(id,application_id,owner_id,purpose,object_key,original_name,mime,size_bytes,sha256) VALUES($1,$2,$3,'REGISTRATION',$4,'synthetic.pdf','application/pdf',10,'test')",
     [randomUUID(), app.id, owner.id, `fixture/${randomUUID()}`],
   );
+  if(payload.acceptedMethods.includes("GCASH"))await db.query(
+    "INSERT INTO private_file(id,application_id,owner_id,purpose,object_key,original_name,mime,size_bytes,sha256) VALUES($1,$2,$3,'GCASH_QR',$4,'synthetic.png','image/png',10,'test')",
+    [randomUUID(),app.id,owner.id,`fixture/${randomUUID()}`],
+  );
   await submitApplication(owner, app.id, 2);
   await reviewApplication(
     reviewer,

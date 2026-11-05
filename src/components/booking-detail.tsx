@@ -18,12 +18,13 @@ export function BookingDetail({
   return (
     <>
       <h1>Booking request</h1>
+      {booking.paymentEnvironment==="DEMO"&&<p className="notice"><strong>Demo payment — no money moves</strong></p>}
       <p>
         {booking.agencyName} · Submitted {date(booking.createdAt)}
       </p>
       <p className="notice">
-        Follow the workflow status below. A quotation holds inventory only until
-        its stated expiry. Booking confirmation requires agency approval, an
+        Follow the workflow status below. An unpaid quotation holds inventory until
+        its stated expiry. A confirmed collection commits that allocation. Service release requires agency approval, an
         accepted quotation, a signed agreement, and confirmed payment.
       </p>
       <section className="context-section">
@@ -76,7 +77,7 @@ export function BookingDetail({
           <br />
           Estimated total {money(booking.totals.estimatedDueCentavos)}
         </p>
-        <p>No invoice or payable balance has been issued yet.</p>
+        <p>These are submitted estimates. The quotation, agreement and payment records below show accepted amounts and the current balance.</p>
       </section>
       <section className="context-section">
         <h2>Request history</h2>

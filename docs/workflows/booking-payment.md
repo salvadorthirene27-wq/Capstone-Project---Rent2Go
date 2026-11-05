@@ -1,0 +1,19 @@
+# Reviewed collections and demo payments
+
+Payments follow agency review, an accepted quotation and the renter's exact signed agreement. Saved request policies determine accepted methods. The saved agency revision supplies GCash instructions and its privately served business QR; later policy changes never replace those destinations for an existing request.
+
+A renter submits private GCash evidence with amount and reference. Submission is not collection confirmation. An independent active agency operator confirms or rejects the exact immutable attempt with a reason. Corrections use a new attempt and retain the earlier evidence and decision. Cash is recorded by an authorized agency operator with a reference, amount and receipt note; the authenticated recorder and PostgreSQL timestamp remain with the collection.
+
+Demo card, GCash and PayPal use fixed approved, declined, pending and cancelled scenarios. They collect no real credentials or funds. A pending simulation can be resolved only by its renter while its exact current agreement and allocation remain valid. Historical pending simulations remain read-only. Every demo booking, transaction and printable record identifies that no money moves.
+
+The first payment action fixes the quotation's environment to manual records or demo simulations. Collections never cross environments or quotations. Idempotency keys bind exact commands and evidence hashes, confirmed manual references are unique within agency and method, and terminal attempts cannot be confirmed twice. Bounded histories prioritize unresolved evidence so older submissions remain actionable.
+
+All amounts use integer PHP centavos. The full quoted service charges and separate refundable deposits are due before readiness. Partial confirmed collections commit the existing inventory allocation but leave a balance; the original temporary expiry cannot silently cancel that funded allocation. Overpayment remains separate unapplied credit. No collection creates service earnings, commission payout or a settled deposit.
+
+Unconfirmed evidence and failed/pending simulations do not commit inventory. If manual evidence is confirmed after an uncommitted hold expires, the collection becomes a reconciliation liability. It does not reclaim released stock or authorize service. The worker releases any still-unreleased expired allocation while preserving reconciliation status. Pending manual evidence and recorded funds block replacement quotations until their obligations are resolved through the later reconciliation/refund workflow.
+
+Mutation authorization follows request, agency, ordered participant, membership and allocation locks. Current permissions and PostgreSQL deadlines are checked around private storage and at record insertion. Upload retries use independent object IDs; unused or failed attachment objects are removed. Renter and authorized agency participants have private, no-store evidence/QR/receipt routes. Super Admin or Cosigner status grants no implicit financial-document access.
+
+Private S3 request signing also uses a short-lived PostgreSQL time anchor, advanced with a monotonic clock. Each operation recalculates the SDK clock offset, tolerating laptop clock changes and stale signing offsets without changing operating-system settings. This uses the SDK's documented [systemClockOffset](https://docs.aws.amazon.com/sdk-for-javascript/v3/developer-guide/migrate-client-constructors.html) configuration. Local file storage does not require an S3 signing clock.
+
+Printable collection records preserve receiver, agency and renter display names at confirmation, show this collection separately from quoted charges/deposits, and refer to the booking for current balance and fulfillment status. These records do not establish provider settlement, legal certification or human usability results.

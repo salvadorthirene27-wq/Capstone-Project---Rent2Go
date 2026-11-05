@@ -54,8 +54,8 @@ async function driverOptions(c: PoolClient, agency: string, line: Line) {
 }
 async function projection(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>) {
   const { r, owner, operator } = ctx;
-  const quotes = (await c.query("SELECT q.*,h.released_at,h.release_reason,EXISTS(SELECT 1 FROM booking_quotation_decision d WHERE d.quote_id=q.id AND d.action='ACCEPTED') AS accepted,q.expires_at<=clock_timestamp() AS elapsed FROM booking_quotation q JOIN booking_hold h ON h.quote_id=q.id WHERE q.request_id=$1 ORDER BY q.revision DESC", [r.id])).rows;
-  const outcome = (q: typeof quotes[number]) => q.release_reason === "EXPIRED" || (!q.released_at && q.elapsed) ? "EXPIRED" : q.release_reason === "DECLINED" ? "DECLINED" : q.release_reason === "WITHDRAWN" ? "WITHDRAWN" : q.accepted ? "ACCEPTED" : "PENDING";
+  const quotes = (await c.query("SELECT q.*,h.released_at,h.release_reason,EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id) AS committed,EXISTS(SELECT 1 FROM booking_quotation_decision d WHERE d.quote_id=q.id AND d.action='ACCEPTED') AS accepted,q.expires_at<=clock_timestamp() AS elapsed FROM booking_quotation q JOIN booking_hold h ON h.quote_id=q.id WHERE q.request_id=$1 ORDER BY q.revision DESC", [r.id])).rows;
+  const outcome = (q: typeof quotes[number]) => q.release_reason === "EXPIRED" || (!q.released_at && q.elapsed && !q.committed) ? "EXPIRED" : q.release_reason === "DECLINED" ? "DECLINED" : q.release_reason === "WITHDRAWN" ? "WITHDRAWN" : q.accepted ? "ACCEPTED" : "PENDING";
   const current = quotes[0];
   const quote = current ? { id: current.id, revision: current.revision, digest: current.digest, issuedAt: new Date(current.issued_at).toISOString(), expiresAt: new Date(current.expires_at).toISOString(), ...current.public_snapshot, outcome: outcome(current) } : null;
   const selections: {
@@ -71,7 +71,7 @@ async function projection(c: PoolClient, ctx: Awaited<ReturnType<typeof context>
       if (line.public_quote.selection.kind === "RENTAL" && line.public_quote.selection.mode === "WITH_DRIVER")
         selections.push({ lineId: line.id, title: line.public_quote.title, drivers: await driverOptions(c, r.agency_id, line) });
   const serverNow=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now.toISOString();
-  return { serverNow, requestId: r.id, requestVersion: r.version, status: r.status, isOwner: owner, isOperator: operator, canIssue: operator && ["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status), canRespond: owner && ctx.agencyActive && r.status === "QUOTE_PENDING" && quote?.outcome === "PENDING", driverSelections: selections, quote, history: quotes.map(q => ({ id: q.id, revision: q.revision, issuedAt: new Date(q.issued_at).toISOString(), expiresAt: new Date(q.expires_at).toISOString(), outcome: outcome(q) })) };
+  return { serverNow, requestId: r.id, requestVersion: r.version, status: r.status, isOwner: owner, isOperator: operator, allocationCommitted:Boolean(current?.committed&&!current?.released_at),canIssue: operator && ["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status), canRespond: owner && ctx.agencyActive && r.status === "QUOTE_PENDING" && quote?.outcome === "PENDING", driverSelections: selections, quote, history: quotes.map(q => ({ id: q.id, revision: q.revision, issuedAt: new Date(q.issued_at).toISOString(), expiresAt: new Date(q.expires_at).toISOString(), outcome: outcome(q) })) };
 }
 export async function getQuotation(actor: Actor, id: string) {
   return transaction(async (c) => { await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY"); return projection(c, await context(c, actor, id)); });
@@ -84,6 +84,7 @@ async function record(c: PoolClient, r: RequestRow, user: Actor, action: string,
 async function setStatus(c: PoolClient, r: RequestRow, status: string) { await c.query("UPDATE booking_request SET status=$2,version=version+1 WHERE id=$1", [r.id, status]); r.status = status; r.version++; }
 // Every caller owns the request lock before taking a hold, resources or schedules.
 async function release(c: PoolClient, hold: any, reason: "EXPIRED" | "DECLINED" | "WITHDRAWN") {
+  if((await c.query("SELECT 1 FROM booking_hold_commitment WHERE hold_id=$1",[hold.id])).rowCount)throw new DomainError("Committed allocations require explicit cancellation and financial reconciliation.",409);
   if (hold.released_at)
     return false;
   const resources = (await c.query("SELECT o.id,o.resource_id FROM booking_hold_resource l JOIN resource_occupation o ON o.id=l.occupation_id WHERE l.hold_id=$1 ORDER BY o.resource_id,o.id", [hold.id])).rows;
@@ -101,22 +102,23 @@ export async function expireBookingHolds(limit = 20) {
     throw new Error("Expiry batch must be between 1 and 100.");
   const candidates = (await db.query<{
     id: string;
-  }>("SELECT r.id FROM booking_request r WHERE r.status IN ('QUOTE_PENDING','QUOTE_ACCEPTED','AGREEMENT_PENDING','AGREEMENT_SIGNED') AND EXISTS(SELECT 1 FROM booking_hold h WHERE h.request_id=r.id AND h.released_at IS NULL AND h.expires_at<=clock_timestamp()) ORDER BY r.id LIMIT $1", [limit])).rows;
+  }>("SELECT r.id FROM booking_request r WHERE r.status IN ('QUOTE_PENDING','QUOTE_ACCEPTED','AGREEMENT_PENDING','AGREEMENT_SIGNED','PAYMENT_RECONCILIATION_REQUIRED') AND EXISTS(SELECT 1 FROM booking_hold h WHERE h.request_id=r.id AND h.released_at IS NULL AND h.expires_at<=clock_timestamp() AND NOT EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id)) ORDER BY r.id LIMIT $1", [limit])).rows;
   let count = 0;
   for (const candidate of candidates)
     count += await transaction(async (c) => {
       // One request per transaction keeps resource lock ordering global across batches.
-      const r = (await c.query<RequestRow>("SELECT * FROM booking_request WHERE id=$1 AND status IN ('QUOTE_PENDING','QUOTE_ACCEPTED','AGREEMENT_PENDING','AGREEMENT_SIGNED') FOR UPDATE SKIP LOCKED", [candidate.id])).rows[0];
+      const r = (await c.query<RequestRow>("SELECT * FROM booking_request WHERE id=$1 AND status IN ('QUOTE_PENDING','QUOTE_ACCEPTED','AGREEMENT_PENDING','AGREEMENT_SIGNED','PAYMENT_RECONCILIATION_REQUIRED') FOR UPDATE SKIP LOCKED", [candidate.id])).rows[0];
       if (!r)
         return 0;
-      const h = (await c.query("SELECT * FROM booking_hold WHERE request_id=$1 AND released_at IS NULL AND expires_at<=clock_timestamp() FOR UPDATE", [r.id])).rows[0];
+      const h = (await c.query("SELECT h.* FROM booking_hold h WHERE request_id=$1 AND released_at IS NULL AND expires_at<=clock_timestamp() AND NOT EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id) FOR UPDATE", [r.id])).rows[0];
       if (!h)
         return 0;
       await release(c, h, "EXPIRED");
-      await setStatus(c, r, "HOLD_EXPIRED");
+      const reconciliation=r.status==="PAYMENT_RECONCILIATION_REQUIRED";
+      await setStatus(c, r, reconciliation?"PAYMENT_RECONCILIATION_REQUIRED":"HOLD_EXPIRED");
       const user: Actor = { id: "system:booking-hold-expiry", role: "RENTER" };
       await c.query("INSERT INTO booking_quotation_decision(id,quote_id,actor_id,action,reason)VALUES($1,$2,$3,'EXPIRED','Automatic quotation hold expiry')", [randomUUID(), h.quote_id, user.id]);
-      await record(c, r, user, "HOLD_EXPIRED", "Quotation hold expired automatically. Request a new quotation before continuing.");
+      await record(c, r, user, "HOLD_EXPIRED", reconciliation?"Uncommitted quotation allocation expired and was released. Recorded funds still require reconciliation.":"Quotation hold expired automatically. Request a new quotation before continuing.");
       return 1;
     });
   return count;
@@ -228,6 +230,7 @@ export async function changeQuotation(actor: Actor, id: string, input: unknown) 
       if (command.action === "ISSUE_QUOTE") {
         if (!["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status))
           throw new DomainError("This request is not ready for quotation approval.", 409);
+        if((await c.query("SELECT 1 FROM booking_payment_attempt t JOIN booking_payment_account a ON a.id=t.account_id WHERE t.request_id=$1 AND a.environment='MANUAL' AND t.method='GCASH' AND t.initial_outcome='SUBMITTED' AND NOT EXISTS(SELECT 1 FROM booking_payment_decision d WHERE d.attempt_id=t.id) UNION ALL SELECT 1 FROM booking_payment_collection WHERE request_id=$1 LIMIT 1",[r.id])).rowCount)throw new DomainError("Resolve pending payment evidence and confirmed funds before issuing a replacement quotation.",409);
         await allocate(c, ctx, command);
       }
       else if (command.action === "REJECT") {

@@ -62,7 +62,7 @@ export function BookingRequirements({ requestId }: { requestId: string }) {
     <button type="button" className="button secondary" disabled={busy} onClick={reload}>Reload requirements</button>
     {!data && !error && <p role="status">Loading requirements…</p>}
     {data && <>
-      <h3>{["QUOTE_PENDING", "QUOTE_ACCEPTED", "QUOTE_DECLINED", "HOLD_EXPIRED", "AGREEMENT_PENDING", "AGREEMENT_SIGNED"].includes(data.status) ? "Requirements accepted" : statuses[data.status] || data.status}</h3>
+      <h3>{["QUOTE_PENDING", "QUOTE_ACCEPTED", "QUOTE_DECLINED", "HOLD_EXPIRED", "AGREEMENT_PENDING", "AGREEMENT_SIGNED", "PAYMENT_PARTIAL", "READY_FOR_SERVICE", "PAYMENT_RECONCILIATION_REQUIRED"].includes(data.status) ? "Requirements accepted" : statuses[data.status] || data.status}</h3>
       {data.status === "UNDER_REVIEW" && <p>The submitted documents and expiry dates are saved as an immutable review snapshot. Replacements cannot be uploaded during review.</p>}
       {data.status === "READY_FOR_APPROVAL" && <p>Human review is complete. The request is ready for the next approval step.</p>}
       {data.status === "REJECTED" && <p>This request is closed. Its submitted documents and review history are retained.</p>}

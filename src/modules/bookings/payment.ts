@@ -1,0 +1,142 @@
+import { randomUUID } from "node:crypto";
+import type { PoolClient } from "pg";
+import { transaction } from "../../lib/db";
+import { uuid } from "../../lib/http";
+import { storedActor,audit } from "../partners/service";
+import { DomainError,type Actor } from "../partners/workflow";
+import { digest } from "../cart/pricing";
+import { lockBookingAuthority } from "./quotation";
+import { paymentCommand,evidenceCommand,paymentMethod,paymentTotals,normalizePaymentReference,type EvidenceCommand } from "./payment-schema";
+type RequestRow={id:string;agency_id:string;renter_id:string;status:string;version:number};
+async function context(c:PoolClient,actor:Actor,id:string,lock=false){
+ const r=(await c.query<RequestRow>(`SELECT id,agency_id,renter_id,status,version FROM booking_request WHERE id=$1${lock?" FOR UPDATE":""}`,[uuid.parse(id)])).rows[0],user=await storedActor(actor,c);
+ if((await c.query("SELECT is_test_fixture FROM app_actor WHERE id=$1",[user.id])).rows[0]?.is_test_fixture)throw new DomainError("Access denied.",403);
+ if(!r)throw new DomainError("Request not found.",404);
+ const owner=r.renter_id===user.id,agencyActive=Boolean((await c.query("SELECT 1 FROM agency a JOIN app_actor o ON o.id=a.owner_id WHERE a.id=$1 AND a.active AND NOT o.suspended AND NOT o.is_test_fixture",[r.agency_id])).rowCount);
+ const operator=!owner&&Boolean((await c.query("SELECT 1 FROM agency a JOIN app_actor o ON o.id=a.owner_id LEFT JOIN agency_member m ON m.agency_id=a.id AND m.actor_id=$2 WHERE a.id=$1 AND a.active AND NOT o.suspended AND NOT o.is_test_fixture AND (a.owner_id=$2 OR m.active)",[r.agency_id,user.id])).rowCount);
+ if(!owner&&!operator)throw new DomainError("Request not found.",404);return {r,user,owner,operator,agencyActive};
+}
+type Context=Awaited<ReturnType<typeof context>>;
+// Mutable locks: request -> agency -> sorted participants -> membership -> hold.
+// The request lock serializes payment commands. Immutable quote/account/attempt
+// reads must not request UPDATE privileges from the append-only runtime role.
+async function lockAuthority(c:PoolClient,ctx:Context,operator:boolean){
+ const active=await lockBookingAuthority(c,ctx,[ctx.r.renter_id],operator);
+ if(!active.active)throw new DomainError("This agency is currently unavailable.",409);
+ const current=await storedActor(ctx.user,c);if(current.role!==ctx.user.role)throw new DomainError("Your access changed. Reload.",409);
+ if((await c.query("SELECT is_test_fixture FROM app_actor WHERE id=$1",[ctx.user.id])).rows[0]?.is_test_fixture)throw new DomainError("Access denied.",403);
+}
+async function current(c:PoolClient,id:string,lock=false){
+ const q=(await c.query("SELECT q.id,q.digest,q.public_snapshot->'totals' AS totals FROM booking_quotation q WHERE q.request_id=$1 ORDER BY q.revision DESC LIMIT 1",[id])).rows[0];if(!q)return null;
+ const h=(await c.query(`SELECT h.id,h.expires_at,h.released_at,EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id) AS committed,h.expires_at>clock_timestamp() AS live FROM booking_hold h WHERE h.quote_id=$1${lock?" FOR UPDATE":""}`,[q.id])).rows[0];
+ const a=(await c.query("SELECT a.id,a.digest,a.quote_id,a.quote_digest,s.agreement_digest,s.id AS signature_id,EXISTS(SELECT 1 FROM booking_agreement_event e WHERE e.agreement_id=a.id AND e.action='WITHDRAWN') AS withdrawn FROM booking_agreement a LEFT JOIN booking_agreement_signature s ON s.agreement_id=a.id WHERE a.request_id=$1 AND a.quote_id=$2 ORDER BY a.revision DESC LIMIT 1",[id,q.id])).rows[0];
+ const accepted=Boolean((await c.query("SELECT 1 FROM booking_quotation_decision WHERE quote_id=$1 AND action='ACCEPTED'",[q.id])).rowCount),exact=Boolean(accepted&&a?.signature_id&&!a.withdrawn&&a.quote_digest===q.digest&&a.agreement_digest===a.digest);
+ const account=(await c.query("SELECT id,environment,agreement_id FROM booking_payment_account WHERE quote_id=$1",[q.id])).rows[0];
+ return {q,h,a,account,exact,holdActive:Boolean(h&&!h.released_at&&(h.live||h.committed)),allocationCommitted:Boolean(h?.committed&&!h.released_at)};
+}
+async function savedPolicy(c:PoolClient,ctx:Context){
+ const lines=(await c.query("SELECT policy_snapshot->'acceptedMethods' AS methods,public_quote->>'policyRevision' AS revision FROM booking_request_line WHERE request_id=$1 ORDER BY id",[ctx.r.id])).rows;
+ const methods=paymentMethod.options.filter(method=>lines.length>0&&lines.every(l=>Array.isArray(l.methods)&&l.methods.includes(method))),revisions=[...new Set(lines.map(l=>l.revision))];
+ if(revisions.length!==1||!revisions[0])return {methods,instructions:{gcashAccountName:"",gcashInstructions:"",gcashQrAvailable:false},revision:null};const revision=revisions[0];
+ const p=(await c.query("SELECT p.payload->>'gcashAccountName' AS name,p.payload->>'gcashInstructions' AS instructions,EXISTS(SELECT 1 FROM partner_revision_file rf JOIN private_file f ON f.id=rf.file_id WHERE rf.application_id=p.application_id AND rf.revision=p.revision AND f.purpose='GCASH_QR') AS qr FROM agency a JOIN partner_revision p ON p.application_id=a.application_id AND p.revision=$2::int WHERE a.id=$1",[ctx.r.agency_id,revision])).rows[0];
+ return {methods,instructions:{gcashAccountName:methods.includes("GCASH")?p?.name??"":"",gcashInstructions:methods.includes("GCASH")?p?.instructions??"":"",gcashQrAvailable:Boolean(methods.includes("GCASH")&&p?.qr)},revision};
+}
+async function confirmed(c:PoolClient,quoteId:string){const v=(await c.query("SELECT COALESCE(sum(amount_centavos),0)::text AS confirmed FROM booking_payment_collection WHERE quote_id=$1",[quoteId])).rows[0].confirmed,n=Number(v);if(!Number.isSafeInteger(n)||n<0)throw new DomainError("Payment total exceeds supported bounds.",409);return n;}
+const iso=(v:Date|string)=>new Date(v).toISOString();
+async function projection(c:PoolClient,ctx:Context){
+ const state=await current(c,ctx.r.id),policy=await savedPolicy(c,ctx),valid=Boolean(state?.exact),environment=state?.account?.environment as "MANUAL"|"DEMO"|undefined;
+ const attempts=(await c.query("SELECT t.id,t.method,a.environment,t.amount_centavos,t.reference,COALESCE(d.outcome,t.initial_outcome) AS outcome,t.submitted_at,d.reason,t.file_id,k.id AS collection_id,t.quote_id,t.agreement_id,t.actor_id FROM booking_payment_attempt t JOIN booking_payment_account a ON a.id=t.account_id LEFT JOIN booking_payment_decision d ON d.attempt_id=t.id LEFT JOIN booking_payment_collection k ON k.attempt_id=t.id WHERE t.request_id=$1 ORDER BY CASE WHEN d.id IS NULL AND ((a.environment='MANUAL' AND t.initial_outcome='SUBMITTED') OR (a.environment='DEMO' AND t.initial_outcome='PENDING' AND t.quote_id=$2::uuid AND t.agreement_id=$3::uuid AND $4::boolean)) THEN 0 ELSE 1 END,t.submitted_at DESC,t.id DESC LIMIT 20",[ctx.r.id,state?.q.id??null,state?.a?.id??null,Boolean(state?.exact&&state.holdActive)])).rows;
+ const collections=(await c.query("SELECT id,method,environment,amount_centavos,reference,recorded_at FROM booking_payment_collection WHERE request_id=$1 ORDER BY recorded_at DESC,id DESC LIMIT 20",[ctx.r.id])).rows;
+ const pendingManual=Boolean((await c.query("SELECT 1 FROM booking_payment_attempt t JOIN booking_payment_account a ON a.id=t.account_id WHERE t.request_id=$1 AND a.environment='MANUAL' AND t.method='GCASH' AND t.initial_outcome='SUBMITTED' AND NOT EXISTS(SELECT 1 FROM booking_payment_decision d WHERE d.attempt_id=t.id) LIMIT 1",[ctx.r.id])).rowCount);
+ const pendingDemo=Boolean(state&&(await c.query("SELECT 1 FROM booking_payment_attempt t WHERE t.quote_id=$1 AND t.initial_outcome='PENDING' AND NOT EXISTS(SELECT 1 FROM booking_payment_decision d WHERE d.attempt_id=t.id) LIMIT 1",[state.q.id])).rowCount),requiresReconciliation=Boolean((await c.query("SELECT 1 FROM booking_payment_collection WHERE request_id=$1 AND requires_reconciliation LIMIT 1",[ctx.r.id])).rowCount);
+ const totals=paymentTotals(valid?state!.q.totals:{serviceCentavos:0,refundableDepositCentavos:0,totalCentavos:0},valid?await confirmed(c,state!.q.id):0),live=Boolean(valid&&state?.holdActive&&ctx.agencyActive&&["AGREEMENT_SIGNED","PAYMENT_PARTIAL","READY_FOR_SERVICE"].includes(ctx.r.status));
+ const serverNow=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now.toISOString();
+ return {serverNow,requestId:ctx.r.id,requestVersion:ctx.r.version,status:ctx.r.status,isOwner:ctx.owner,isOperator:ctx.operator,canSubmitGcash:ctx.owner&&live&&environment!=="DEMO"&&policy.methods.includes("GCASH"),canRecordCash:ctx.operator&&live&&environment!=="DEMO"&&policy.methods.includes("CASH"),canSimulate:ctx.owner&&live&&environment!=="MANUAL"&&!pendingDemo&&totals.balanceCentavos>0&&policy.methods.some(m=>m.startsWith("DEMO_")),canReview:ctx.operator&&ctx.agencyActive&&pendingManual,canResolveDemo:ctx.owner&&live&&pendingDemo,allocationCommitted:state?.allocationCommitted??false,holdActive:state?.holdActive??false,holdExpiresAt:state?.h?iso(state.h.expires_at):null,agreement:valid?{id:state!.a.id as string,digest:state!.a.digest as string,quoteId:state!.q.id as string}:null,environment:environment??null,methods:policy.methods,instructions:policy.instructions,totals,attempts:attempts.map(t=>({id:t.id as string,method:t.method as string,environment:t.environment as "MANUAL"|"DEMO",amountCentavos:Number(t.amount_centavos),reference:t.reference as string,outcome:t.outcome as "SUBMITTED"|"PENDING"|"CONFIRMED"|"REJECTED"|"DECLINED"|"CANCELLED",submittedAt:iso(t.submitted_at),reason:t.reason as string|null,evidenceId:t.file_id as string|null,collectionId:t.collection_id as string|null,canResolve:Boolean(ctx.owner&&live&&t.outcome==="PENDING"&&t.environment==="DEMO"&&t.quote_id===state?.q.id&&t.agreement_id===state?.a?.id&&t.actor_id===ctx.user.id)})),collections:collections.map(k=>({id:k.id as string,method:k.method as string,environment:k.environment as "MANUAL"|"DEMO",amountCentavos:Number(k.amount_centavos),reference:k.reference as string,recordedAt:iso(k.recorded_at)})),requiresReconciliation};
+}
+export async function getPayments(actor:Actor,id:string){return transaction(async c=>{await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");return projection(c,await context(c,actor,id));});}
+type Payments=Awaited<ReturnType<typeof getPayments>>;
+function hashCommand(command:unknown,fileHash?:string){return digest({command,...(fileHash?{fileHash}:{})});}
+async function replay(c:PoolClient,ctx:Context,key:string,hash:string){const old=(await c.query("SELECT digest FROM booking_payment_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3",[ctx.r.id,ctx.user.id,key])).rows[0];if(!old)return false;if(old.digest!==hash)throw new DomainError("This idempotency key was already used for a different payment command.",409);return true;}
+function version(ctx:Context,n:number){if(ctx.r.version!==n)throw new DomainError("This request changed. Reload and try again.",409);}
+async function newCommand(c:PoolClient,ctx:Context,key:string,hash:string,action:string){const id=randomUUID();await c.query("INSERT INTO booking_payment_command(id,request_id,actor_id,idempotency_key,digest,action)VALUES($1,$2,$3,$4,$5,$6)",[id,ctx.r.id,ctx.user.id,key,hash,action]);return id;}
+async function liveAgreement(c:PoolClient,ctx:Context,command:{agreementId:string;digest:string},method:string){
+ const s=await current(c,ctx.r.id,true);if(!s?.exact||s.a.id!==command.agreementId||s.a.digest!==command.digest||!s.holdActive||!["AGREEMENT_SIGNED","PAYMENT_PARTIAL","READY_FOR_SERVICE"].includes(ctx.r.status))throw new DomainError("Review the exact signed agreement with a valid allocation before paying.",409);
+ const policy=await savedPolicy(c,ctx);if(!policy.methods.includes(method as any))throw new DomainError("This payment method was not accepted by the saved request policies.",409);return s;
+}
+async function account(c:PoolClient,ctx:Context,s:NonNullable<Awaited<ReturnType<typeof current>>>,environment:"MANUAL"|"DEMO"){
+ if(s.account){if(s.account.environment!==environment||s.account.agreement_id!==s.a.id)throw new DomainError("This quotation already uses a different payment environment or agreement.",409);return s.account.id as string;}
+ const id=randomUUID();await c.query("INSERT INTO booking_payment_account(id,request_id,quote_id,agreement_id,agency_id,environment)VALUES($1,$2,$3,$4,$5,$6)",[id,ctx.r.id,s.q.id,s.a.id,ctx.r.agency_id,environment]);return id;
+}
+export type PaymentEvidenceUpload={id:string;mime:string;size:number;sha256:string;backend:string};
+function fileMetadata(file:PaymentEvidenceUpload){uuid.parse(file.id);if(!["image/png","image/jpeg","application/pdf"].includes(file.mime)||!Number.isInteger(file.size)||file.size<1||file.size>5*1024*1024||!/^([a-f0-9]{64})$/.test(file.sha256)||!["s3","local"].includes(file.backend))throw new DomainError("Invalid private payment evidence.",422);}
+async function insertAttempt(c:PoolClient,ctx:Context,s:NonNullable<Awaited<ReturnType<typeof current>>>,accountId:string,commandId:string,method:string,amount:number,reference:string,outcome:string,note="",file?:PaymentEvidenceUpload){
+ const id=randomUUID(),saved=await c.query("INSERT INTO booking_payment_attempt(id,account_id,request_id,quote_id,agreement_id,command_id,actor_id,method,amount_centavos,reference,normalized_reference,initial_outcome,note,file_id,mime,size_bytes,sha256,backend)SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18 FROM booking_hold h WHERE h.quote_id=$4 AND h.released_at IS NULL AND (h.expires_at>clock_timestamp() OR EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id)) RETURNING id",[id,accountId,ctx.r.id,s.q.id,s.a.id,commandId,ctx.user.id,method,amount,reference,normalizePaymentReference(reference),outcome,note,file?.id??null,file?.mime??null,file?.size??null,file?.sha256??null,file?.backend??null]);
+ if(!saved.rowCount)throw new DomainError("The allocation expired before the payment was recorded. Reload.",409);return {id,account_id:accountId,request_id:ctx.r.id,quote_id:s.q.id,agreement_id:s.a.id,method,amount_centavos:amount,reference,normalized_reference:normalizePaymentReference(reference)};
+}
+async function event(c:PoolClient,ctx:Context,status:string,action:string,message:string){
+ await c.query("UPDATE booking_request SET status=$2,version=version+1 WHERE id=$1",[ctx.r.id,status]);ctx.r.version++;ctx.r.status=status;
+ await c.query("INSERT INTO booking_event(id,request_id,actor_id,action,message)VALUES($1,$2,$3,$4,$5)",[randomUUID(),ctx.r.id,ctx.user.id,action,message]);await audit(c,ctx.user,action,ctx.r.id,{message});
+ await c.query("INSERT INTO booking_notification(id,request_id,recipient_id,message)SELECT gen_random_uuid(),$1,a.id,$2 FROM app_actor a WHERE NOT a.suspended AND (a.id=$3 OR a.id IN(SELECT actor_id FROM agency_member WHERE agency_id=$4 AND active))",[ctx.r.id,message,ctx.r.renter_id,ctx.r.agency_id]);
+}
+// The request/hold locks serialize expiry. PG time at collection insertion decides
+// whether confirmed historical money is an obligation without reclaiming stock.
+async function collect(c:PoolClient,ctx:Context,t:any){
+ const amount=Number(t.amount_centavos),sum=await confirmed(c,t.quote_id);if(!Number.isSafeInteger(sum+amount))throw new DomainError("Payment total exceeds supported bounds.",409);
+ const h=(await c.query("SELECT h.id,h.released_at,EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id) AS committed FROM booking_hold h WHERE quote_id=$1 FOR UPDATE",[t.quote_id])).rows[0],a=(await c.query("SELECT environment FROM booking_payment_account WHERE id=$1",[t.account_id])).rows[0],id=randomUUID();
+ const names=(await c.query("SELECT a.body->>'agencyName' AS agency_name,a.body->>'renterName' AS renter_name FROM booking_agreement a WHERE a.id=$1",[t.agreement_id])).rows[0],receiver=(await c.query("SELECT name FROM app_actor WHERE id=$1",[ctx.user.id])).rows[0].name;
+ const k=(await c.query("INSERT INTO booking_payment_collection(id,attempt_id,account_id,request_id,quote_id,agreement_id,agency_id,environment,method,amount_centavos,reference,normalized_reference,recorded_by,receiver_name,agency_name,renter_name,requires_reconciliation)SELECT $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,NOT(h.released_at IS NULL AND (h.expires_at>clock_timestamp() OR EXISTS(SELECT 1 FROM booking_hold_commitment k WHERE k.hold_id=h.id))) FROM booking_hold h WHERE h.id=$17 RETURNING requires_reconciliation",[id,t.id,t.account_id,ctx.r.id,t.quote_id,t.agreement_id,ctx.r.agency_id,a.environment,t.method,amount,t.reference,t.normalized_reference,ctx.user.id,receiver,names.agency_name,names.renter_name,h.id])).rows[0];
+ if(k.requires_reconciliation&&t.method!=="GCASH")throw new DomainError("The allocation expired before payment confirmation. Reload.",409);
+ if(!k.requires_reconciliation&&!h.committed)await c.query("INSERT INTO booking_hold_commitment(hold_id,request_id,quote_id,first_collection_id)VALUES($1,$2,$3,$4)",[h.id,ctx.r.id,t.quote_id,id]);
+ const quote=(await c.query("SELECT public_snapshot->'totals' AS totals FROM booking_quotation WHERE id=$1",[t.quote_id])).rows[0],totals=paymentTotals(quote.totals,sum+amount),status=k.requires_reconciliation?"PAYMENT_RECONCILIATION_REQUIRED":totals.balanceCentavos===0?"READY_FOR_SERVICE":"PAYMENT_PARTIAL";
+ await event(c,ctx,status,"PAYMENT_CONFIRMED",`${a.environment==="DEMO"?"Demo payment — no money moves. ":""}${k.requires_reconciliation?"Historical collection recorded for reconciliation; no inventory reclaimed.":totals.balanceCentavos===0?"Full quoted services and refundable deposits recorded; allocation committed.":"Partial collection recorded; allocation committed and balance remains due."}`);
+}
+async function attempt(c:PoolClient,ctx:Context,id:string){const t=(await c.query("SELECT t.id,t.account_id,t.request_id,t.quote_id,t.agreement_id,t.actor_id,t.method,t.amount_centavos,t.reference,t.normalized_reference,t.initial_outcome,a.environment,d.id AS decision_id FROM booking_payment_attempt t JOIN booking_payment_account a ON a.id=t.account_id LEFT JOIN booking_payment_decision d ON d.attempt_id=t.id WHERE t.id=$1 AND t.request_id=$2",[id,ctx.r.id])).rows[0];if(!t)throw new DomainError("Payment attempt not found.",404);return t;}
+async function decision(c:PoolClient,ctx:Context,t:any,commandId:string,outcome:string,reason:string){await c.query("INSERT INTO booking_payment_decision(id,attempt_id,account_id,request_id,quote_id,agreement_id,command_id,actor_id,outcome,reason)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",[randomUUID(),t.id,t.account_id,ctx.r.id,t.quote_id,t.agreement_id,commandId,ctx.user.id,outcome,reason]);}
+function conflict(error:unknown):never{if((error as {code?:string}).code==="23505")throw new DomainError("This payment reference or action was already confirmed. Reload before continuing.",409);throw error;}
+export async function changePayment(actor:Actor,id:string,input:unknown){
+ const command=paymentCommand.parse(input),hash=hashCommand(command);
+ try{return await transaction(async c=>{
+  const ctx=await context(c,actor,id,true),operator=command.action==="RECORD_CASH"||command.action==="REVIEW_GCASH";
+  if(operator?!ctx.operator:!ctx.owner)throw new DomainError(operator?"Only an independent agency operator may record or review collections.":"Only the authenticated renter may simulate this payment.",403);
+  await lockAuthority(c,ctx,operator);if(await replay(c,ctx,command.idempotencyKey,hash))return projection(c,ctx);version(ctx,command.version);
+  if(command.action==="RECORD_CASH"||command.action==="SIMULATE_PAYMENT"){
+   const method=command.action==="RECORD_CASH"?"CASH":command.method,s=await liveAgreement(c,ctx,command,method),environment=command.action==="RECORD_CASH"?"MANUAL":"DEMO",accountId=await account(c,ctx,s,environment);
+   if(command.action==="SIMULATE_PAYMENT"&&(await c.query("SELECT 1 FROM booking_payment_attempt t WHERE t.quote_id=$1 AND t.initial_outcome='PENDING' AND NOT EXISTS(SELECT 1 FROM booking_payment_decision d WHERE d.attempt_id=t.id) LIMIT 1",[s.q.id])).rowCount)throw new DomainError("Resolve the pending demo payment before trying again.",409);
+   const amount=command.action==="RECORD_CASH"?command.amountCentavos:paymentTotals(s.q.totals,await confirmed(c,s.q.id)).balanceCentavos;if(amount===0)throw new DomainError("There is no outstanding balance to simulate.",409);
+   const commandId=await newCommand(c,ctx,command.idempotencyKey,hash,command.action),outcome=command.action==="RECORD_CASH"||command.outcome==="APPROVED"?"CONFIRMED":command.outcome,t=await insertAttempt(c,ctx,s,accountId,commandId,method,amount,command.action==="RECORD_CASH"?command.reference:`DEMO-${randomUUID()}`,outcome,command.action==="RECORD_CASH"?command.note:"");
+   if(outcome==="CONFIRMED")await collect(c,ctx,t);else await event(c,ctx,ctx.r.status,"DEMO_PAYMENT_RECORDED",`Demo payment — no money moves. Outcome: ${outcome.toLowerCase()}.`);
+  }else{
+   const s=await current(c,ctx.r.id,true),t=await attempt(c,ctx,command.attemptId);if(t.decision_id)throw new DomainError("This payment attempt already has a terminal decision.",409);
+   if(command.action==="REVIEW_GCASH"){
+    if(t.environment!=="MANUAL"||t.method!=="GCASH"||t.initial_outcome!=="SUBMITTED"||t.actor_id===ctx.user.id)throw new DomainError("An independent operator must review submitted manual GCash evidence.",403);
+    const outcome=command.decision==="CONFIRM"?"CONFIRMED":"REJECTED",commandId=await newCommand(c,ctx,command.idempotencyKey,hash,command.action);await decision(c,ctx,t,commandId,outcome,command.reason);
+    if(outcome==="CONFIRMED")await collect(c,ctx,t);else await event(c,ctx,ctx.r.status,"PAYMENT_EVIDENCE_REJECTED","GCash evidence rejected; the recorded reason remains with the submission.");
+   }else{
+    if(!s?.exact||!s.holdActive||s.q.id!==t.quote_id||s.a.id!==t.agreement_id||t.environment!=="DEMO"||t.initial_outcome!=="PENDING"||t.actor_id!==ctx.user.id)throw new DomainError("Only a pending demo payment on the current valid allocation may be resolved.",409);
+    const commandId=await newCommand(c,ctx,command.idempotencyKey,hash,command.action),outcome=command.outcome==="APPROVED"?"CONFIRMED":command.outcome;await decision(c,ctx,t,commandId,outcome,`Demo payment — no money moves. ${command.outcome.toLowerCase()}.`);
+    if(outcome==="CONFIRMED")await collect(c,ctx,t);else await event(c,ctx,ctx.r.status,"DEMO_PAYMENT_RESOLVED",`Demo payment — no money moves. ${command.outcome.toLowerCase()}.`);
+   }
+  }
+  return projection(c,ctx);
+ });}catch(e){conflict(e);}
+}
+async function evidenceContext(c:PoolClient,actor:Actor,id:string,command:EvidenceCommand,fileHash:string){
+ if(!/^[a-f0-9]{64}$/.test(fileHash))throw new DomainError("Invalid evidence digest.",422);const ctx=await context(c,actor,id,true);if(!ctx.owner)throw new DomainError("Only the authenticated renter may submit GCash evidence.",403);await lockAuthority(c,ctx,false);
+ const hash=hashCommand(command,fileHash);if(await replay(c,ctx,command.idempotencyKey,hash))return {ctx,hash,replayed:true as const,s:null};version(ctx,command.version);
+ const s=await liveAgreement(c,ctx,command,"GCASH");if(s.account?.environment==="DEMO")throw new DomainError("This quotation already uses demo payments.",409);return {ctx,hash,replayed:false as const,s};
+}
+export async function authorizePaymentEvidence(actor:Actor,id:string,input:unknown,fileHash:string){const command=evidenceCommand.parse(input);return transaction(async c=>{const v=await evidenceContext(c,actor,id,command,fileHash);return v.replayed?{alreadyApplied:true as const,state:await projection(c,v.ctx)}:{alreadyApplied:false as const};});}
+export async function attachPaymentEvidence(actor:Actor,id:string,input:unknown,file:PaymentEvidenceUpload):Promise<{state:Payments;usedFile:boolean}>{
+ const command=evidenceCommand.parse(input);fileMetadata(file);
+ try{return await transaction(async c=>{const v=await evidenceContext(c,actor,id,command,file.sha256);if(v.replayed)return {state:await projection(c,v.ctx),usedFile:false};
+  const accountId=await account(c,v.ctx,v.s!,"MANUAL"),commandId=await newCommand(c,v.ctx,command.idempotencyKey,v.hash,"SUBMIT_GCASH");
+  if(!(await current(c,id,true))?.holdActive)throw new DomainError("The allocation expired before evidence attached. Reload.",409);
+  await insertAttempt(c,v.ctx,v.s!,accountId,commandId,"GCASH",command.amountCentavos,command.reference,"SUBMITTED","",file);await event(c,v.ctx,v.ctx.r.status,"PAYMENT_EVIDENCE_SUBMITTED","GCash evidence submitted for independent review. No collection is confirmed yet.");return {state:await projection(c,v.ctx),usedFile:true};
+ });}catch(e){conflict(e);}
+}
+export async function paymentEvidenceForRead(actor:Actor,id:string){return transaction(async c=>{await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");const f=(await c.query("SELECT request_id,file_id,mime,backend FROM booking_payment_attempt WHERE file_id=$1",[uuid.parse(id)])).rows[0];if(!f)throw new DomainError("Payment evidence not found.",404);await context(c,actor,f.request_id);return {objectKey:`${f.request_id}/${f.file_id}`,backend:f.backend as string,mime:f.mime as string,name:`payment-${f.file_id}.${f.mime==="image/png"?"png":f.mime==="image/jpeg"?"jpg":"pdf"}`};});}
+export async function paymentGcashQrForRead(actor:Actor,id:string){return transaction(async c=>{await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");const ctx=await context(c,actor,id),policy=await savedPolicy(c,ctx);if(!policy.instructions.gcashQrAvailable)throw new DomainError("Saved GCash QR not found.",404);const f=(await c.query("SELECT f.id,f.object_key,f.storage_driver,f.mime FROM agency a JOIN partner_revision_file rf ON rf.application_id=a.application_id AND rf.revision=$2::int JOIN private_file f ON f.id=rf.file_id AND f.purpose='GCASH_QR' WHERE a.id=$1 ORDER BY f.id LIMIT 1",[ctx.r.agency_id,policy.revision])).rows[0];if(!f)throw new DomainError("Saved GCash QR not found.",404);return {objectKey:f.object_key as string,backend:f.storage_driver as string,mime:f.mime as string,name:`gcash-qr-${f.id}.${f.mime==="image/png"?"png":f.mime==="image/jpeg"?"jpg":"pdf"}`};});}
+export async function getPaymentReceipt(actor:Actor,id:string){return transaction(async c=>{
+ await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");const k=(await c.query("SELECT k.id,k.request_id,k.agency_id,k.quote_id,k.agreement_id,k.environment,k.method,k.reference,k.amount_centavos,k.recorded_at,k.receiver_name,k.agency_name,k.renter_name,q.public_snapshot->'totals' AS totals FROM booking_payment_collection k JOIN booking_quotation q ON q.id=k.quote_id WHERE k.id=$1",[uuid.parse(id)])).rows[0];if(!k)throw new DomainError("Payment receipt not found.",404);const ctx=await context(c,actor,k.request_id),totals=paymentTotals(k.totals,0);
+ return {requestId:k.request_id as string,agencyId:k.agency_id as string,isOwner:ctx.owner,receipt:{id:k.id as string,environment:k.environment as "MANUAL"|"DEMO",method:k.method as string,reference:k.reference as string,amountCentavos:Number(k.amount_centavos),recordedAt:iso(k.recorded_at),receiverName:k.receiver_name as string,agencyName:k.agency_name as string,renterName:k.renter_name as string,quoteId:k.quote_id as string,agreementId:k.agreement_id as string,serviceCentavos:totals.serviceCentavos,refundableDepositCentavos:totals.refundableDepositCentavos,totalCentavos:totals.totalCentavos}};
+});}

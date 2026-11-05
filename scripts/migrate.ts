@@ -1,5 +1,6 @@
 import { Pool } from "pg";
 import { readFile, readdir } from "node:fs/promises";
+import { grantRuntimePrivileges } from "./lib/runtime-grants";
 const testMode = process.argv.includes("--test");
 const connectionString = testMode
   ? process.env.TEST_DATABASE_URL
@@ -40,6 +41,9 @@ try {
       await c.query("ROLLBACK");
       throw e;
     }
+  }
+  if((await c.query("SELECT 1 FROM pg_roles WHERE rolname='rent2go_app'")).rowCount){
+    await grantRuntimePrivileges(c);
   }
 } finally {
   await c.query("SELECT pg_advisory_unlock(481027)");

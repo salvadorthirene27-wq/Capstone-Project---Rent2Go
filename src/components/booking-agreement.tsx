@@ -13,6 +13,7 @@ type Agreement = {
 };
 type AgreementState = {
   serverNow: string; requestId: string; requestVersion: number; status: string;
+  allocationCommitted?: boolean;
   isOwner: boolean; isOperator: boolean; canIssue: boolean; canSign: boolean; holdActive: boolean;
   acceptedQuote: { id: string; digest: string } | null; agreement: Agreement | null;
   history: { id: string; revision: number; issuedAt: string; outcome: Outcome }[];
@@ -45,7 +46,7 @@ export function BookingAgreement({ requestId }: { requestId: string }) {
     // Without a valid server clock, fail closed until a fresh response is available.
     clock.current = { epoch: Number.isFinite(epoch) ? epoch : Infinity, receivedAt: performance.now() };
     setData(result); setStale(false); clearEvidence();
-    setExpired(Boolean(result.agreement && Date.parse(result.agreement.expiresAt) <= agreementNow()));
+    setExpired(Boolean(!result.allocationCommitted && result.agreement && Date.parse(result.agreement.expiresAt) <= agreementNow()));
   }
   useEffect(() => {
     const controller = new AbortController();
@@ -59,7 +60,7 @@ export function BookingAgreement({ requestId }: { requestId: string }) {
     return () => controller.abort();
   }, [endpoint]);
   useEffect(() => {
-    if (!data?.agreement) return;
+    if (!data?.agreement || data.allocationCommitted) return;
     const deadline = Date.parse(data.agreement.expiresAt);
     let timer: ReturnType<typeof setTimeout>;
     function check() {
@@ -172,6 +173,7 @@ export function BookingAgreement({ requestId }: { requestId: string }) {
         <h3>Agreement version {agreement.revision} · {outcomeLabels[outcome!]}</h3>
         <p><Link href={`/booking-agreements/${encodeURIComponent(agreement.id)}`} prefetch={false}>View printable agreement</Link></p>
         <AgreementDocument revision={agreement.revision} issuedAt={agreement.issuedAt} expiresAt={agreement.expiresAt} body={agreement.body} signature={agreement.signature} />
+        {data.allocationCommitted && currentQuote && <p className="notice">Inventory is committed following a confirmed collection. This signed agreement remains attached to its quotation after the former temporary deadline. Check payment and fulfillment status below.</p>}
         {(expired || !data.holdActive || data.status === "HOLD_EXPIRED") && <p className="notice">The temporary hold has expired or is no longer active. This agreement remains a historical record and does not authorize a new quotation. The agency must check availability and issue a new quotation.</p>}
         {!currentQuote && data.holdActive && !expired && <p className="notice">This historical agreement does not authorize a new quotation. Review and sign the agreement prepared for the current accepted quotation.</p>}
         {agreement.outcome === "SIGNED" && data.status === "AGREEMENT_SIGNED" && currentQuote && data.holdActive && !expired && <p className="notice">Agreement signed. Payment is a later step; signing does not confirm a paid booking or extend the hold.</p>}

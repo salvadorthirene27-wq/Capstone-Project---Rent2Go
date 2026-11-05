@@ -18,6 +18,14 @@ const ready = { ...owner, status: "READY_FOR_APPROVAL", isOwner: false, isOperat
 const response = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); refresh.mockClear(); });
 
+it("keeps a funded committed quotation accepted after its former temporary deadline",async()=>{
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue(response({...owner,serverNow:"2031-01-03T00:00:00Z",allocationCommitted:true,status:"READY_FOR_SERVICE",canRespond:false,quote:{...quote,outcome:"ACCEPTED"}})));
+ render(<BookingQuotation requestId="request-1"/>);
+ expect(await screen.findByText(/inventory is committed/i)).toBeTruthy();
+ expect(screen.queryByText(/This quotation has expired and cannot be accepted/)).toBeNull();
+ expect(screen.queryByRole("button",{name:"Accept quotation"})).toBeNull();
+});
+
 it("requires review consent and sends the displayed exact quote identity and version", async () => {
   const fetcher = vi.fn().mockResolvedValueOnce(response(owner)).mockResolvedValueOnce(response({ ...owner, requestVersion: 8, status: "QUOTE_ACCEPTED", canRespond: false, quote: { ...quote, outcome: "ACCEPTED" } }));
   vi.stubGlobal("fetch", fetcher);

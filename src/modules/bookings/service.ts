@@ -262,7 +262,9 @@ type RequestRow = {
   version: number;
   contact: { name: string; phone: string; email: string; notes: string };
   created_at: Date;
+  payment_environment?: "MANUAL"|"DEMO"|null;
 };
+const paymentEnvironmentSql="(SELECT a.environment FROM booking_quotation q LEFT JOIN booking_payment_account a ON a.quote_id=q.id WHERE q.request_id=r.id ORDER BY q.revision DESC LIMIT 1)";
 const summary = (r: RequestRow) => ({
   id: r.id,
   agencyId: r.agency_id,
@@ -271,6 +273,7 @@ const summary = (r: RequestRow) => ({
   version: r.version,
   contact: r.contact,
   createdAt: r.created_at.toISOString(),
+  paymentEnvironment: r.payment_environment??null,
 });
 export async function getBookingRequest(actor: Actor, id: string) {
   if (!z.uuid().safeParse(id).success)
@@ -278,7 +281,7 @@ export async function getBookingRequest(actor: Actor, id: string) {
   return transaction(async (c) => {
     const user = await storedActor(actor, c),
       row = (
-        await c.query<RequestRow>("SELECT * FROM booking_request WHERE id=$1", [
+        await c.query<RequestRow>(`SELECT r.*,${paymentEnvironmentSql} AS payment_environment FROM booking_request r WHERE r.id=$1`, [
           id,
         ])
       ).rows[0];
@@ -342,7 +345,7 @@ export async function listBookingRequests(actor: Actor, input: unknown = {}) {
     );
     const rows = (
       await c.query<RequestRow>(
-        `SELECT * FROM booking_request WHERE ${where} ORDER BY created_at DESC,id LIMIT 20 OFFSET $2`,
+        `SELECT r.*,${paymentEnvironmentSql} AS payment_environment FROM booking_request r WHERE ${where} ORDER BY r.created_at DESC,r.id LIMIT 20 OFFSET $2`,
         [value, (q.page - 1) * 20],
       )
     ).rows;

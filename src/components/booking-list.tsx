@@ -13,6 +13,9 @@ const statusLabels: Record<string, string> = {
   HOLD_EXPIRED: "Hold expired",
   AGREEMENT_PENDING: "Agreement awaiting signature",
   AGREEMENT_SIGNED: "Agreement signed",
+  PAYMENT_PARTIAL: "Partially paid",
+  READY_FOR_SERVICE: "Ready for service",
+  PAYMENT_RECONCILIATION_REQUIRED: "Payment reconciliation required",
 };
 export function BookingList({
   list,
@@ -38,7 +41,7 @@ export function BookingList({
                   {r.contact.name} · {date(r.createdAt)}
                 </small>
               </span>
-              <span>{statusLabels[r.status] ?? r.status.replaceAll("_", " ")}</span>
+              <span>{statusLabels[r.status] ?? r.status.replaceAll("_", " ")}{r.paymentEnvironment==="DEMO"&&<small>Demo payment — no money moves</small>}</span>
             </Link>
           ))}
         </div>

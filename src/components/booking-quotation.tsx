@@ -13,6 +13,7 @@ type Quote = {
 };
 type Quotation = {
   serverNow?: string;
+  allocationCommitted?: boolean;
   requestId: string; requestVersion: number; status: string; isOwner: boolean; isOperator: boolean; canIssue: boolean; canRespond: boolean;
   driverSelections: { lineId: string; title: string; drivers: { id: string; name: string }[] }[];
   quote: Quote | null;
@@ -40,7 +41,7 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
     const serverNow = Date.parse(result.serverNow ?? "");
     clock.current = { epoch: Number.isFinite(serverNow) ? serverNow : Date.now(), receivedAt: performance.now() };
     setData(result); setReviewed(false); setDrivers({}); setReason(""); setStale(false);
-    setExpired(Boolean(result.quote && Date.parse(result.quote.expiresAt) <= quotationNow()));
+    setExpired(Boolean(!result.allocationCommitted && result.quote && Date.parse(result.quote.expiresAt) <= quotationNow()));
   }
   useEffect(() => {
     const controller = new AbortController();
@@ -56,7 +57,7 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
   }, [endpoint]);
 
   useEffect(() => {
-    if (!data?.quote) return;
+    if (!data?.quote || data.allocationCommitted) return;
     const expiresAt = Date.parse(data.quote.expiresAt);
     let timer: ReturnType<typeof setTimeout>;
     function checkExpiry() {
@@ -118,7 +119,9 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
         <p>Issued <time dateTime={quote.issuedAt}>{date(quote.issuedAt)}</time><br />Expires <time dateTime={quote.expiresAt}>{date(quote.expiresAt)}</time> (Philippine time)</p>
         {outcome === "PENDING" && <p className="notice">The temporary hold ends at the stated expiry. Accepting does not extend it. Agreement and payment steps are still required before booking confirmation.</p>}
         {outcome === "EXPIRED" && <p className="notice">This quotation has expired and cannot be accepted. The agency must check availability and issue a new quotation.</p>}
-        {outcome === "ACCEPTED" && <p className="notice">Quotation accepted. The next step is the agreement. No payment has been recorded by this step, and the hold still ends at the stated expiry.</p>}
+        {outcome === "ACCEPTED" && (data.allocationCommitted
+          ? <p className="notice">Inventory is committed following a confirmed collection. The former temporary hold deadline no longer releases this allocation automatically. Check payment and fulfillment status below.</p>
+          : <p className="notice">Quotation accepted. The next step is the agreement. No payment has been recorded by this step, and the hold still ends at the stated expiry.</p>)}
         {quote.lines.map(line => <div className="document-field" key={line.lineId}>
           <h4>{line.title}</h4>
           <p>{date(line.startAt)} – {date(line.endAt)} (Philippine time)<br />{line.partySize} {line.partySize === 1 ? "guest" : "guests"}{line.driverName && <><br />Assigned driver: {line.driverName}</>}</p>
