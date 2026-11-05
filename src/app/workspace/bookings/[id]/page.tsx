@@ -4,6 +4,7 @@ import { Workspace } from "@/components/workspace";
 import { BookingDetail } from "@/components/booking-detail";
 import { BookingRequirements } from "@/components/booking-requirements";
 import { BookingQuotation } from "@/components/booking-quotation";
+import { BookingAgreement } from "@/components/booking-agreement";
 import { pageActor } from "@/lib/page-actor";
 import { getBookingRequest } from "@/modules/bookings/service";
 import { DomainError } from "@/modules/partners/workflow";
@@ -27,6 +28,7 @@ export default async function Page({
       <BookingDetail booking={booking} />
       <BookingRequirements key={`requirements-${booking.version}`} requestId={(await params).id} />
       <BookingQuotation key={`quotation-${booking.version}`} requestId={(await params).id} />
+      <BookingAgreement key={`agreement-${booking.version}`} requestId={(await params).id} />
     </Workspace>
   );
 }

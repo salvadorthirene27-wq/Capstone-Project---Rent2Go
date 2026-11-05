@@ -11,6 +11,8 @@ const statusLabels: Record<string, string> = {
   QUOTE_ACCEPTED: "Quotation accepted",
   QUOTE_DECLINED: "Quotation declined",
   HOLD_EXPIRED: "Hold expired",
+  AGREEMENT_PENDING: "Agreement awaiting signature",
+  AGREEMENT_SIGNED: "Agreement signed",
 };
 export function BookingList({
   list,

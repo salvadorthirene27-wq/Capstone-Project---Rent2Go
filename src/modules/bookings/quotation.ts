@@ -35,7 +35,7 @@ async function context(c: PoolClient, actor: Actor, id: string, lock = false) {
   return { r, user, owner, operator, agencyActive };
 }
 async function lines(c: PoolClient, id: string) { return (await c.query<Line>("SELECT * FROM booking_request_line WHERE request_id=$1 ORDER BY id", [id])).rows; }
-async function lockAuthority(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>, cosigners: string[], requireOperator: boolean) {
+export async function lockBookingAuthority(c: PoolClient, ctx: {r:{agency_id:string};user:Actor;owner:boolean}, cosigners: string[], requireOperator: boolean) {
   const agency = (await c.query("SELECT owner_id FROM agency WHERE id=$1 FOR SHARE", [ctx.r.agency_id])).rows[0];
   if (!agency) throw new DomainError("Agency not found.",404);
   const ids = [...new Set([ctx.user.id,agency.owner_id,...cosigners])].sort();
@@ -101,12 +101,12 @@ export async function expireBookingHolds(limit = 20) {
     throw new Error("Expiry batch must be between 1 and 100.");
   const candidates = (await db.query<{
     id: string;
-  }>("SELECT r.id FROM booking_request r WHERE r.status IN ('QUOTE_PENDING','QUOTE_ACCEPTED') AND EXISTS(SELECT 1 FROM booking_hold h WHERE h.request_id=r.id AND h.released_at IS NULL AND h.expires_at<=clock_timestamp()) ORDER BY r.id LIMIT $1", [limit])).rows;
+  }>("SELECT r.id FROM booking_request r WHERE r.status IN ('QUOTE_PENDING','QUOTE_ACCEPTED','AGREEMENT_PENDING','AGREEMENT_SIGNED') AND EXISTS(SELECT 1 FROM booking_hold h WHERE h.request_id=r.id AND h.released_at IS NULL AND h.expires_at<=clock_timestamp()) ORDER BY r.id LIMIT $1", [limit])).rows;
   let count = 0;
   for (const candidate of candidates)
     count += await transaction(async (c) => {
       // One request per transaction keeps resource lock ordering global across batches.
-      const r = (await c.query<RequestRow>("SELECT * FROM booking_request WHERE id=$1 AND status IN ('QUOTE_PENDING','QUOTE_ACCEPTED') FOR UPDATE SKIP LOCKED", [candidate.id])).rows[0];
+      const r = (await c.query<RequestRow>("SELECT * FROM booking_request WHERE id=$1 AND status IN ('QUOTE_PENDING','QUOTE_ACCEPTED','AGREEMENT_PENDING','AGREEMENT_SIGNED') FOR UPDATE SKIP LOCKED", [candidate.id])).rows[0];
       if (!r)
         return 0;
       const h = (await c.query("SELECT * FROM booking_hold WHERE request_id=$1 AND released_at IS NULL AND expires_at<=clock_timestamp() FOR UPDATE", [r.id])).rows[0];
@@ -128,7 +128,7 @@ async function allocate(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>,
   await lockCartSources(c, saved.map(l => l.public_quote.selection));
   const offerIds=saved.flatMap(l=>l.public_quote.selection.kind==="RENTAL"?[l.public_quote.selection.offerId]:[]);
   const cosigners=(await c.query("SELECT v.owner_actor_id FROM physical_vehicle v JOIN vehicle_offer o ON o.vehicle_id=v.id WHERE o.id=ANY($1::uuid[]) AND v.owner_actor_id IS NOT NULL",[offerIds])).rows.map(v=>v.owner_actor_id as string);
-  await lockAuthority(c,ctx,cosigners,true);
+  await lockBookingAuthority(c,ctx,cosigners,true);
   // Recheck all published revisions and estimates against the immutable submitted snapshots.
   const rentals: {
     line: Line;
@@ -233,7 +233,7 @@ export async function changeQuotation(actor: Actor, id: string, input: unknown) 
       else if (command.action === "REJECT") {
         if (!["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status))
           throw new DomainError("This request cannot be rejected at this stage.", 409);
-        await lockAuthority(c,ctx,[],true);
+        await lockBookingAuthority(c,ctx,[],true);
         await setStatus(c, r, "REJECTED");
         await record(c, r, user, "REJECT", command.reason);
       }
@@ -242,7 +242,7 @@ export async function changeQuotation(actor: Actor, id: string, input: unknown) 
           throw new DomainError("Only the renter may respond to this quotation.", 403);
         if (r.status !== "QUOTE_PENDING")
           throw new DomainError("This quotation is no longer awaiting a response.", 409);
-        const authority=await lockAuthority(c,ctx,[],command.action==="WITHDRAW_QUOTE");
+        const authority=await lockBookingAuthority(c,ctx,[],command.action==="WITHDRAW_QUOTE");
         if (command.action === "ACCEPT_QUOTE" && !authority.active)
           throw new DomainError("This agency is currently unavailable. The quotation cannot be accepted.", 409);
         const q = (await c.query("SELECT * FROM booking_quotation WHERE request_id=$1 ORDER BY revision DESC LIMIT 1", [r.id])).rows[0];

@@ -1,0 +1,11 @@
+# Exact electronic agreements
+
+An active independent agency operator issues an agreement only after the renter accepts the exact quotation and its temporary inventory hold remains live. The fixed template preserves quoted services, dates, party sizes, assigned drivers, service charges, refundable deposits and public policies. It adds no price or policy changes. The immutable digest binds the document, request, quotation, template, issuance time and private contact snapshot.
+
+Only the authenticated renter may sign the current document. They review its full body, enter the saved renter name, draw or upload a PNG/JPEG signature and explicitly consent. The server checks current actor, agency, request version, agreement and quote digests, stage and PostgreSQL deadline both before and after private storage. Signature metadata, consent, state transition, notifications and audit events commit atomically; failed attachment removes the orphan. This records electronic consent and name consistency, without certifying handwriting or legal enforceability.
+
+Unsigned withdrawal requires an agency reason and preserves the document before another revision is issued. Signed documents cannot be erased or withdrawn through pending controls. Old signatures remain historical facts after expiry but cannot authorize a new quotation. Signing retains the original hold deadline and creates no payment or earnings. The expiry worker covers both agreement-pending and signed-but-unpaid stages and releases claims once.
+
+The renter and current independent agency participants may read the saved document and signature through protected routes. Super Admin and Cosigner status confer no implicit access. Private signature responses use no-store, nosniff, sandbox CSP and same-origin resource protection; no public object URL is returned. History lists are bounded while exact historical printable URLs remain accessible to participants. The print view explains that current hold, payment and fulfillment status must be checked in the booking request.
+
+Run focused database verification with `npx vitest run tests/integration/booking-agreement.test.ts --maxWorkers=1 --testTimeout=60000`. The local demo uses synthetic evidence only. Browser canvas, print-dialog and final narrow-layout checks require actual visual verification; HTTP rendering does not establish those results.

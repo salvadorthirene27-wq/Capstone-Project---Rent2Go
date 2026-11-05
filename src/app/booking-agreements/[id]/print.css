@@ -1,0 +1,12 @@
+.agreement-print-page { max-width:880px; margin:0 auto; padding:40px 24px 80px; }
+.agreement-print-controls { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px; margin-bottom:36px; }
+@media print {
+ @page { margin:16mm; }
+ .site-header,.demo-bar,.site-footer,.skip-link,.agreement-print-controls { display:none!important; }
+ body { background:white; color:black; font-size:11pt; }
+ .agreement-print-page { max-width:none; margin:0; padding:0; }
+ .agreement-print-page h1 { font-size:22pt; }
+ .agreement-print-page h4 { break-after:avoid; }
+ .agreement-signature-record,.agreement-totals { break-inside:avoid; }
+ .agreement-document { max-width:none; }
+}

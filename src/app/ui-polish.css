@@ -36,6 +36,16 @@ details[open] > summary { color: var(--deep); }
 .rental-row:focus-within, .tour-row:focus-within, .agency-row:focus-within { border-color: #8aa99c; }
 .error-message, .notice, [role="status"] { overflow-wrap: anywhere; }
 .site-footer a:hover { text-decoration-thickness: 2px; }
+.agreement-document { max-width:74ch; font-size:14px; line-height:1.8; }
+.agreement-document > header { display:flex; flex-wrap:wrap; justify-content:space-between; gap:16px 32px; padding-block:20px; border-bottom:1px solid var(--line); }
+.agreement-service { margin-block:28px; }
+.agreement-service + .agreement-service { border-top:1px solid var(--line); padding-top:20px; }
+.agreement-totals { margin:28px 0; font-variant-numeric:tabular-nums; }
+.agreement-totals > div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 24px; padding-block:8px; }
+.agreement-totals dd { margin:0; font-weight:600; }
+.agreement-totals > div:last-child { border-top:1px solid var(--line); }
+.agreement-signature-record { margin-top:28px; }
+.agreement-signature-record img { display:block; max-width:100%; object-fit:contain; background:white; }
 @media (hover:hover) and (pointer:fine) {
   .button:not(.quiet):not(:disabled):hover { box-shadow: 0 4px 10px rgb(37 74 64 / 12%); }
 }

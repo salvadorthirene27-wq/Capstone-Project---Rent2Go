@@ -2075,3 +2075,14 @@ td .text-link {
 .booking-quotation .quotation-totals div:last-child { border-top: 1px solid var(--line); font-weight: 600; }
 .booking-quotation .quotation-history { margin-top: 28px; }
 .booking-quotation .quotation-history li { margin-block: 16px; }
+
+.booking-agreement fieldset { display: grid; gap: 16px; margin-block: 28px; min-width: 0; }
+.booking-agreement p, .booking-agreement li { max-width: 72ch; overflow-wrap: anywhere; }
+.booking-agreement .agreement-stage { margin-top: 24px; }
+.booking-agreement .agreement-consent { display: flex; align-items: flex-start; gap: 12px; max-width: 72ch; }
+.booking-agreement .agreement-consent input { flex-shrink: 0; margin-top: 5px; }
+.booking-agreement .agreement-signature-input { display: grid; gap: 16px; max-width: 45rem; }
+.booking-agreement .agreement-signature-input p { margin: 0; }
+.booking-agreement canvas { display: block; width: 100%; height: auto; aspect-ratio: 36 / 11; background: #fff; border: 1px solid var(--muted); border-radius: var(--radius); touch-action: none; }
+.booking-agreement .agreement-history { margin-top: 28px; }
+.booking-agreement .agreement-history li { margin-block: 16px; }
