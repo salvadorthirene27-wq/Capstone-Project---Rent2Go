@@ -47,6 +47,17 @@ details[open] > summary { color: var(--deep); }
 .agreement-signature-record { margin-top:28px; }
 .agreement-signature-record img { display:block; max-width:100%; object-fit:contain; background:white; }
 /* UI UX Pro Max: adapt marketplace guidance to the established Rent2Go system. */
+.booking-assessments { margin-top:36px; padding-top:28px; border-top:1px solid var(--line); }
+.assessment-record,.assessment-draft { margin:20px 0; padding:24px; border:1px solid var(--line); background:var(--surface); border-radius:16px; overflow-wrap:anywhere; }
+.assessment-record header,.assessment-actions,.booking-assessments nav { display:flex; flex-wrap:wrap; align-items:center; gap:12px 24px; justify-content:space-between; }
+.assessment-totals { margin:24px 0; font-variant-numeric:tabular-nums; }
+.assessment-totals > div { display:flex; flex-wrap:wrap; justify-content:space-between; gap:8px 24px; padding:8px 0; border-bottom:1px solid var(--line); }
+.assessment-totals dd { margin:0; font-weight:600; }
+.assessment-charge { padding:16px 0; border-top:1px solid var(--line); }
+.booking-assessments fieldset { display:grid; gap:16px; margin:24px 0; }
+.assessment-check { display:flex; gap:12px; align-items:flex-start; }
+.assessment-check input { flex-shrink:0; margin-top:4px; }
+.assessment-draft .field { display:grid; gap:8px; margin-bottom:16px; }
 body { font-size:16px; }
 button, summary, .button, .icon-button { touch-action:manipulation; }
 .site-header nav { gap:16px; }

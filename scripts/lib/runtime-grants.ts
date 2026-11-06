@@ -7,6 +7,9 @@ export async function grantRuntimePrivileges(client:Pick<PoolClient,"query">){
  await client.query("GRANT SELECT,INSERT ON partner_revision,partner_revision_file,partner_review,app_audit TO rent2go_app");
  await client.query("GRANT SELECT,INSERT,UPDATE ON app_request_budget TO rent2go_app");
  await client.query(`DO $$ BEGIN
+  IF to_regclass('public.booking_assessment') IS NOT NULL THEN
+   GRANT SELECT,INSERT ON booking_assessment_command,booking_assessment,booking_assessment_decision TO rent2go_app;
+  END IF;
   IF to_regclass('public.booking_refund_request') IS NOT NULL THEN
    GRANT SELECT,INSERT ON booking_refund_command,booking_refund_request,booking_refund_decision,booking_refund_cancel,booking_refund_attempt,booking_refund_resolution,booking_refund_payment TO rent2go_app;
   END IF;

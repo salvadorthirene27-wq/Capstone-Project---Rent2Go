@@ -16,7 +16,9 @@ if (
   !target.hostname.startsWith("ep-dawn-rain-aowtcdg5")
 )
   throw Error("Unexpected database: refusing migration.");
-const pool = new Pool({ connectionString });
+// Session advisory locks must use the direct endpoint, not transaction pooling.
+target.hostname = target.hostname.replace("-pooler.", ".");
+const pool = new Pool({ connectionString: target.toString() });
 const c = await pool.connect();
 try {
   await c.query("SELECT pg_advisory_lock(481027)");

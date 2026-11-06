@@ -1,0 +1,62 @@
+"use client";
+import {useEffect,useRef,useState} from "react";
+import {useRouter} from "next/navigation";
+import {money,date} from "@/modules/partners/presentation";
+import {extraChargeLabels,type extraChargeTypes} from "@/modules/partners/extra-charges";
+import type {AssessmentState} from "@/modules/bookings/assessment";
+type Send=(value:Record<string,unknown>)=>Promise<void>;
+type ChargeType=typeof extraChargeTypes[number];
+type DraftItem={id:string;lineId:string;amount:string;reason:string;type:ChargeType|"CREDIT"};
+function cents(value:string){const m=/^(\d{1,14})(?:\.(\d{1,2}))?$/.exec(value.trim());if(!m)return null;const n=BigInt(m[1])*100n+BigInt((m[2]??"").padEnd(2,"0"));return n>0n&&n<=BigInt(Number.MAX_SAFE_INTEGER)?Number(n):null;}
+function Review({record:r,blocked,send}:{record:NonNullable<AssessmentState['current']>;blocked:boolean;send:Send}){
+ const [consent,setConsent]=useState(false),[reason,setReason]=useState("");
+ const p=r.body.proposal,f=r.body.funds,exact={assessmentId:r.id,digest:r.digest};
+ return <article className="assessment-record"><header><h3>Assessment version {r.revision}</h3><strong>{r.decision==='ACCEPT'?'Accepted by renter':r.decision==='DISPUTE'?'Disputed':r.decision==='WITHDRAW'?'Withdrawn':'Awaiting renter review'}</strong></header>
+  <p>{r.environment==='DEMO'?'Demo assessment — no money moves.':'Manual payment environment.'} Proposed {date(r.createdAt)}</p><p className="preserve-lines">{r.reason}</p>
+  {r.stale&&<p className="notice">{r.decision==='ACCEPT'?'Financial or condition facts changed after this saved snapshot; the accepted itemized terms remain preserved.':'Financial or condition facts changed. The agency must refresh this proposal before acceptance.'}</p>}
+  <dl className="assessment-totals"><div><dt>Delivered services, including quoted driver fees</dt><dd>{money(p.deliveredServiceCentavos)}</dd></div><div><dt>Service credits</dt><dd>−{money(p.serviceCreditCentavos)}</dd></div><div><dt>Itemized extra charges</dt><dd>{money(p.extraChargeCentavos)}</dd></div><div><dt>Proposed service and charge obligation</dt><dd>{money(p.obligationCentavos)}</dd></div><div><dt>Quoted refundable deposits (excluded from revenue)</dt><dd>{money(p.quotedDepositCentavos)}</dd></div></dl>
+  {p.lines.map(l=><p key={l.lineId}><strong>{l.title}</strong> · {l.delivered?'Delivered':'Not delivered / cancelled'} · service after credits {money(l.netServiceCentavos)} · extras {money(l.extraChargeCentavos)}</p>)}
+  {p.credits.map(i=><p key={i.id}>Service credit: {money(i.amountCentavos)} · {p.lines.find(l=>l.lineId===i.lineId)?.title} · {i.reason}</p>)}
+  {p.charges.map(i=><section className="assessment-charge" key={i.id}><h4>{extraChargeLabels[i.policy.policy.type]} · {money(i.amountCentavos)}</h4><p>{p.lines.find(l=>l.lineId===i.lineId)?.title} · {i.reason}</p><p className="preserve-lines">{i.policy.policy.explanation}</p><p>Approved policy version {i.policy.revision}. Allocation: Cosigner {i.policy.policy.shares.cosigner/100}% · agency {i.policy.policy.shares.agency/100}% · Rent2Go {i.policy.policy.shares.platform/100}% · maintenance {i.policy.policy.shares.maintenance/100}%.</p></section>)}
+  <details><summary>Collection and refund snapshot when proposed</summary><p>Confirmed collections: {money(f.confirmedCentavos)} · refunds already paid: {money(f.paidRefundCentavos)} · reserved refunds: {money(f.reservedRefundCentavos)}.</p><p>Additional balance: {money(f.additionalBalanceCentavos)} · remaining amount to return: {money(f.refundDueCentavos)}. These are saved figures; later receipts/refunds require current reconciliation.</p>{f.overReservedCentavos>0&&<p className="notice">Approved refunds over-reserve the retained obligation by {money(f.overReservedCentavos)}. Resolve these reservations before acceptance.</p>}</details>
+  {r.body.requiresOwnerAllocationReview&&<p className="notice">Consigned-car charges also require the applicable vehicle owner's financial agreement before allocation or settlement. Renter acceptance does not bind that owner.</p>}
+  {r.decisionReason&&<p className="preserve-lines">Decision reason: {r.decisionReason}</p>}
+  {(r.canAccept||r.canDispute||r.canWithdraw)&&<fieldset disabled={blocked}><legend>Review this exact assessment</legend><label className="field">Review reason<textarea maxLength={2000} value={reason} onChange={e=>setReason(e.target.value)}/></label>
+   {r.canAccept&&<><label className="assessment-check"><input type="checkbox" checked={consent} onChange={e=>setConsent(e.target.checked)}/>I reviewed this version's line items, credits, charge conditions and allocation percentages. I accept these financial terms separately from vehicle-condition acknowledgement.</label><button type="button" className="button" disabled={blocked||!consent} onClick={()=>send({action:"DECIDE_ASSESSMENT",...exact,decision:"ACCEPT",consent:true,reason})}>Accept itemized assessment</button></>}
+   {r.canDispute&&<button type="button" className="button secondary" disabled={blocked||!reason.trim()} onClick={()=>send({action:"DECIDE_ASSESSMENT",...exact,decision:"DISPUTE",consent:false,reason})}>Dispute with reason</button>}
+   {r.canWithdraw&&<button type="button" className="button secondary" disabled={blocked||!reason.trim()} onClick={()=>send({action:"WITHDRAW_ASSESSMENT",...exact,reason})}>Withdraw pending assessment</button>}
+  </fieldset>}
+ </article>;
+}
+function Proposal({data,blocked,send}:{data:AssessmentState;blocked:boolean;send:Send}){
+ const [items,setItems]=useState<DraftItem[]>([]),[reason,setReason]=useState("");const lines=data.source!.lines,feeLines=lines.filter(l=>!l.delivered||l.context!=='TOUR_ONLY');
+ const update=(id:string,change:Partial<DraftItem>)=>setItems(v=>v.map(i=>i.id===id?{...i,...change}:i));
+ function add(credit:boolean){const line=credit?lines.find(l=>l.delivered):feeLines[0];if(line)setItems(v=>[...v,{id:crypto.randomUUID(),lineId:line.lineId,amount:"",reason:"",type:credit?'CREDIT':line.delivered?'DAMAGE':'CANCELLATION'}]);}
+ const valid=reason.trim()&&items.every(i=>cents(i.amount)!==null&&Boolean(i.reason.trim()));
+ return <fieldset disabled={blocked}><legend>Prepare an itemized assessment</legend><p>Start with the original quoted services. Add explicit credits or charges only when applicable. An empty item list proposes the delivered service basis without extra charges. Only types configured in the agency's approved policy can be proposed.</p>
+  <label className="field">Assessment explanation<textarea value={reason} maxLength={2000} onChange={e=>setReason(e.target.value)}/></label>
+  {items.map((i,index)=><div className="assessment-draft" key={i.id}><h4>Item {index+1}: {i.type==='CREDIT'?'Service credit':'Extra charge'}</h4><label className="field">Service<select value={i.lineId} onChange={e=>{const l=lines.find(l=>l.lineId===e.target.value)!;update(i.id,{lineId:l.lineId,...(i.type!=='CREDIT'?{type:l.delivered?'DAMAGE':'CANCELLATION'}:{})});}}>{(i.type==='CREDIT'?lines.filter(l=>l.delivered):feeLines).map(l=><option key={l.lineId} value={l.lineId}>{l.title}</option>)}</select></label>
+   {i.type!=='CREDIT'&&<label className="field">Charge type<select value={i.type} onChange={e=>update(i.id,{type:e.target.value as ChargeType})}>{(lines.find(l=>l.lineId===i.lineId)?.delivered?['DAMAGE','FUEL','LATE_RETURN','CLEANING']:['CANCELLATION']).map(t=><option key={t} value={t}>{extraChargeLabels[t as ChargeType]}</option>)}</select></label>}
+   <label className="field">Amount (PHP)<input inputMode="decimal" maxLength={18} value={i.amount} aria-invalid={Boolean(i.amount&&cents(i.amount)===null)} onChange={e=>update(i.id,{amount:e.target.value})}/>{i.amount&&cents(i.amount)===null&&<small className="field-error">Enter a positive PHP amount with at most two decimal places.</small>}</label><label className="field">Item reason<textarea maxLength={2000} value={i.reason} onChange={e=>update(i.id,{reason:e.target.value})}/></label><button type="button" className="button quiet" onClick={()=>setItems(v=>v.filter(x=>x.id!==i.id))}>Remove item {index+1}</button></div>)}
+  <div className="assessment-actions"><button type="button" className="button secondary" disabled={blocked||items.length>=40||!lines.some(l=>l.delivered)} onClick={()=>add(true)}>Add service credit</button><button type="button" className="button secondary" disabled={blocked||items.length>=40||!feeLines.length||data.status==="PAYMENT_RECONCILIATION_REQUIRED"} onClick={()=>add(false)}>Add extra charge</button><button type="button" className="button" disabled={blocked||!valid} onClick={()=>{const value=(i:DraftItem)=>({id:i.id,lineId:i.lineId,amountCentavos:cents(i.amount),reason:i.reason});return send({action:"PROPOSE_ASSESSMENT",reason,credits:items.filter(i=>i.type==='CREDIT').map(value),charges:items.filter(i=>i.type!=='CREDIT').map(i=>({...value(i),type:i.type}))});}}>Propose for renter review</button></div>
+ </fieldset>;
+}
+export function BookingAssessments({requestId}:{requestId:string}){
+ const router=useRouter(),[data,setData]=useState<AssessmentState|null>(null),[error,setError]=useState(""),[busy,setBusy]=useState(false),[loading,setLoading]=useState(true);const mounted=useRef(true);
+ const url=`/api/booking-requests/${requestId}/assessments`;
+ async function load(page=1){setLoading(true);setError("");try{const r=await fetch(`${url}?historyPage=${page}`,{cache:"no-store"}),body=await r.json();if(!r.ok)throw Error(body.error??"Unable to load assessments.");if(mounted.current)setData(body);}catch(e){if(mounted.current)setError(e instanceof Error?e.message:"Unable to load assessments.");}finally{if(mounted.current)setLoading(false);}}
+ useEffect(()=>{mounted.current=true;void load();return()=>{mounted.current=false;};},[requestId]);
+ const send:Send=async value=>{if(!data)return;setBusy(true);setError("");try{const r=await fetch(url,{method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify({...value,version:data.requestVersion,idempotencyKey:crypto.randomUUID()})}),body=await r.json();if(!r.ok)throw Error(body.error??"Unable to save assessment review.");setData(body);router.refresh();}catch(e){setError(e instanceof Error?e.message:"Unable to save assessment review.");}finally{setBusy(false);}};
+ const blocked=busy||loading;
+ return <section className="booking-assessments" aria-labelledby="assessment-title" aria-busy={blocked}><h2 id="assessment-title">Itemized financial assessment</h2><p>Review service credits, extra charges and the amount to reconcile. Acceptance records financial terms; it does not move money or complete the booking.</p>
+  {error&&<p role="alert" className="error-message">{error}</p>}{loading&&!data&&<p role="status">Loading financial assessment…</p>}
+  <button type="button" className="button secondary" disabled={blocked} onClick={()=>load(data?.historyPage??1)}>Refresh assessment</button>
+  {data&&<>{data.source?.blockedReason&&<p className="notice">{data.source.blockedReason}</p>}{!data.source&&<p>Assessment becomes available after an original quotation payment account exists and the booking reaches reconciliation.</p>}
+   {data.current&&<Review key={`${data.current.id}:${data.requestVersion}`} record={data.current} blocked={blocked} send={send}/>}
+   {data.effective&&data.effective.id!==data.current?.id&&<details><summary>Previously accepted assessment remains preserved</summary><Review record={{...data.effective,canAccept:false,canDispute:false,canWithdraw:false}} blocked={true} send={send}/></details>}
+   {data.canPropose&&data.source&&<Proposal key={data.requestVersion} data={data} blocked={blocked} send={send}/>}
+   {data.history.length>0&&<details><summary>Assessment history</summary>{data.history.map(r=><details key={r.id}><summary>Version {r.revision} · {r.decision??'Pending'} · {money(r.body.proposal.obligationCentavos)}</summary><Review record={{...r,canAccept:false,canDispute:false,canWithdraw:false}} blocked={true} send={send}/></details>)}</details>}
+   {data.historyPages>1&&<nav aria-label="Assessment history pages"><button type="button" className="button secondary" disabled={blocked||data.historyPage<=1} onClick={()=>load(data.historyPage-1)}>Previous assessment history</button><span>Page {data.historyPage} of {data.historyPages}</span><button type="button" className="button secondary" disabled={blocked||data.historyPage>=data.historyPages} onClick={()=>load(data.historyPage+1)}>Next assessment history</button></nav>}
+  </>}
+ </section>;
+}

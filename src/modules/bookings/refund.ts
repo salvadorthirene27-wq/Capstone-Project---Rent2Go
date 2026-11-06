@@ -8,6 +8,7 @@ import {digest} from "../cart/pricing";
 import {lockBookingAuthority} from "./quotation";
 import {normalizePaymentReference} from "./payment-schema";
 import {refundCommand,refundListQuery,refundStage,refundCapacity,refundableStatus} from "./refund-schema";
+import {assertAssessmentRefundCapacity} from "./assessment-source";
 type RefundCommand=ReturnType<typeof refundCommand.parse>;
 export type RefundEvidence={id:string;mime:string;size:number;sha256:string;backend:string};
 async function context(c:PoolClient,actor:Actor,id:string,lock=false){
@@ -89,6 +90,7 @@ async function run(actor:Actor,id:string,command:RefundCommand,file?:RefundEvide
    if(command.action==="REVIEW_REFUND"){
     if(!record.canReview)throw new DomainError("Only a pending refund may be independently reviewed.",409);
     if(command.decision==="APPROVE"&&Number(r.amount_centavos)>(await capacity(c,r.collection_id)).availableCentavos)throw new DomainError("Other approved refunds reserved this source balance. Reject or request a corrected amount.",409);
+    if(command.decision==="APPROVE")await assertAssessmentRefundCapacity(c,id,r.quote_id,Number(r.amount_centavos));
     await c.query("INSERT INTO booking_refund_decision(id,refund_id,request_id,actor_id,decision,reason)VALUES($1,$2,$3,$4,$5,$6)",[randomUUID(),r.id,id,ctx.user.id,command.decision,command.reason]);
    }else if(command.action==="WITHDRAW_REFUND"||command.action==="REVOKE_REFUND"){
     if(!(command.action==="WITHDRAW_REFUND"?record.canWithdraw:record.canRevoke))throw new DomainError("Only a pending request may be withdrawn or an unpaid approval revoked. Paid refunds remain immutable.",409);

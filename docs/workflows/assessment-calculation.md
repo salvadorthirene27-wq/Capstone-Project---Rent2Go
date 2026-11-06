@@ -10,11 +10,11 @@ Outstanding refunds include remaining deposits and credit as part of actual net 
 
 `monetaryRequirementsSatisfied` describes amounts only. Financial closure also requires authoritative fulfillment, current accepted return reports, exact accepted financial terms, any required Cosigner allocation agreement, resolved evidence/reviews, immutable ledger posting and appropriate cancellation identity. It must never be used alone to mark a booking completed.
 
-## Integration still required
+## Integration status
 
-1. Under a parent booking lock, authorize the independent agency operator; bind the exact immutable quotation, saved ownership and latest physical/condition facts. Resolve approved allocation snapshots on the server, never from client claims.
-2. Persist append-only versioned itemized proposals, exact renter acceptance/dispute and superseding reasons. Keep old accepted contracts. Do not treat condition acknowledgement as consent to financial charges. Owner-specific financial agreements remain authoritative.
+1. Implemented: under a parent booking lock, authorize the independent agency operator; bind the exact immutable quotation, saved ownership and latest physical/condition facts. Resolve approved allocation snapshots on the server, never from client claims.
+2. Implemented: append-only versioned itemized proposals, exact renter acceptance/dispute and corrected revisions preserve old accepted contracts. Condition acknowledgement does not accept charges. Owner-specific financial agreements remain an additional settlement requirement.
 3. Apply deposit dispositions and collect additional balances through separately scoped payment records; include all historical refunds/reservations. Constrain later refund approval against retained accepted obligations as well as original source capacity.
 4. Close finances only after all prerequisites, post conserved allocation ledgers once, and handle later receipts/refunds with compensating history rather than reopening inventory or overwriting signed terms.
 
-This checkpoint supplies the tested calculation contract and page-retry correction. It adds no migration or financial API/UI. Live service integration remains open while native database connectivity from the development process is timing out. The existing database, credentials and driver are retained.
+The initial calculation checkpoint was followed by migration024 and the assessment-review API/UI. Native database connectivity subsequently recovered with the existing credentials and driver. Steps3–4 remain open; see `assessment-review.md` for the implemented review boundary and verification evidence.
