@@ -63,7 +63,8 @@ export function Header() {
         Development demo <span>Payments are simulated. No money moves.</span>
       </div>
       <header
-        className="site-header"
+        className={`site-header${open ? " navigation-expanded" : ""}`}
+        onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
         onKeyDown={(e) => {
           if (e.key === "Escape" && open) {
             setOpen(false);
@@ -82,7 +83,7 @@ export function Header() {
           aria-controls="main-navigation"
           onClick={() => setOpen(!open)}
         >
-          {open ? <X size={22} /> : <Menu size={22} />}
+          {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
         </button>
         <nav
           id="main-navigation"
@@ -129,7 +130,7 @@ export function Header() {
             aria-current={selected("/partners") ? "page" : undefined}
             onClick={() => setOpen(false)}
           >
-            For agencies <ArrowUpRight size={15} />
+            For agencies <ArrowUpRight size={15} aria-hidden="true" />
           </Link>
           {session?.user ? (
             <>
@@ -152,7 +153,7 @@ export function Header() {
                 disabled={busy}
                 onClick={signOut}
               >
-                <LogOut size={19} /> Sign out
+                <LogOut size={19} aria-hidden="true" /> Sign out
               </button>
             </>
           ) : (

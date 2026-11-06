@@ -52,6 +52,12 @@ Primary buttons use forest with white text; hover uses deeper forest. Selected s
 - Don't carry over unsupported controls or false claims from the old app.
 - Don't add GPS/tracking navigation or fictitious metrics/reviews.
 
+## UI UX Pro Max adaptation
+
+Use the project-local UI UX Pro Max skill for subsequent interface work. Keep this existing brand system authoritative when generic generated palettes or type suggestions differ. Marketplace lists use white bordered cards, restrained elevation and clearly separated photography, service details and actions. Keep price units and refundable deposits visible. Inputs use readable 16px text and 48px minimum height with stronger boundaries; labels remain visible.
+
+Compact menus expand in normal document flow. Their visual and keyboard order agree, Escape returns focus to the toggle, and moving focus into page content dismisses the menu without stealing focus. The landing skip target begins after navigation. Maintain reduced-motion behavior and progressive enhancement; do not add an animation dependency solely because a generated snippet suggests one.
+
 ## Motion and refinement
 
 The landing page preserves Marc Albert's photographic composition with stronger text contrast, responsive hero sizing, direct routes for each audience, and quieter fleet/role surfaces. The wordmark uses the shared Outfit face; Poppins headings and Inter body remain. Secondary copy must stay readable rather than relying on low opacity.

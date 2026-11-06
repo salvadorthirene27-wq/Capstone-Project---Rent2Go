@@ -27,6 +27,7 @@ export default async function Page({
     <main id="main-content" className="public-main directory-main">
       <div className="directory-heading">
         <div>
+          <p className="page-eyebrow">Car rentals</p>
           <h1>A car that fits your journey.</h1>
           <p>
             Compare approved agency vehicles, choose your dates and understand

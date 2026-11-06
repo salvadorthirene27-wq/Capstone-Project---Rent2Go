@@ -2,18 +2,18 @@ import Link from "next/link";
 import Image from "next/image";
 import { HomeNavigation } from "@/components/home-navigation";
 import { HomeMotion } from "@/components/home-motion";
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, ArrowRight, Check, CarFront, Map, FileCheck2 } from "lucide-react";
 import "./landing.css";
 export default function Home() {
   return (
-    <main id="main-content" className="marc-home min-h-screen bg-[#FAFAFA] font-sans scroll-smooth">
+    <main className="marc-home min-h-screen bg-[#FAFAFA] font-sans scroll-smooth">
       <HomeMotion />
       {/* --- HERO SECTION --- */}
       <div className="home-hero relative w-[96%] mx-auto mt-4 rounded-[40px] h-[800px] overflow-hidden bg-black shadow-2xl">
         <Image
           src="/landing/hero.jpg"
           sizes="96vw"
-          alt="Luxury Car Rental Philippines"
+          alt=""
           fill
           priority
           className="home-hero-image object-cover object-bottom opacity-50 z-0"
@@ -23,7 +23,8 @@ export default function Home() {
           <HomeNavigation />
 
           {/* Hero Content - More humble & mission-focused */}
-          <div className="home-hero-content flex-grow flex flex-col items-center justify-center gap-5 px-4 text-center">
+          <div id="main-content" tabIndex={-1} className="home-hero-content flex-grow flex flex-col items-center justify-center gap-5 px-4 text-center">
+            <p className="home-eyebrow">Car rentals. Tour packages. Local agencies.</p>
             <h1 className="home-hero-title text-5xl md:text-6xl font-bold text-white max-w-4xl leading-[1.2] tracking-tight drop-shadow-xl">
               Bridging the Gap in <br />
               <span className="text-[#ABD1C6]">Philippine Car Rentals.</span>
@@ -40,9 +41,21 @@ export default function Home() {
               <Link href="/rentals" className="px-9 py-3.5 bg-[#ABD1C6] hover:bg-[#c4e3db] text-[#2F5D50] transition-all rounded-full font-bold text-base shadow-xl">Find a Ride</Link>
               <Link href="/partners" className="px-9 py-3.5 border border-white/30 text-white hover:bg-white/10 transition-all rounded-full font-bold text-base">Learn About Partnering</Link>
             </div>
+            <Link href="/tours" className="home-tour-link">Looking for an experience? Explore tours <ArrowRight size={17} aria-hidden="true" /></Link>
+            <ul className="home-assurances" aria-label="How booking works">
+              <li><Check size={16} aria-hidden="true" /> Approved agency listings</li>
+              <li><Check size={16} aria-hidden="true" /> Terms before payment</li>
+              <li><Check size={16} aria-hidden="true" /> Booking updates in your workspace</li>
+            </ul>
           </div>
         </div>
       </div>
+
+      <section className="home-journey" aria-label="Your booking journey">
+        <div><CarFront size={23} aria-hidden="true" /><p><strong>Choose your ride</strong><span>Compare vehicles, agencies and service terms.</span></p></div>
+        <div><Map size={23} aria-hidden="true" /><p><strong>Find your experience</strong><span>Explore group tours and private packages.</span></p></div>
+        <div><FileCheck2 size={23} aria-hidden="true" /><p><strong>Review, then book</strong><span>Accept your quotation and agreement before payment.</span></p></div>
+      </section>
 
       {/* --- CAR LOGOS SECTION --- */}
       <div className="w-full py-16 bg-white overflow-hidden">

@@ -34,6 +34,7 @@ export default async function Page({
     <main id="main-content" className="public-main directory-main">
       <div className="directory-heading">
         <div>
+          <p className="page-eyebrow">Tours & packages</p>
           <h1>Find your next experience.</h1>
           <p>
             Join a scheduled group tour or choose a private experience for your

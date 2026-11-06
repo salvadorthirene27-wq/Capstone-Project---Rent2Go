@@ -1,5 +1,5 @@
 /* Shared operational polish: feedback stays quick; content never animates on entry. */
-:root { --motion-fast: 160ms; --motion-ease: cubic-bezier(0.16,1,0.3,1); }
+:root { --motion-fast: 160ms; --motion-ease: cubic-bezier(0.16,1,0.3,1); --surface:#fff; --control-line:#7d9186; --shadow-panel:0 6px 20px rgb(37 74 64 / 5%); }
 button:disabled { cursor:not-allowed; }
 [aria-busy="true"] button:disabled { cursor:progress; }
 input::placeholder, textarea::placeholder { color: #64736b; opacity: 1; }
@@ -46,6 +46,64 @@ details[open] > summary { color: var(--deep); }
 .agreement-totals > div:last-child { border-top:1px solid var(--line); }
 .agreement-signature-record { margin-top:28px; }
 .agreement-signature-record img { display:block; max-width:100%; object-fit:contain; background:white; }
+/* UI UX Pro Max: adapt marketplace guidance to the established Rent2Go system. */
+body { font-size:16px; }
+button, summary, .button, .icon-button { touch-action:manipulation; }
+.site-header nav { gap:16px; }
+.site-header nav > a { font-size:14px; }
+.site-header .wordmark { flex-shrink:0; }
+.site-header nav > a:not(.button) { padding-inline:5px; border-radius:6px; }
+.site-header nav > a[aria-current="page"] { text-decoration-thickness:2px; }
+input:not([type="checkbox"]):not([type="radio"]):not([type="file"]), select, textarea { font-size:16px; min-height:48px; border-color:var(--control-line); }
+input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="true"] { border-color:var(--error); }
+.auth-form label, .field > label, .field label { font-size:14px; }
+.page-eyebrow { color:var(--forest); font-size:13px; font-weight:600; letter-spacing:.05em; margin-bottom:10px; }
+.directory-heading h1 { max-width:24ch; }
+.directory-heading p:not(.page-eyebrow) { color:var(--muted); line-height:1.75; }
+.directory-heading > a { flex-shrink:0; min-height:44px; }
+.marketplace-form, .directory-filters { box-shadow:var(--shadow-panel); border:1px solid var(--line); }
+.marketplace-form > p:last-child { font-size:14px; margin-bottom:0; color:var(--muted); }
+.marketplace-search-actions > a { display:inline-flex; align-items:center; min-height:44px; }
+.directory-list:has(.rental-row), .directory-list:has(.tour-row) { display:grid; gap:20px; border-top:0; }
+.directory-list .tour-row { grid-template-columns:220px minmax(0,1fr) auto; padding:24px; background:var(--surface); border:1px solid var(--line); border-radius:16px; box-shadow:var(--shadow-panel); align-items:center; gap:28px; }
+.directory-list .tour-row > img { width:220px; height:172px; object-fit:cover; border-radius:12px; flex-shrink:0; }
+.directory-list .tour-row > div { min-width:0; }
+.directory-list .tour-row h2 { font-size:1.25rem; margin-top:0; line-height:1.4; }
+.directory-list .tour-row p { font-size:15px; line-height:1.7; }
+.directory-list .tour-row .button { flex-shrink:0; white-space:normal; text-align:center; max-width:220px; }
+.result-count { font-size:14px; line-height:1.7; }
+.sidebar nav a { font-size:14px; }
+.sidebar nav a svg { flex-shrink:0; }
+.workspace-main .page-title { margin-bottom:28px; }
+@media (max-width:1180px) {
+ .site-header { height:auto; min-height:76px; flex-wrap:wrap; padding-block:14px; }
+ .site-header .navigation-toggle { display:inline-flex; }
+ .site-header nav { display:none; }
+ .site-header nav.navigation-open { display:flex; position:static; flex:0 0 100%; flex-direction:column; align-items:stretch; width:100%; max-height:none; overflow:visible; padding:14px 0 4px; gap:6px; border-bottom:0; border-top:1px solid var(--line); }
+ .site-header.navigation-expanded { position:relative; }
+ .site-header nav > a { padding:10px 12px; min-height:44px; }
+ .site-header nav .nav-signout { justify-content:start; padding:12px; }
+}
+@media (min-width:621px) and (max-width:1000px) {
+ .directory-list .tour-row { display:grid; grid-template-columns:180px minmax(0,1fr); gap:20px 24px; }
+ .directory-list .tour-row > img { width:180px; height:150px; }
+ .directory-list .tour-row > .button { grid-column:2; justify-self:start; }
+}
+@media (max-width:760px) {
+ .directory-heading { gap:20px; }
+ .directory-heading h1 { font-size:clamp(1.8rem, 6.5vw, 2.5rem); }
+ .directory-heading p { font-size:16px; }
+ .sidebar nav { padding:3px 3px 8px; }
+ .sidebar nav a { font-size:13px; min-height:44px; }
+ .sidebar nav a svg { width:18px; height:18px; }
+ .workspace-main .page-title { flex-wrap:wrap; }
+}
+@media (max-width:620px) {
+ .directory-list .tour-row { display:flex; flex-direction:column; align-items:stretch; padding:18px; gap:18px; }
+ .directory-list .tour-row > img { width:100%; height:auto; aspect-ratio:16/10; }
+ .directory-list .tour-row .button { max-width:none; width:100%; }
+ .directory-list .tour-row p { font-size:16px; }
+}
 @media (hover:hover) and (pointer:fine) {
   .button:not(.quiet):not(:disabled):hover { box-shadow: 0 4px 10px rgb(37 74 64 / 12%); }
 }

@@ -66,3 +66,13 @@ it("returns keyboard focus to the menu button when Escape closes navigation", as
     screen.getByRole("button", { name: "Open navigation" }),
   );
 });
+it("dismisses expanded navigation when keyboard focus moves into page content", async () => {
+  render(<><Header /><main><button>Page action</button></main></>);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Open navigation" }));
+  await user.tab();
+  expect(screen.getByRole("button", { name: "Close navigation" }).getAttribute("aria-expanded")).toBe("true");
+  await user.click(screen.getByRole("button", { name: "Page action" }));
+  expect(screen.getByRole("button", { name: "Open navigation" }).getAttribute("aria-expanded")).toBe("false");
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Page action" }));
+});

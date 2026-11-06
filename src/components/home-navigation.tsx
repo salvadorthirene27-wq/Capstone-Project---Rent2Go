@@ -10,7 +10,7 @@ export function HomeNavigation() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const toggle = useRef<HTMLButtonElement>(null);
-  const links = [["/", "Home"], ["/rentals", "Rentals"], ["/tours", "Tours"], ["/agencies", "Agencies"], ["/cart", "Cart"], ["/#roles", "Our Roles"]];
+  const links = [["/", "Home"], ["/rentals", "Rentals"], ["/tours", "Tours"], ["/agencies", "Agencies"], ["/cart", "Cart"], ["/#roles", "Our roles"]];
   async function signOut() {
     setBusy(true); setError("");
     try {
@@ -19,10 +19,11 @@ export function HomeNavigation() {
       window.location.assign("/");
     } catch { setError("Unable to sign out. Please try again."); setBusy(false); }
   }
-  return <nav className="home-navigation relative flex items-center justify-between px-12 py-8 w-full" aria-label="Main navigation"
+  return <nav className={`home-navigation relative flex items-center justify-between px-12 py-8 w-full${open ? " navigation-expanded" : ""}`} aria-label="Main navigation"
+    onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
     onKeyDown={e => { if (e.key === "Escape" && open) { setOpen(false); toggle.current?.focus(); } }}>
     <Link href="/" className="home-brand text-2xl font-bold tracking-tighter text-[#ABD1C6]">Rent2Go</Link>
-    <button type="button" ref={toggle} className="home-menu-toggle" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="home-links" onClick={() => setOpen(!open)}>{open ? <X size={24}/> : <Menu size={24}/>}</button>
+    <button type="button" ref={toggle} className="home-menu-toggle" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="home-links" onClick={() => setOpen(!open)}>{open ? <X size={24} aria-hidden="true"/> : <Menu size={24} aria-hidden="true"/>}</button>
     <div id="home-links" className={`home-links${open ? " home-links-open" : ""}`}>
       <ul className="flex items-center gap-1 p-1.5 text-sm font-medium border-white/10 border rounded-full backdrop-blur-xl bg-white/5">
         {links.map(([href, label]) => <li key={href}><Link href={href} onClick={() => setOpen(false)} aria-current={href === "/" ? "page" : undefined}

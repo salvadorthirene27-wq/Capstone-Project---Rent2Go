@@ -36,3 +36,13 @@ it("places the mobile toggle before the revealed links for forward keyboard navi
   await user.click(toggle); await user.tab();
   expect(document.activeElement).toBe(screen.getByRole("link", { name: "Home" }));
 });
+it("closes the landing menu when focus leaves navigation without stealing focus", async () => {
+  render(<><HomeNavigation /><button>Browse page content</button></>);
+  const user=userEvent.setup();
+  await user.click(screen.getByRole("button", { name: "Open navigation" }));
+  await user.tab();
+  expect(screen.getByRole("button", { name: "Close navigation" }).getAttribute("aria-expanded")).toBe("true");
+  await user.click(screen.getByRole("button", { name: "Browse page content" }));
+  expect(screen.getByRole("button", { name: "Open navigation" }).getAttribute("aria-expanded")).toBe("false");
+  expect(document.activeElement).toBe(screen.getByRole("button", { name: "Browse page content" }));
+});
