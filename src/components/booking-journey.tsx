@@ -14,6 +14,7 @@ const next:Record<string,{label:string;detail:string;href:string}>={
  FULFILLMENT_RECONCILIATION_PENDING:{label:"Review the financial assessment",detail:"Check service credits, extra charges and the amount to reconcile.",href:"#assessment-title"},
  CANCELLED_RECONCILIATION_PENDING:{label:"Review cancellation finances",detail:"Check the assessment and any refund still requiring review or payment.",href:"#assessment-title"},
  PAYMENT_RECONCILIATION_REQUIRED:{label:"Review payment records",detail:"The agency needs to reconcile the recorded collections.",href:"#payments-heading"},
+ COMPLETED:{label:"View your completed booking",detail:"The saved service and financial records remain available.",href:"#settlement-heading"},
  CANCELLED:{label:"View the cancellation record",detail:"Your saved booking history and cancellation decision remain available.",href:"#cancellation-heading"},
  REJECTED:{label:"Read the agency's decision",detail:"Check the saved reason before making another request.",href:"#booking-history"},
  QUOTE_DECLINED:{label:"Review the declined quotation",detail:"Your response and the saved quotation remain available.",href:"#quotation-heading"},
@@ -29,7 +30,7 @@ export function BookingJourney({status}:{status:string}){
    <a href="#payments-heading"><Wallet size={17} aria-hidden="true"/>Payments</a>
    <a href="#fulfillment-heading"><CalendarDays size={17} aria-hidden="true"/>Service</a>
    <a href="#assessment-title"><ClipboardCheck size={17} aria-hidden="true"/>Assessment</a>
-   <a href="#refunds-heading">Refunds</a><a href="#cancellation-heading">Cancellation</a>
+   <a href="#settlement-heading">Settlement</a><a href="#refunds-heading">Refunds</a><a href="#cancellation-heading">Cancellation</a>
   </nav>
  </section>;
 }

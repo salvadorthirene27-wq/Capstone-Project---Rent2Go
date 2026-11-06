@@ -1,3 +1,4 @@
+import {assertFinancialOpen} from "./finance-guard";
 import {randomUUID} from "node:crypto";
 import type {PoolClient} from "pg";
 import {transaction} from "../../lib/db";
@@ -25,20 +26,23 @@ type Context=Awaited<ReturnType<typeof context>>;
 type Source=NonNullable<Awaited<ReturnType<typeof assessmentSource>>>;
 export type AssessmentBody={quoteId:string;quoteDigest:string;sourceDigest:string;proposal:ReturnType<typeof calculateAssessmentProposal>;funds:Source['funds'];conditions:Source['conditions'];policies:unknown[];requiresOwnerAllocationReview:boolean};
 const rowsSql="SELECT a.*,d.decision,d.reason AS decision_reason FROM booking_assessment a LEFT JOIN booking_assessment_decision d ON d.assessment_id=a.id";
-function view(ctx:Context,r:any,source:Source|null){
- const body=r.body as AssessmentBody,stale=!source||body.sourceDigest!==source.sourceDigest;
+function view(ctx:Context,r:any,source:Source|null,closed=false){
+ const body=r.body as AssessmentBody,stale=!closed&&(!source||body.sourceDigest!==source.sourceDigest);
  return {id:r.id as string,revision:r.revision as number,digest:r.digest as string,createdAt:(r.created_at as Date).toISOString(),reason:r.reason as string,environment:r.environment as "MANUAL"|"DEMO",body,decision:r.decision as "ACCEPT"|"DISPUTE"|"WITHDRAW"|null,decisionReason:r.decision_reason as string|null,stale,
- canAccept:ctx.owner&&ctx.agencyActive&&!r.decision&&!stale&&!source?.blockedReason&&body.funds.overReservedCentavos===0,
- canDispute:ctx.owner&&!r.decision,canWithdraw:ctx.operator&&!r.decision};
+ canAccept:ctx.owner&&!closed&&ctx.agencyActive&&!r.decision&&!stale&&!source?.blockedReason&&body.funds.overReservedCentavos===0,
+ canDispute:ctx.owner&&!closed&&!r.decision,canWithdraw:ctx.operator&&!closed&&!r.decision};
 }
 async function projection(c:PoolClient,ctx:Context,historyPage=1){
- const source=await assessmentSource(c,ctx.r);
+ const source=await assessmentSource(c,ctx.r),closed=Boolean((await c.query("SELECT 1 FROM booking_financial_close WHERE request_id=$1",[ctx.r.id])).rowCount);
+ const settlement=(await c.query("SELECT s.body->'public' AS terms FROM booking_settlement s JOIN booking_settlement_decision d ON d.settlement_id=s.id AND d.decision='ACCEPT' WHERE s.request_id=$1 ORDER BY s.revision DESC LIMIT 1",[ctx.r.id])).rows[0];
+ const frozenAssessment=source&&settlement?.terms.businessDigest===source.businessDigest?settlement.terms.assessmentId:null;
+ if(closed&&source)source.blockedReason="This financial record is closed; the accepted assessment remains preserved.";
  const current=(await c.query(`${rowsSql} WHERE a.request_id=$1 ORDER BY a.revision DESC LIMIT 1`,[ctx.r.id])).rows[0];
  const total=Number((await c.query("SELECT count(*) n FROM booking_assessment WHERE request_id=$1",[ctx.r.id])).rows[0].n);
- const history=(await c.query(`${rowsSql} WHERE a.request_id=$1 ORDER BY a.revision DESC LIMIT 20 OFFSET $2`,[ctx.r.id,(historyPage-1)*20])).rows.map(r=>view(ctx,r,source));
+ const history=(await c.query(`${rowsSql} WHERE a.request_id=$1 ORDER BY a.revision DESC LIMIT 20 OFFSET $2`,[ctx.r.id,(historyPage-1)*20])).rows.map(r=>view(ctx,r,source,closed||r.id===frozenAssessment));
  const effective=(await c.query(`${rowsSql} WHERE a.request_id=$1 AND d.decision='ACCEPT' ORDER BY a.revision DESC LIMIT 1`,[ctx.r.id])).rows[0];
  return {requestId:ctx.r.id as string,requestVersion:ctx.r.version as number,status:ctx.r.status as string,isOwner:ctx.owner,isOperator:ctx.operator,source,
-  canPropose:ctx.operator&&Boolean(source&&!source.blockedReason)&&(!current||Boolean(current.decision)),current:current?view(ctx,current,source):null,effective:effective?view(ctx,effective,source):null,history,historyPage,historyPages:Math.max(1,Math.ceil(total/20)),ownerAllocationReviews:current?await ownerAllocationSummary(c,ctx.r.id,current.id,ctx.operator):[]};
+  canPropose:ctx.operator&&!closed&&Boolean(source&&!source.blockedReason)&&(!current||Boolean(current.decision)),current:current?view(ctx,current,source,closed||current.id===frozenAssessment):null,effective:effective?view(ctx,effective,source,closed||effective.id===frozenAssessment):null,history,historyPage,historyPages:Math.max(1,Math.ceil(total/20)),ownerAllocationReviews:current?await ownerAllocationSummary(c,ctx.r.id,current.id,ctx.operator):[]};
 }
 export type AssessmentState=Awaited<ReturnType<typeof projection>>;
 export async function getAssessments(actor:Actor,id:string,query:unknown={}){
@@ -53,6 +57,7 @@ export async function changeAssessment(actor:Actor,id:string,input:unknown){
   const authority=await lockBookingAuthority(c,ctx,[ctx.r.renter_id],operator);ctx.agencyActive=authority.active;
   const old=(await c.query("SELECT digest FROM booking_assessment_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3",[id,ctx.user.id,command.idempotencyKey])).rows[0];
   if(old){if(old.digest!==hash)throw new DomainError("This retry key belongs to another financial action.",409);return projection(c,ctx);}
+  await assertFinancialOpen(c,id);
   if(ctx.r.version!==command.version)throw new DomainError("This booking changed. Reload the assessment before continuing.",409);
   const source=await assessmentSource(c,ctx.r),latest=(await c.query(`${rowsSql} WHERE a.request_id=$1 ORDER BY a.revision DESC LIMIT 1`,[id])).rows[0];
   let assessmentId:string;
@@ -65,7 +70,7 @@ export async function changeAssessment(actor:Actor,id:string,input:unknown){
    // The public command's type selects policy; the saved calculation retains the exact policy itself.
    const proposal=calculateAssessmentProposal({lines:source.lines,credits:command.credits,charges:charges.map(({type:_,...item})=>item)});
    const funds=(await assessmentFunds(c,id,source.quoteId,source.environment,proposal.obligationCentavos)).totals;
-   const body:AssessmentBody={quoteId:source.quoteId,quoteDigest:source.quoteDigest,sourceDigest:source.sourceDigest,proposal,funds,conditions:source.conditions,policies:source.policies,requiresOwnerAllocationReview:proposal.charges.some(i=>i.policy.policy.context==='CONSIGNED')};
+   const body:AssessmentBody={quoteId:source.quoteId,quoteDigest:source.quoteDigest,sourceDigest:source.sourceDigest,proposal,funds,conditions:source.conditions,policies:source.policies,requiresOwnerAllocationReview:proposal.charges.some(i=>i.policy.policy.context==='CONSIGNED')||proposal.credits.some(i=>source.lines.some(l=>l.lineId===i.lineId&&l.context==='CONSIGNED'))};
    const now=(await c.query("SELECT clock_timestamp() now")).rows[0].now as Date,revision=(latest?.revision??0)+1;
    assessmentId=randomUUID();const savedDigest=digest({id:assessmentId,requestId:id,revision,reason:command.reason,createdAt:now.toISOString(),body});
    await c.query("INSERT INTO booking_assessment(id,request_id,quote_id,revision,environment,actor_id,reason,body,digest,created_at)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",[assessmentId,id,source.quoteId,revision,source.environment,ctx.user.id,command.reason,body,savedDigest,now]);

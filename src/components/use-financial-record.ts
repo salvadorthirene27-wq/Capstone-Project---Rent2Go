@@ -1,0 +1,20 @@
+"use client";
+import {useEffect,useRef,useState} from 'react';
+import {useRouter} from 'next/navigation';
+export function financialChange(id:string,source:string){window.dispatchEvent(new CustomEvent('rent2go:financial-update',{detail:{id,source}}));}
+export function phpCentavos(value:string){const m=/^(\d{1,14})(?:\.(\d{1,2}))?$/.exec(value.trim());if(!m)return null;const n=BigInt(m[1])*100n+BigInt((m[2]??'').padEnd(2,'0'));return n>0n&&n<=BigInt(Number.MAX_SAFE_INTEGER)?Number(n):null;}
+export function useFinancialRecord<T extends {requestVersion:number}>(id:string,suffix:string,subscribe=false){
+ const router=useRouter(),url=`/api/booking-requests/${id}/${suffix}`,[data,setData]=useState<T|null>(null),[error,setError]=useState(''),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[stale,setStale]=useState(false),[message,setMessage]=useState('');
+ const alive=useRef(true),active=useRef(url),generation=useRef(0),saving=useRef(false),latest=useRef(data),retry=useRef<{fingerprint:string;command:Record<string,unknown>}|null>(null);active.current=url;latest.current=data;
+ async function load(page=1){const token=++generation.current;setLoading(true);setError('');try{const r=await fetch(`${url}?page=${page}`,{cache:'no-store'}),body=await r.json();if(!r.ok)throw Error(body.error??'Unable to load financial records.');if(alive.current&&active.current===url&&token===generation.current){setData(body);setStale(false);retry.current=null;}}catch(e){if(alive.current&&active.current===url&&token===generation.current){setError(e instanceof Error?e.message:'Unable to load financial records.');setStale(true);}}finally{if(alive.current&&active.current===url&&token===generation.current)setLoading(false);}}
+ const reload=useRef(load);reload.current=load;
+ useEffect(()=>{alive.current=true;saving.current=false;setData(null);setMessage('');retry.current=null;void load();const focus=()=>{if(!saving.current)void reload.current();},changed=(e:Event)=>{const d=(e as CustomEvent).detail;if(d?.id===id&&d.source!==url&&!saving.current)void reload.current();};if(subscribe){window.addEventListener('focus',focus);window.addEventListener('rent2go:financial-update',changed);}return()=>{alive.current=false;generation.current++;window.removeEventListener('focus',focus);window.removeEventListener('rent2go:financial-update',changed);};},[url,subscribe]);
+ async function send(value:Record<string,unknown>,file?:File){if(!latest.current||saving.current||loading||stale)return;const target=url;saving.current=true;generation.current++;setBusy(true);setError('');setMessage('');try{
+  const hash=file?Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',await file.arrayBuffer())),n=>n.toString(16).padStart(2,'0')).join(''):'';
+  const command={...value,version:latest.current.requestVersion},fingerprint=JSON.stringify({url,command,hash});if(retry.current?.fingerprint!==fingerprint)retry.current={fingerprint,command:{...command,idempotencyKey:crypto.randomUUID()}};
+  const body=file?new FormData():JSON.stringify(retry.current.command);if(file&&body instanceof FormData){for(const [k,v]of Object.entries(retry.current.command))body.append(k,String(v));body.append('file',file);}
+  const r=await fetch(file?`${url}/evidence`:url,{method:file?'POST':'PATCH',...(file?{}:{headers:{'Content-Type':'application/json'}}),body}),result=await r.json();if(!r.ok){if(r.status===409&&alive.current&&active.current===target)setStale(true);throw Error(result.error??'Unable to save the financial action.');}
+  if(alive.current&&active.current===target){setData(result);setMessage('Financial action recorded.');retry.current=null;setStale(false);router.refresh();financialChange(id,url);}
+ }catch(e){if(alive.current&&active.current===target)setError(e instanceof Error?e.message:'Unable to save the financial action.');}finally{if(alive.current&&active.current===target){saving.current=false;setBusy(false);}}}
+ return {data,error,loading,busy,stale,message,blocked:loading||busy||stale,load,send};
+}

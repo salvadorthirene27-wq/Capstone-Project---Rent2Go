@@ -1,3 +1,4 @@
+import {BookingSettlement} from "@/components/booking-settlement";
 import {BookingRefunds} from "@/components/booking-refunds";
 import {BookingAssessments} from "@/components/booking-assessments";
 import {BookingCancellation} from "@/components/booking-cancellation";
@@ -51,6 +52,7 @@ export default async function Page({
       <BookingFulfillment key={`fulfillment-${booking.version}`} requestId={requestId} />
       <BookingRefunds key={`refunds-${booking.version}`} requestId={requestId} />
       <BookingAssessments key={`assessments-${booking.version}`} requestId={requestId} />
+      <BookingSettlement requestId={booking.id}/>
     </Workspace>
   );
 }

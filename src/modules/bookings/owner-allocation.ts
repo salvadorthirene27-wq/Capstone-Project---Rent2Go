@@ -1,3 +1,4 @@
+import {assertFinancialOpen} from "./finance-guard";
 import {randomUUID} from "node:crypto";
 import type {PoolClient} from "pg";
 import {transaction} from "../../lib/db";
@@ -29,7 +30,7 @@ const eligible=`SELECT a.id,a.request_id,a.quote_id,a.revision,a.environment,a.a
   WHERE q.quote_id=a.quote_id AND q.private_financial_snapshot->>'category'='CONSIGNED'
   AND q.private_financial_snapshot->>'cosignerId'=$2 AND q.private_financial_snapshot->>'vehicleId'=$3
   AND l.public_quote->'selection'->>'offerId'=$1::text
-  AND EXISTS(SELECT 1 FROM jsonb_array_elements(a.body->'proposal'->'charges') charge WHERE charge->>'lineId'=q.line_id::text))`;
+  AND EXISTS(SELECT 1 FROM jsonb_array_elements((a.body->'proposal'->'charges') || (a.body->'proposal'->'credits')) charge WHERE charge->>'lineId'=q.line_id::text))`;
 
 async function quoteLines(c:PoolClient,quoteIds:string[]){
  return (await c.query("SELECT q.quote_id,q.line_id,q.public_snapshot,q.private_financial_snapshot,l.public_quote->'selection'->>'offerId' AS offer_id FROM booking_quotation_line q JOIN booking_request_line l ON l.id=q.line_id AND l.request_id=q.request_id WHERE q.quote_id=ANY($1::uuid[]) ORDER BY q.line_id",[quoteIds])).rows;
@@ -42,7 +43,7 @@ function packet(ctx:Context,row:any,lines:OwnerAllocationLine[]){
 }
 function view(ctx:Context,row:any,lines:OwnerAllocationLine[]){
  const p=packet(ctx,row,lines),available=Boolean(row.is_latest&&!row.decision);
- const blockedReason=!row.is_latest?'A newer assessment supersedes this review.':!row.agency_active?'The agency must be active before allocation acceptance.':!stages.includes(row.status)?'Allocation acceptance requires financial reconciliation.':row.actor_id===ctx.user.id?'An independent agency operator must issue this assessment.':null;
+ const blockedReason=!row.is_latest?'A newer assessment supersedes this review.':row.decision?null:!row.agency_active?'The agency must be active before allocation acceptance.':!stages.includes(row.status)?'Allocation acceptance requires financial reconciliation.':row.actor_id===ctx.user.id?'An independent agency operator must issue this assessment.':null;
  return {assessmentId:row.id as string,assessmentRevision:row.revision as number,requestVersion:row.version as number,packet:p.body,digest:p.digest,isCurrent:row.is_latest as boolean,
   decision:row.decision as 'ACCEPT'|'DISPUTE'|null,reason:row.reason as string|null,reviewedAt:row.reviewed_at?(row.reviewed_at as Date).toISOString():null,
   blockedReason,canAccept:available&&!blockedReason,canDispute:available};
@@ -73,6 +74,7 @@ export async function reviewOwnerAllocation(actor:Actor,offerId:string,input:unk
   const lines=await quoteLines(c,[row.quote_id]);
   const old=(await c.query("SELECT digest FROM booking_owner_allocation_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3",[r.id,ctx.user.id,command.idempotencyKey])).rows[0];
   if(old){if(old.digest!==hash)throw new DomainError("This retry key belongs to a different owner review.",409);return view(ctx,row,lines);}
+  await assertFinancialOpen(c,r.id);
   if(r.version!==command.version)throw new DomainError("This booking changed. Refresh the owner review before continuing.",409);
   const current=view(ctx,row,lines),p=packet(ctx,row,lines);
   if(command.digest!==p.digest||row.decision||!row.is_latest)throw new DomainError("Review the exact current owner allocation.",409);
@@ -96,7 +98,7 @@ export async function ownerAllocationSummary(c:PoolClient,requestId:string,asses
   JOIN booking_request_line l ON l.id=q.line_id AND l.request_id=q.request_id
   LEFT JOIN booking_owner_allocation_decision d ON d.assessment_id=a.id AND d.offer_id=(l.public_quote->'selection'->>'offerId')::uuid
   WHERE a.id=$1 AND a.request_id=$2 AND q.private_financial_snapshot->>'category'='CONSIGNED'
-  AND EXISTS(SELECT 1 FROM jsonb_array_elements(a.body->'proposal'->'charges') charge WHERE charge->>'lineId'=q.line_id::text) GROUP BY l.public_quote->'selection'->>'offerId',d.decision,d.reason,d.created_at ORDER BY offer_id`,[assessmentId,requestId])).rows;
+  AND EXISTS(SELECT 1 FROM jsonb_array_elements((a.body->'proposal'->'charges') || (a.body->'proposal'->'credits')) charge WHERE charge->>'lineId'=q.line_id::text) GROUP BY l.public_quote->'selection'->>'offerId',d.decision,d.reason,d.created_at ORDER BY offer_id`,[assessmentId,requestId])).rows;
  return rows.map(r=>({offerId:r.offer_id as string,title:r.title as string,decision:r.decision as 'ACCEPT'|'DISPUTE'|null,reason:operator?r.reason as string|null:null,reviewedAt:r.created_at?(r.created_at as Date).toISOString():null}));
 }
 
@@ -111,7 +113,7 @@ export async function assertOwnerAllocationsAccepted(c:PoolClient,requestId:stri
   const line=lines.find(l=>l.line_id===charge.lineId);
   if(!line||line.private_financial_snapshot.category!=='CONSIGNED'||!line.offer_id||!line.private_financial_snapshot.cosignerId||!line.private_financial_snapshot.vehicleId)throw new DomainError("The saved vehicle ownership terms require review.",409);
  }
- const required=lines.filter(l=>a.proposal.charges.some((i:any)=>i.lineId===l.line_id&&i.policy.policy.context==='CONSIGNED'));
+ const required=lines.filter(l=>l.private_financial_snapshot.category==='CONSIGNED'&&[...a.proposal.charges,...a.proposal.credits].some((i:any)=>i.lineId===l.line_id));
  const offers=[...new Set(required.map(l=>l.offer_id))];
  for(const offerId of offers){
   const source=required.find(l=>l.offer_id===offerId)!,ownerId=source.private_financial_snapshot.cosignerId;

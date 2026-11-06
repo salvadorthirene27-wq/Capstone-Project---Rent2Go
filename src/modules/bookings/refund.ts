@@ -1,3 +1,4 @@
+import {assertFinancialOpen} from "./finance-guard";
 import {randomUUID} from "node:crypto";
 import type {PoolClient} from "pg";
 import {transaction} from "../../lib/db";
@@ -53,6 +54,7 @@ async function authorize(c:PoolClient,actor:Actor,id:string,command:RefundComman
  if(operator?!ctx.operator:!ctx.owner)throw new DomainError(operator?"Only an independent agency operator may review or execute refunds.":"Only the renter may request or withdraw a refund.",403);
  await lockBookingAuthority(c,ctx,[ctx.r.renter_id],operator);const hash=digest({command,...(fileHash?{fileHash}:{})}),old=(await c.query("SELECT digest FROM booking_refund_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3",[id,ctx.user.id,command.idempotencyKey])).rows[0];
  if(old){if(old.digest!==hash)throw new DomainError("This retry key belongs to another refund action.",409);return {ctx,hash,replayed:true as const};}
+ await assertFinancialOpen(c,id);
  if(ctx.r.version!==command.version)throw new DomainError("This request changed. Reload refunds before continuing.",409);return {ctx,hash,replayed:false as const};
 }
 async function exact(c:PoolClient,ctx:Context,command:Extract<RefundCommand,{refundId:string}>){

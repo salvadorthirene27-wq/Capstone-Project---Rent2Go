@@ -153,6 +153,7 @@ export function BookingPayments({ requestId }: { requestId: string }) {
   }
   const receiptLink = (id: string, mode: Environment) => <Link href={`/booking-payments/${encodeURIComponent(id)}`}>{mode === "DEMO" ? "View simulated payment record" : "View payment receipt"}</Link>;
   return <section className="context-section booking-payments" aria-labelledby="payments-heading" aria-busy={busy}>
+    {data&&["FULFILLMENT_RECONCILIATION_PENDING","CANCELLED_RECONCILIATION_PENDING","PAYMENT_RECONCILIATION_REQUIRED","CANCELLED","COMPLETED","HOLD_EXPIRED"].includes(data.status)&&<p className="notice">These are the original quotation payment records. Quoted balances are historical references; use <a href="#settlement-heading">Settlement</a> for current retained charges, additional balances and refunds.</p>}
     <div className="payment-section-heading"><h2 id="payments-heading">Booking payments</h2><button type="button" className="button secondary" disabled={busy} onClick={reload}>Reload payments</button></div>
     <p>Record payment against the signed agreement. GCash evidence needs agency review; cash is recorded by the receiving agency.</p>
     {error && <p role="alert" className="error-message">{error}</p>}
@@ -165,7 +166,7 @@ export function BookingPayments({ requestId }: { requestId: string }) {
           <div><dt>Refundable deposits</dt><dd>{money(data.totals.refundableDepositCentavos)}</dd></div>
           <div><dt>Total due before service</dt><dd>{money(data.totals.totalCentavos)}</dd></div>
           <div><dt>{data.environment === "DEMO" ? "Recorded simulated amount" : "Confirmed payments"}</dt><dd>{money(data.totals.confirmedCentavos)}</dd></div>
-          <div><dt>Outstanding balance</dt><dd>{money(data.totals.balanceCentavos)}</dd></div>
+          <div><dt>{data&&["FULFILLMENT_RECONCILIATION_PENDING","CANCELLED_RECONCILIATION_PENDING","PAYMENT_RECONCILIATION_REQUIRED","CANCELLED","COMPLETED","HOLD_EXPIRED"].includes(data.status)?"Original quote balance, for reference":"Outstanding balance"}</dt><dd>{money(data.totals.balanceCentavos)}</dd></div>
           {data.totals.creditCentavos > 0 && <div><dt>Unapplied credit</dt><dd>{money(data.totals.creditCentavos)}</dd></div>}
         </dl>
         <p>Both quoted services and refundable deposits must be fully covered before service readiness. Deposits remain separate from service revenue.</p>

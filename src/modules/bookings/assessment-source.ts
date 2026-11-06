@@ -27,7 +27,7 @@ export async function assessmentSource(c:PoolClient,r:{id:string;status:string})
  if(r.status==='CANCELLED_RECONCILIATION_PENDING'&&events.length)blockedReason="Cancellation contains delivery history requiring financial review.";
  if((await c.query("SELECT 1 FROM booking_payment_collection WHERE request_id=$1 AND quote_id<>$2 LIMIT 1",[r.id,q.id])).rowCount)blockedReason="Earlier quotation collections require separate reconciliation before this assessment.";
  const sourceDigest=digest({quoteId:q.id,quoteDigest:q.digest,status:r.status,lines,events,conditions,funds:funds.facts});
- return {quoteId:q.id as string,quoteDigest:q.digest as string,environment:account.environment as "MANUAL"|"DEMO",lines,conditions,sourceDigest,blockedReason,base,funds:funds.totals,policies:q.public_snapshot.policies as unknown[]};
+ return {quoteId:q.id as string,quoteDigest:q.digest as string,environment:account.environment as "MANUAL"|"DEMO",lines,conditions,sourceDigest,businessDigest:digest({quoteId:q.id,quoteDigest:q.digest,status:r.status,lines,events,conditions}),blockedReason,base,funds:funds.totals,policies:q.public_snapshot.policies as unknown[]};
 }
 // Caller holds the parent request lock. An accepted obligation protects retained funds.
 export async function assertAssessmentRefundCapacity(c:PoolClient,requestId:string,quoteId:string,amount:number){

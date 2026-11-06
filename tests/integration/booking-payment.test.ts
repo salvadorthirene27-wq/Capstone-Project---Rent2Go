@@ -91,7 +91,7 @@ it("committed partial allocations survive original PG deadline while late uncomm
  const expired=await getPayments(operator,late.id);expect(expired.canReview).toBe(true);expect(expired.holdActive).toBe(false);
  await expect(changeQuotation(operator,late.id,{action:"ISSUE_QUOTE",version:expired.requestVersion,drivers:[]})).rejects.toMatchObject({status:409});
  const liability=await changePayment(operator,late.id,{version:expired.requestVersion,idempotencyKey:randomUUID(),action:"REVIEW_GCASH",attemptId:attached.state.attempts[0].id,decision:"CONFIRM",reason:"Historical transfer verified"});expect(liability.status).toBe("PAYMENT_RECONCILIATION_REQUIRED");expect(liability.requiresReconciliation).toBe(true);expect(liability.allocationCommitted).toBe(false);expect(liability.holdActive).toBe(false);
-},60000);
+},120000); // Includes two real PG-deadline waits and the shared isolated expiry sweep.
 it("serializes concurrent reference confirmation and same-key commands",async()=>{
  const a=await fixture(),b=await fixture(),reference=`DUPLICATE-${randomUUID()}`;
  const results=await Promise.allSettled([changePayment(operator,a.id,{...cash(a),reference}),changePayment(operator,b.id,{...cash(b),reference})]);expect(results.filter(r=>r.status==="fulfilled")).toHaveLength(1);expect(results.find(r=>r.status==="rejected")).toMatchObject({reason:{status:409}});
@@ -102,7 +102,7 @@ it("releases expired uncommitted stock after late confirmation before worker wit
  const liability=await changePayment(operator,f.id,{version:attached.state.requestVersion,idempotencyKey:randomUUID(),action:"REVIEW_GCASH",attemptId:attached.state.attempts[0].id,decision:"CONFIRM",reason:"Late synthetic transfer verified before worker"});expect(liability.status).toBe("PAYMENT_RECONCILIATION_REQUIRED");
  await expireBookingHolds(100);const after=await getPayments(operator,f.id);expect(after.status).toBe("PAYMENT_RECONCILIATION_REQUIRED");expect(after.allocationCommitted).toBe(false);expect((await db.query("SELECT released_at FROM booking_hold WHERE id=$1",[f.holdId])).rows[0].released_at).not.toBeNull();expect(after.requestVersion).toBeGreaterThan(liability.requestVersion);
  expect((await db.query("SELECT cancelled_at FROM resource_occupation WHERE id=$1",[stock.occupation])).rows[0].cancelled_at).not.toBeNull();expect((await db.query("SELECT reserved_units FROM tour_schedule WHERE id=$1",[stock.schedule])).rows[0].reserved_units).toBe(0);
-},30000);
+},90000); // Real PG expiry plus remote release, evidence review and inventory assertions.
 it("rechecks suspension/version after storage and grants only immutable appends",async()=>{
  const f=await fixture(),command=evidence(f),upload=file();await authorizePaymentEvidence(renter,f.id,command,upload.sha256);
  try{await db.query("UPDATE app_actor SET suspended=true WHERE id=$1",[renter.id]);await expect(attachPaymentEvidence(renter,f.id,command,upload)).rejects.toMatchObject({status:403});}finally{await db.query("UPDATE app_actor SET suspended=false WHERE id=$1",[renter.id]);}

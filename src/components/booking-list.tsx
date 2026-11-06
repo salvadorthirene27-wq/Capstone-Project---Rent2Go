@@ -7,6 +7,7 @@ const statusLabels: Record<string, string> = {
   CHANGES_REQUESTED: "Changes requested",
   READY_FOR_APPROVAL: "Ready for approval",
   REJECTED: "Rejected",
+  COMPLETED:"Completed",
   CANCELLED:"Cancelled",
   CANCELLED_RECONCILIATION_PENDING:"Cancelled · financial reconciliation pending",
   QUOTE_PENDING: "Quotation awaiting response",

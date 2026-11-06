@@ -1,3 +1,4 @@
+import {assertFinancialOpen} from "./finance-guard";
 import {assertNoPendingCancellation,cancellationPending} from "./cancellation-guard";
 import {randomUUID} from "node:crypto";
 import type {PoolClient} from "pg";
@@ -94,7 +95,7 @@ export async function changeFulfillment(actor:Actor,id:string,input:unknown){
   if(ownerAction?!ctx.owner:!ctx.operator)throw new DomainError(ownerAction?"Only the renter may accept or dispute an inspection.":"Only an independent agency operator may record fulfillment.",403);
   await lockAuthority(c,ctx,!ownerAction);
   const old=(await c.query("SELECT digest FROM booking_fulfillment_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3",[id,ctx.user.id,command.idempotencyKey])).rows[0];if(old){if(old.digest!==hash)throw new DomainError("This retry key belongs to a different fulfillment action.",409);return projection(c,ctx);}
-  version(ctx,command.version);const {a,line,policy}=await exactLine(c,ctx,command.lineId),now=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now,s=await lineState(c,ctx,a,line,now);
+  await assertFinancialOpen(c,id);version(ctx,command.version);const {a,line,policy}=await exactLine(c,ctx,command.lineId),now=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now,s=await lineState(c,ctx,a,line,now);
   if(command.action==="RECORD_INSPECTION"){
    if(!(command.phase==="PRE"?s.canInspectPre:s.canInspectPost))throw new DomainError("An inspection cannot be recorded at this service stage.",409);
    if(command.phase==="PRE"&&(!command.condition.roadworthy||!command.condition.safetyChecked))throw new DomainError("Resolve safety issues before preparing a release inspection.",422);
@@ -140,7 +141,7 @@ export async function changeFulfillment(actor:Actor,id:string,input:unknown){
  });}catch(e){if((e as {code?:string}).code==="23505")throw new DomainError("This fulfillment action was already recorded. Reload before continuing.",409);throw e;}
 }
 async function photoContext(c:PoolClient,actor:Actor,id:string,lineId:string,phase:string,n:number){
- const ctx=await context(c,actor,id,true);if(!ctx.operator)throw new DomainError("Only agency operators may upload inspection evidence.",403);await lockAuthority(c,ctx,true);version(ctx,versionSchema.parse(n));
+ const ctx=await context(c,actor,id,true);if(!ctx.operator)throw new DomainError("Only agency operators may upload inspection evidence.",403);await lockAuthority(c,ctx,true);await assertFinancialOpen(c,id);version(ctx,versionSchema.parse(n));
  const p=inspectionPhase.parse(phase),{a,line}=await exactLine(c,ctx,uuid.parse(lineId)),now=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now,s=await lineState(c,ctx,a,line,now);
  if(!(p==="PRE"?s.canInspectPre:s.canInspectPost))throw new DomainError("Inspection uploads are unavailable at this stage.",409);
  if(Number((await c.query("SELECT count(*) FROM booking_inspection_file WHERE request_id=$1 AND line_id=$2",[id,lineId])).rows[0].count)>=30)throw new DomainError("This service reached its 30-photo evidence limit.",409);return {ctx,a,phase:p};

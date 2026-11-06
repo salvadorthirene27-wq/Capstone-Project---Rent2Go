@@ -24,6 +24,11 @@ it('binds the review digest to the owner, vehicle, exact assessment and allocati
  expect(ownerAllocationPacket({...f,ownerId:'different-owner'})).toBeNull();
  expect(ownerAllocationPacket({...f,vehicleId:randomUUID()})).toBeNull();
 });
+it('keeps charge-only packets compatible and separately discloses reductions to owner service earnings',()=>{
+ const f=fixture();expect(ownerAllocationPacket(f)!.body).not.toHaveProperty('credits');
+ f.proposal=calculateAssessmentProposal({lines:[{lineId,title:'Own car',context:'CONSIGNED',delivered:true,serviceCentavos:10000,refundableDepositCentavos:20000}],credits:[{id:randomUUID(),lineId,amountCentavos:1,reason:'Separately agreed credit'}],charges:[]});
+ const packet=ownerAllocationPacket(f)!;expect(packet.body.credits).toHaveLength(1);expect(packet.body.credits![0].amountCentavos).toBe(1);expect(packet.body.charges).toHaveLength(0);
+});
 it('fails closed for incomplete original owner shares',()=>{
  const f=fixture();f.lines[0].private_financial_snapshot.shares={...shares,cosigner:0};expect(()=>ownerAllocationPacket(f)).toThrow(/total|Cosigner/);
 });

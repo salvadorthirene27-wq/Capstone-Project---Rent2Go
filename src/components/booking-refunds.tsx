@@ -1,5 +1,6 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
+import {financialChange} from "./use-financial-record";
 import {useRouter} from "next/navigation";
 import {date,money,methodLabels} from "@/modules/partners/presentation";
 import type {getRefunds} from "@/modules/bookings/refund";
@@ -29,12 +30,12 @@ export function BookingRefunds({requestId}:{requestId:string}){
  function receive(s:State){setData(s);setStale(false);}
  useEffect(()=>{const c=new AbortController();setBusy(true);setData(null);pages.current={sourcePage:1,historyPage:1};fetch(url(),{cache:"no-store",signal:c.signal}).then(async r=>{const s=await r.json();if(!r.ok)throw Error(s.error||"Unable to load refunds.");if(!c.signal.aborted)receive(s);}).catch(e=>{if(!c.signal.aborted)setError(e.message);}).finally(()=>{if(!c.signal.aborted)setBusy(false);});return()=>c.abort();},[endpoint]);
  async function refresh(){const r=await fetch(url(),{cache:"no-store"}),s=await r.json();if(!r.ok)throw Error(s.error||"Unable to refresh refunds.");receive(s);}
- async function reload(page?:{sourcePage?:number;historyPage?:number}){if(inFlight.current)return;inFlight.current=true;setBusy(true);setError("");setMessage("");try{if(page)pages.current={...pages.current,...page};await refresh();retry.current=null;router.refresh();}catch(e){setError(e instanceof Error?e.message:"Unable to reload refunds.");}finally{inFlight.current=false;setBusy(false);}}
+ async function reload(page?:{sourcePage?:number;historyPage?:number}){if(inFlight.current)return;inFlight.current=true;setBusy(true);setError("");setMessage("");try{if(page)pages.current={...pages.current,...page};await refresh();retry.current=null;router.refresh();financialChange(requestId,"refunds");}catch(e){setError(e instanceof Error?e.message:"Unable to reload refunds.");}finally{inFlight.current=false;setBusy(false);}}
  async function send(input:{[key:string]:unknown},file?:File){
   if(!data||busy||stale||inFlight.current)return;if(file&&(file.size>5242880||!["image/png","image/jpeg","application/pdf"].includes(file.type))){setError("Choose PNG, JPEG or PDF proof up to5 MB.");return;}inFlight.current=true;setBusy(true);setError("");setMessage("");let saved=false;
   try{const command={...input,version:data.requestVersion},fingerprint=JSON.stringify(command)+(file?`${file.name}:${file.size}:${file.lastModified}`:"");if(retry.current?.fingerprint!==fingerprint)retry.current={fingerprint,key:crypto.randomUUID()};const body={...command,idempotencyKey:retry.current.key};let options:RequestInit,path=endpoint;
    if(file){const form=new FormData();form.set("command",JSON.stringify(body));form.set("file",file);path+="/evidence";options={method:"POST",body:form};}else options={method:"PATCH",headers:{"Content-Type":"application/json"},body:JSON.stringify(body)};
-   const r=await fetch(path,options),s=await r.json();if(r.status===409)setStale(true);if(!r.ok)throw Error(`${s.error||"Unable to save refund."}${r.status===409?" Reload refunds before continuing.":""}`);saved=true;receive(s);retry.current=null;await refresh();setAmount("");setReason("");setUnderstood(false);setMessage("Refund record saved. Deposit, charges and final booking reconciliation remain separate.");router.refresh();
+   const r=await fetch(path,options),s=await r.json();if(r.status===409)setStale(true);if(!r.ok)throw Error(`${s.error||"Unable to save refund."}${r.status===409?" Reload refunds before continuing.":""}`);saved=true;receive(s);retry.current=null;await refresh();setAmount("");setReason("");setUnderstood(false);setMessage("Refund record saved. Deposit, charges and final booking reconciliation remain separate.");router.refresh();financialChange(requestId,"refunds");
   }catch(e){if(saved)setStale(true);setError(`${saved?"The action was saved, but refreshing failed. Reload refunds. ":""}${e instanceof Error?e.message:"Unable to save refund."}`);}finally{inFlight.current=false;setBusy(false);}
  }
  const blocked=busy||stale,source=data?.sources.find(s=>s.id===sourceId),value=centavos(amount),canRequest=data?.canRequest&&source&&value!==null&&value<=source.capacity.availableCentavos&&Boolean(reason.trim())&&understood;
