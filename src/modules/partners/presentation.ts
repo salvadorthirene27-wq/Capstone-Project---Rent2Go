@@ -8,9 +8,9 @@ export const serviceLabels = {
 export const methodLabels = {
   CASH: "Cash on hand",
   GCASH: "GCash · manual receipt review",
-  DEMO_CARD: "Card · demo",
-  DEMO_GCASH: "GCash gateway · demo",
-  DEMO_PAYPAL: "PayPal · demo",
+  DEMO_CARD: "Card · simulated",
+  DEMO_GCASH: "GCash gateway · simulated",
+  DEMO_PAYPAL: "PayPal · simulated",
 };
 export const fieldLabels: Partial<Record<keyof ApplicationInput, string>> = {
   businessName: "Trading / agency name",

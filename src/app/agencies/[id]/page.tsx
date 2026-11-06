@@ -186,7 +186,7 @@ export default async function Page({
             ))}
           </ul>
           <p className="muted">
-            Demo methods do not move money. Payment follows document review, an
+            Methods marked simulated do not process a payment. Payment follows document review, an
             approved quote, and an agreement.
           </p>
         </aside>

@@ -19,7 +19,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
  return <main id="main-content" className="agreement-print-page">
   <nav className="agreement-print-controls" aria-label="Inspection actions"><Link className="button secondary" href={back}>Back to booking request</Link><PrintButton/></nav>
   <h1>Saved vehicle condition report</h1>
-  {record.environment==="DEMO"&&<p className="notice"><strong>Demo booking — no money moves</strong></p>}
+  {record.environment==="DEMO"&&<p className="notice"><strong>Simulated booking · no charge</strong></p>}
   <p>This is an exact historical inspection version. Check the booking request for corrections, current service status and financial reconciliation. A condition response does not authorize deposit deductions or additional charges.</p>
   <InspectionDocument report={record.inspection}/>
   <p>Report reference: {record.inspection.id}</p>

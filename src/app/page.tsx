@@ -28,8 +28,8 @@ export default function Home() {
             </h1>
 
             <p className="text-white/70 text-base md:text-lg max-w-2xl font-light tracking-wide leading-relaxed">
-              We’re building a community-driven marketplace where{" "}
-              <strong>customers</strong> find rides,
+              A connected marketplace where{" "}
+              <strong>renters</strong> find rides,
               <strong> agencies</strong> grow their reach, and{" "}
               <strong>cosigners</strong> share their vehicles through partner agencies.
             </p>
@@ -342,7 +342,7 @@ export default function Home() {
           <p>© 2026 Rent2Go Philippines.</p>
           <div className="flex gap-6">
             <Link href="/photo-credits">Photo credits</Link>
-            <span>Local demo · no real payments</span>
+            <span>Cars, tours and agency partners</span>
           </div>
         </div>
       </footer>

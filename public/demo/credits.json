@@ -31,5 +31,16 @@
     "original": "https://upload.wikimedia.org/wikipedia/commons/7/70/Mayon_from_Cagsawa%2C_Daraga%2C_Albay%2C_Dec_2025_%281%29.jpg",
     "sha256": "8c37706d2b4ce0997d42b13541713a36eff15ef234c08910f20bc8dee002235d",
     "changes": "Original downloaded without editing; display may crop to fit listing frames."
+  },
+  {
+    "file": "tesla-model-3.jpg",
+    "title": "Tesla Model 3 (2016).jpg; caption: Tesla Model 3 (2020)",
+    "author": "Ростислав Александрович Луценко",
+    "license": "CC0 1.0",
+    "licenseUrl": "https://creativecommons.org/publicdomain/zero/1.0/",
+    "source": "https://commons.wikimedia.org/wiki/File:Tesla_Model_3_(2016).jpg",
+    "original": "https://upload.wikimedia.org/wikipedia/commons/7/79/Tesla_Model_3_%282016%29.jpg?utm_source=commons.wikimedia.org&utm_campaign=index&utm_content=original",
+    "sha256": "7f6c8905eef6e2297418d15276ac1df90b6f6e35de43d08845da270ca4b760a1",
+    "changes": "Original downloaded without editing; display may crop to fit listing frames."
   }
 ]

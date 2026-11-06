@@ -1,5 +1,6 @@
 import type { getBookingRequest } from "@/modules/bookings/service";
 import { money, date } from "@/modules/partners/presentation";
+import {BookingJourney} from "./booking-journey";
 const policyLabels: Record<string, string> = {
   eligibilityTerms: "Eligibility",
   terms: "Service terms",
@@ -18,14 +19,15 @@ export function BookingDetail({
   return (
     <>
       <h1>Booking request</h1>
-      {booking.paymentEnvironment==="DEMO"&&<p className="notice"><strong>Demo payment — no money moves</strong></p>}
+      {booking.paymentEnvironment==="DEMO"&&<p className="notice"><strong>Simulated payment · no charge</strong></p>}
       <p>
         {booking.agencyName} · Submitted {date(booking.createdAt)}
       </p>
+      <BookingJourney status={booking.status}/>
       <p className="notice">
-        Follow the workflow status below. An unpaid quotation holds inventory until
-        its stated expiry. A confirmed collection commits that allocation. Service release requires agency approval, an
-        accepted quotation, a signed agreement, and confirmed payment.
+        Check the next step above to continue. Your quotation shows its reservation
+        expiry; service release requires approval, a signed agreement, confirmed
+        payment and the required delivery checks.
       </p>
       <section className="context-section">
         <h2>Contact details</h2>
@@ -79,8 +81,8 @@ export function BookingDetail({
         </p>
         <p>These are submitted estimates. The quotation, agreement and payment records below show accepted amounts and the current balance.</p>
       </section>
-      <section className="context-section">
-        <h2>Request history</h2>
+      <details id="booking-history" className="context-section booking-history">
+        <summary>Booking history · {booking.events.length} updates</summary>
         <ol>
           {booking.events.map((event) => (
             <li key={event.id}>
@@ -88,7 +90,7 @@ export function BookingDetail({
             </li>
           ))}
         </ol>
-      </section>
+      </details>
     </>
   );
 }

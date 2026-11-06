@@ -97,8 +97,8 @@ export default function Partners() {
           image.
         </p>
         <p>
-          Card, GCash, and PayPal gateway options in this local demo are
-          simulations. No real payment or partnership charge is collected.
+          Agencies disclose their accepted payment methods and service terms.
+          Renters review their quotation and agreement before paying.
         </p>
       </section>
     </main>

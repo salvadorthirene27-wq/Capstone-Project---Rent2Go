@@ -21,7 +21,7 @@ export default async function Page({params}:{params:Promise<{id:string}>}){
    <Link className="button secondary" href={back}>Back to booking request</Link>
    <PrintButton/>
   </nav>
-  <h1>{record.receipt.environment==="DEMO"?"Demo payment record":"Payment collection record"}</h1>
+  <h1>{record.receipt.environment==="DEMO"?"Simulated payment record":"Payment collection record"}</h1>
   <PaymentReceiptDocument receipt={record.receipt}/>
  </main>;
 }

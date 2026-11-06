@@ -77,7 +77,7 @@ export function BookingFulfillment({requestId}:{requestId:string}){
  const now=clock.current.epoch+performance.now()-clock.current.at,blocked=busy||stale;void tick;
  return <section className="context-section booking-fulfillment" aria-labelledby="fulfillment-heading" aria-busy={busy}>
   <h2 id="fulfillment-heading">Service delivery and return</h2><p>Each rental and tour progresses separately. Deposits, extra charges and earnings require separate reconciliation.</p>
-  {data?.environment==="DEMO"&&<p className="notice"><strong>Demo booking — no money moves</strong></p>}
+  {data?.environment==="DEMO"&&<p className="notice"><strong>Simulated booking · no charge</strong></p>}
   {error&&<p className="error-message" role="alert">{error}</p>}{message&&<p role="status">{message}</p>}
   <button type="button" className="button secondary" disabled={busy} onClick={reload}>Reload fulfillment</button>
   {!data&&!error&&<p role="status">Loading service records…</p>}

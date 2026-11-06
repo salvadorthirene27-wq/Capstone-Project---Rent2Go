@@ -4,12 +4,14 @@ import { usePathname } from "next/navigation";
 export function WorkspaceLink({
   href,
   children,
+  exact: exactMatch = false,
 }: {
   href: string;
   children: React.ReactNode;
+  exact?: boolean;
 }) {
   const path = usePathname();
-  const exact = href === "/" || href === "/workspace" || href === "/admin";
+  const exact = exactMatch || href === "/" || href === "/workspace" || href === "/admin";
   const active =
     path === href ||
     (!exact && path.startsWith(`${href}/`)) ||

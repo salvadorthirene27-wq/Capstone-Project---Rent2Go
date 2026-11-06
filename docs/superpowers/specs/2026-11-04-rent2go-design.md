@@ -220,3 +220,7 @@ The user confirmed each agency chooses its driver fee unit. Configuration and ex
 ## Confirmed extra-charge allocation — 6 November 2026
 
 The user approved agency-specific allocation configuration per extra-charge type, including damage, fuel and late-return charges, disclosed for explicit renter acceptance. Do not infer a charge amount, percentage or destination for unset configuration. Preserve the exact configured version and allocation with the accepted itemized assessment; later policy edits cannot change history. Rental revenue, including driver fees, follows its existing accepted revenue shares, and refundable deposits remain separate liabilities until an agreed disposition. Inspection acknowledgement alone does not accept a deduction or extra charge. Refund records continue to require independent review and separately recorded execution.
+
+## Confirmed gateway and interface sequencing — 7 November 2026
+
+The user will add PayMongo after the remaining system workflows are complete. Do not introduce live gateway transactions now. General interface chrome should read as the Rent2Go marketplace without development/testing-mode banners; simulated financial actions and original simulated records remain honestly identified. Rental revenue including driver fees continues to use the agreed shares. Existing saved financial history and accepted policies remain immutable.

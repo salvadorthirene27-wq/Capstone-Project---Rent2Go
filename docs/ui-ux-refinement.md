@@ -1,6 +1,6 @@
 # UI refinement — 6–7 November 2026
 
-The user requested installation and use of UI UX Pro Max. The project-local Codex skill is versioned in `.agents/skills/ui-ux-pro-max`, pinned to upstream commit `b7d5353e0130feb8c5574ef1251f8a1db1873ccb`, with its MIT license and source record. Its instructions and local search were read and applied during installation. No global CLI or dependency was installed.
+The user requested installation and use of UI UX Pro Max. The project-local UI design skill is versioned in `.agents/skills/ui-ux-pro-max`, pinned to upstream commit `b7d5353e0130feb8c5574ef1251f8a1db1873ccb`, with its MIT license and source record. Its instructions and local search were read and applied during installation. No global CLI or dependency was installed.
 
 ## Design decisions
 

@@ -2,7 +2,7 @@ import {date,money,methodLabels} from "@/modules/partners/presentation";
 import type {getRefundReceipt} from "@/modules/bookings/refund";
 export function RefundReceiptDocument({receipt:r}:{receipt:Awaited<ReturnType<typeof getRefundReceipt>>["receipt"]}){
  return <article className="agreement-document">
-  {r.environment==="DEMO"&&<p className="notice"><strong>Demo refund — no money moves</strong></p>}
+  {r.environment==="DEMO"&&<p className="notice"><strong>Simulated refund · no transfer</strong></p>}
   <p><strong>{r.agencyName}</strong><br/>Refund recipient: {r.renterName}</p>
   <dl className="agreement-totals"><div><dt>Recorded refund</dt><dd>{money(r.amountCentavos)}</dd></div><div><dt>Method</dt><dd>{methodLabels[r.method as keyof typeof methodLabels]??r.method}</dd></div><div><dt>Outgoing reference</dt><dd>{r.reference}</dd></div><div><dt>Recorded time</dt><dd>{date(r.recordedAt)} (Philippine time)</dd></div><div><dt>Original collection reference</dt><dd>{r.collectionReference}</dd></div></dl>
   <p className="preserve-lines">Refund request reason: {r.reason}</p>

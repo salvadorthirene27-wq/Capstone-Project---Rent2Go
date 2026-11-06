@@ -105,14 +105,14 @@ it("keeps demo commands credential-free and resolves a pending simulation explic
   const last = { ...first, canResolveDemo: false, attempts: [{ ...pending, outcome: "DECLINED", reason: "Demo declined" }] };
   const fetcher = vi.fn().mockResolvedValueOnce(response(base)).mockResolvedValueOnce(response(first)).mockResolvedValueOnce(response(first)).mockResolvedValue(response(last));
   vi.stubGlobal("fetch", fetcher); render(<BookingPayments requestId="request-1" />); const user = userEvent.setup();
-  await user.click(await screen.findByLabelText("Demo payment — no money moves"));
-  await user.selectOptions(screen.getByLabelText("Demo method — no money moves"), "DEMO_PAYPAL"); await user.selectOptions(screen.getByLabelText("Demo outcome — no money moves"), "PENDING");
+  await user.click(await screen.findByLabelText("Simulated payment · no charge"));
+  await user.selectOptions(screen.getByLabelText("Simulated payment method"), "DEMO_PAYPAL"); await user.selectOptions(screen.getByLabelText("Simulation result"), "PENDING");
   await user.click(screen.getByRole("button", { name: "Simulate payment — no money moves" }));
-  const resolve = await screen.findByRole("button", { name: "Resolve demo payment — no money moves" });
+  const resolve = await screen.findByRole("button", { name: "Resolve simulated payment" });
   expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ action: "SIMULATE_PAYMENT", version: 8, idempotencyKey: expect.any(String), agreementId: "agreement-1", digest: "signed-digest", method: "DEMO_PAYPAL", outcome: "PENDING" });
   expect(screen.queryByLabelText(/card number|cvv|password/i)).toBeNull();
   expect((screen.getByLabelText("Manual GCash or cash") as HTMLInputElement).disabled).toBe(true);
-  await user.selectOptions(screen.getByLabelText("Resolve demo outcome for SYNTHETIC-REF — no money moves"), "DECLINED"); await user.click(resolve);
+  await user.selectOptions(screen.getByLabelText("Resolve simulation result for SYNTHETIC-REF — no money moves"), "DECLINED"); await user.click(resolve);
   await screen.findByText("Demo declined");
   expect(JSON.parse(fetcher.mock.calls[3][1].body)).toEqual({ action: "RESOLVE_DEMO", version: 8, idempotencyKey: expect.any(String), attemptId: "attempt-1", outcome: "DECLINED" });
 });
@@ -124,16 +124,16 @@ it("preserves an old pending demo attempt while resolving only the current quota
   const result = { ...state, canResolveDemo: false, attempts: [old, { ...current, outcome: "CANCELLED", canResolve: false }] };
   const fetcher = vi.fn().mockResolvedValueOnce(response(state)).mockResolvedValue(response(result));
   vi.stubGlobal("fetch", fetcher); render(<BookingPayments requestId="request-1" />); const user = userEvent.setup();
-  const resolver = await screen.findByRole("button", { name: "Resolve demo payment — no money moves" });
-  expect(screen.getAllByRole("button", { name: "Resolve demo payment — no money moves" }).length).toBe(1);
+  const resolver = await screen.findByRole("button", { name: "Resolve simulated payment" });
+  expect(screen.getAllByRole("button", { name: "Resolve simulated payment" }).length).toBe(1);
   expect(resolver.matches(":disabled")).toBe(false);
   expect(screen.getByText(/Reference: OLD-QUOTE-DEMO/)).toBeTruthy();
-  expect(screen.queryByLabelText("Resolve demo outcome for OLD-QUOTE-DEMO — no money moves")).toBeNull();
-  await user.selectOptions(screen.getByLabelText("Resolve demo outcome for CURRENT-QUOTE-DEMO — no money moves"), "CANCELLED");
+  expect(screen.queryByLabelText("Resolve simulation result for OLD-QUOTE-DEMO — no money moves")).toBeNull();
+  await user.selectOptions(screen.getByLabelText("Resolve simulation result for CURRENT-QUOTE-DEMO — no money moves"), "CANCELLED");
   await user.click(resolver); await screen.findByText("Cancelled");
   expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({ action: "RESOLVE_DEMO", version: 8, idempotencyKey: expect.any(String), attemptId: "current-quote-attempt", outcome: "CANCELLED" });
   expect(screen.getByText(/Reference: OLD-QUOTE-DEMO/)).toBeTruthy();
-  expect(screen.queryByRole("button", { name: "Resolve demo payment — no money moves" })).toBeNull();
+  expect(screen.queryByRole("button", { name: "Resolve simulated payment" })).toBeNull();
 });
 
 it.each(["GCash", "Cash"])("limits %s references to the server's 160 characters", async method => {
@@ -187,8 +187,8 @@ it("expires an uncommitted allocation using elapsed server time despite an incor
 it("labels demo transactions and printable receipts without mixing manual funds", async () => {
   vi.stubGlobal("fetch", vi.fn().mockResolvedValue(response({ ...base, environment: "DEMO", attempts: [{ ...pending, outcome: "CONFIRMED", collectionId: "collection-1" }], collections: [{ ...collection, environment: "DEMO", method: "DEMO_CARD" }] })));
   render(<BookingPayments requestId="request-1" />);
-  const receipt = await screen.findByRole("link", { name: "View demo receipt — no money moves" }); expect(receipt.getAttribute("href")).toBe("/booking-payments/collection-1");
-  expect(screen.getAllByText("Demo payment — no money moves").length).toBeGreaterThan(1); expect(screen.queryByLabelText("GCash amount (PHP)")).toBeNull();
+  const receipt = await screen.findByRole("link", { name: "View simulated payment record" }); expect(receipt.getAttribute("href")).toBe("/booking-payments/collection-1");
+  expect(screen.getAllByText("Simulated payment · no charge").length).toBeGreaterThan(1); expect(screen.queryByLabelText("GCash amount (PHP)")).toBeNull();
 });
 
 it("links the saved agency QR through the protected booking endpoint only when available", async () => {
@@ -215,14 +215,14 @@ it("reuses a demo command key after a lost response and gives a changed outcome 
   const fetcher = vi.fn().mockResolvedValueOnce(response(base)).mockRejectedValueOnce(Error("Connection lost"))
     .mockResolvedValueOnce(response(declined)).mockResolvedValueOnce(response(declined)).mockResolvedValue(response(declined));
   vi.stubGlobal("fetch", fetcher); render(<BookingPayments requestId="request-1" />); const user = userEvent.setup();
-  await user.click(await screen.findByLabelText("Demo payment — no money moves"));
-  await user.selectOptions(screen.getByLabelText("Demo outcome — no money moves"), "DECLINED");
+  await user.click(await screen.findByLabelText("Simulated payment · no charge"));
+  await user.selectOptions(screen.getByLabelText("Simulation result"), "DECLINED");
   await user.click(screen.getByRole("button", { name: "Simulate payment — no money moves" })); await screen.findByRole("alert");
-  expect((screen.getByLabelText("Demo outcome — no money moves") as HTMLSelectElement).value).toBe("DECLINED");
+  expect((screen.getByLabelText("Simulation result") as HTMLSelectElement).value).toBe("DECLINED");
   await user.click(screen.getByRole("button", { name: "Simulate payment — no money moves" })); await screen.findByText("Declined");
   const original = JSON.parse(fetcher.mock.calls[1][1].body), retry = JSON.parse(fetcher.mock.calls[2][1].body);
   expect(retry).toEqual(original);
-  await user.selectOptions(screen.getByLabelText("Demo outcome — no money moves"), "CANCELLED");
+  await user.selectOptions(screen.getByLabelText("Simulation result"), "CANCELLED");
   await user.click(screen.getByRole("button", { name: "Simulate payment — no money moves" }));
   await waitFor(() => expect(fetcher.mock.calls.length).toBe(6));
   expect(JSON.parse(fetcher.mock.calls[4][1].body).idempotencyKey).not.toBe(original.idempotencyKey);

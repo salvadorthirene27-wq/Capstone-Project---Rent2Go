@@ -45,7 +45,7 @@ export function BookingList({
                   {r.contact.name} · {date(r.createdAt)}
                 </small>
               </span>
-              <span>{statusLabels[r.status] ?? r.status.replaceAll("_", " ")}{r.paymentEnvironment==="DEMO"&&<small>Demo payment — no money moves</small>}</span>
+              <span>{statusLabels[r.status] ?? r.status.replaceAll("_", " ")}{r.paymentEnvironment==="DEMO"&&<small>Simulated payment · no charge</small>}</span>
             </Link>
           ))}
         </div>

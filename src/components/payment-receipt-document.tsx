@@ -7,7 +7,7 @@ export type PaymentReceipt={
 };
 export function PaymentReceiptDocument({receipt:r}:{receipt:PaymentReceipt}){
  return <article className="agreement-document payment-receipt-document">
-  <p className="notice"><strong>{r.environment==="DEMO"?"Demo payment — no money moves":"Agency collection record"}</strong></p>
+  <p className="notice"><strong>{r.environment==="DEMO"?"Simulated payment · no charge":"Agency collection record"}</strong></p>
   <header>
    <p><strong>{r.agencyName}</strong><br/>Renter: {r.renterName}</p>
    <p>Recorded {date(r.recordedAt)} (Philippine time)<br/>Recorded by: {r.receiverName}</p>

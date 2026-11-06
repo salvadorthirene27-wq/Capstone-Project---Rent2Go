@@ -1,12 +1,4 @@
-import { WorkspaceLink as Link } from "./workspace-link";
-import {
-  Building2,
-  ClipboardList,
-  Home,
-  ShieldCheck,
-  CarFront,
-  CalendarDays,
-} from "lucide-react";
+import { WorkspaceNavigation } from "./workspace-navigation";
 import type { Actor } from "@/modules/partners/workflow";
 export function Workspace({
   actor,
@@ -25,42 +17,7 @@ export function Workspace({
             <small>{actor.role.replaceAll("_", " ").toLowerCase()}</small>
           </div>
         </div>
-        <nav aria-label="Workspace navigation">
-          <Link href="/workspace">
-            <Home size={19} /> Workspace home
-          </Link>
-          <Link href="/cart">
-            <CarFront size={19} /> My cart
-          </Link>
-          <Link href="/workspace/bookings">
-            <ClipboardList size={19} /> My booking requests
-          </Link>
-          <Link href="/workspace/vehicles">
-            <CarFront size={19} /> My personal vehicles
-          </Link>
-          <Link href="/workspace/resources">
-            <CalendarDays size={19} /> My vehicle calendars
-          </Link>
-          <Link href="/workspace/application">
-            <ClipboardList size={19} /> Agency application
-          </Link>
-          {actor.role === "SUPER_ADMIN" && (
-            <Link href="/admin">
-              <ShieldCheck size={19} /> Partner reviews
-            </Link>
-          )}
-          {actor.role === "SUPER_ADMIN" && (
-            <Link href="/admin/vehicles">
-              <CarFront size={19} /> Vehicle compliance
-            </Link>
-          )}
-          <Link href="/partners">
-            <Building2 size={19} /> Partnership guide
-          </Link>
-          <Link href="/">
-            <Home size={19} /> Marketplace home
-          </Link>
-        </nav>
+        <WorkspaceNavigation role={actor.role} />
         <p className="sidebar-note">
           Your policies. Your services.
           <br />

@@ -1,19 +1,19 @@
 import Link from "next/link";
 import photos from "../../../public/demo/credits.json";
-export const metadata = { title: "Demo photo credits" };
+export const metadata = { title: "Photo credits" };
 export default function Page() {
   return (
     <main id="main-content" className="public-main agency-profile">
       <Link className="back-link" href="/">
         Marketplace home
       </Link>
-      <h1>Demo photo credits</h1>
+      <h1>Photo credits</h1>
       <section className="context-section">
         <h2>Landing page design and imagery</h2>
         <p>The home page adapts Marc Albert Binas’s Rent2Go landing design and its supplied images from the <a href="https://github.com/marcalbertbinas/rent2go---Capstone/tree/develop">develop repository</a>, as requested by the project owner. Original photographer and image-license details were not supplied in that repository. Brand marks are illustrative and do not imply endorsement or available stock.</p>
       </section>
       <p>
-        These photographs illustrate our fictional demo listings. They do not
+        These photographs illustrate sample listings. They do not
         identify vehicles owned by a partner, and the photographers do not
         endorse Rent2Go.
       </p>

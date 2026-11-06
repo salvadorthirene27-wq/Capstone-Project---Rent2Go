@@ -600,7 +600,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                     </div>
                   </fieldset>
                   <p className="demo-note">
-                    Demo gateway options simulate status only. Never enter real
+                    Simulated payment options do not process a transaction. Never enter real
                     card or wallet credentials.
                   </p>
                   {data.acceptedMethods.includes("GCASH") && (
@@ -616,7 +616,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                   <h3>How your agency pays Rent2Go</h3>
                   <p>
                     Rent2Go’s default commission is 10%. Set a settlement
-                    preference for demonstration; no payment is taken on
+                    preference. No payment is taken on
                     application.
                   </p>
                   <div className="field-grid">

@@ -23,7 +23,7 @@ type PaymentState = {
   collections: { id: string; method: Method; environment: Environment; amountCentavos: number; reference: string; recordedAt: string }[];
   requiresReconciliation: boolean;
 };
-const methods: Record<Method, string> = { CASH: "Received cash", GCASH: "GCash · manual receipt review", DEMO_CARD: "Demo card — no money moves", DEMO_GCASH: "Demo GCash — no money moves", DEMO_PAYPAL: "Demo PayPal — no money moves" };
+const methods: Record<Method, string> = { CASH: "Received cash", GCASH: "GCash · manual receipt review", DEMO_CARD: "Card · simulated", DEMO_GCASH: "GCash · simulated", DEMO_PAYPAL: "PayPal · simulated" };
 const outcomes: Record<Attempt["outcome"], string> = { SUBMITTED: "Awaiting agency review", PENDING: "Pending simulation", CONFIRMED: "Confirmed", REJECTED: "Rejected", DECLINED: "Declined", CANCELLED: "Cancelled" };
 function centavos(value: string) {
   if (!/^\d+(?:\.\d{1,2})?$/.test(value)) return null;
@@ -145,13 +145,13 @@ export function BookingPayments({ requestId }: { requestId: string }) {
       applied = true; receive(result, true);
       // Keep controls locked until the fresh capabilities and balances have arrived.
       receive(await read(), true); router.refresh();
-      setMessage(action === "EVIDENCE" ? "GCash evidence submitted for agency review. Uploading does not confirm payment." : action === "SIMULATE_PAYMENT" || action === "RESOLVE_DEMO" ? "Demo result recorded — no money moves." : "Payment record updated. Review the confirmed balance below.");
+      setMessage(action === "EVIDENCE" ? "GCash evidence submitted for agency review. Uploading does not confirm payment." : action === "SIMULATE_PAYMENT" || action === "RESOLVE_DEMO" ? "Simulation result recorded. No payment was processed." : "Payment record updated. Review the confirmed balance below.");
     } catch (cause) {
       if (applied) { setStale(true); setError("The action was recorded, but the latest payment state could not be loaded. Reload payments before continuing."); }
       else setError(cause instanceof Error ? cause.message : "Unable to record this payment action. Try again.");
     } finally { inFlight.current = false; setBusy(false); }
   }
-  const receiptLink = (id: string, mode: Environment) => <Link href={`/booking-payments/${encodeURIComponent(id)}`}>{mode === "DEMO" ? "View demo receipt — no money moves" : "View payment receipt"}</Link>;
+  const receiptLink = (id: string, mode: Environment) => <Link href={`/booking-payments/${encodeURIComponent(id)}`}>{mode === "DEMO" ? "View simulated payment record" : "View payment receipt"}</Link>;
   return <section className="context-section booking-payments" aria-labelledby="payments-heading" aria-busy={busy}>
     <div className="payment-section-heading"><h2 id="payments-heading">Booking payments</h2><button type="button" className="button secondary" disabled={busy} onClick={reload}>Reload payments</button></div>
     <p>Record payment against the signed agreement. GCash evidence needs agency review; cash is recorded by the receiving agency.</p>
@@ -164,7 +164,7 @@ export function BookingPayments({ requestId }: { requestId: string }) {
           <div><dt>Quoted services</dt><dd>{money(data.totals.serviceCentavos)}</dd></div>
           <div><dt>Refundable deposits</dt><dd>{money(data.totals.refundableDepositCentavos)}</dd></div>
           <div><dt>Total due before service</dt><dd>{money(data.totals.totalCentavos)}</dd></div>
-          <div><dt>{data.environment === "DEMO" ? "Confirmed demo amount — no money moves" : "Confirmed payments"}</dt><dd>{money(data.totals.confirmedCentavos)}</dd></div>
+          <div><dt>{data.environment === "DEMO" ? "Recorded simulated amount" : "Confirmed payments"}</dt><dd>{money(data.totals.confirmedCentavos)}</dd></div>
           <div><dt>Outstanding balance</dt><dd>{money(data.totals.balanceCentavos)}</dd></div>
           {data.totals.creditCentavos > 0 && <div><dt>Unapplied credit</dt><dd>{money(data.totals.creditCentavos)}</dd></div>}
         </dl>
@@ -176,8 +176,8 @@ export function BookingPayments({ requestId }: { requestId: string }) {
       {data.agreement && <fieldset className="payment-environment" disabled={blocked}>
         <legend>Payment environment</legend>
         <label><input type="radio" name={`payment-environment-${requestId}`} checked={environment === "MANUAL"} disabled={data.environment === "DEMO"} onChange={() => { setEnvironment("MANUAL"); clearInputs(); }} />Manual GCash or cash</label>
-        <label><input type="radio" name={`payment-environment-${requestId}`} checked={environment === "DEMO"} disabled={data.environment === "MANUAL" || !data.methods.some(method => method.startsWith("DEMO_"))} onChange={() => { setEnvironment("DEMO"); clearInputs(); }} />Demo payment — no money moves</label>
-        <p>{data.environment ? `This quotation is locked to ${data.environment === "MANUAL" ? "manual payments" : "demo payments — no money moves"}.` : "The first submitted evidence, recorded cash or demo attempt fixes the payment environment for this quotation."}</p>
+        <label><input type="radio" name={`payment-environment-${requestId}`} checked={environment === "DEMO"} disabled={data.environment === "MANUAL" || !data.methods.some(method => method.startsWith("DEMO_"))} onChange={() => { setEnvironment("DEMO"); clearInputs(); }} />Simulated payment · no charge</label>
+        <p>{data.environment ? `This quotation is locked to ${data.environment === "MANUAL" ? "manual payments" : "simulated payments"}.` : "Agency collections and simulated payments are recorded separately for each quotation."}</p>
       </fieldset>}
       {manual && data.isOwner && data.methods.includes("CASH") && <p>Paying cash? The agency records payment after receiving the money.</p>}
       {gcash && <form onSubmit={event => { event.preventDefault(); void submit("EVIDENCE"); }}>
@@ -199,17 +199,17 @@ export function BookingPayments({ requestId }: { requestId: string }) {
         <label>Cash receiver note<textarea value={note} onChange={event => setNote(event.target.value)} maxLength={2000} required /></label>
         <button className="button" type="submit" disabled={blocked || centavos(amount) === null || !reference.trim() || !note.trim()}>Record received cash</button>
       </fieldset></form>}
-      {demo && <div className="payment-demo"><h3>Demo payment — no money moves</h3><p>Simulated outcomes only. Use the fixed options below; no payment credentials are collected.</p>
+      {demo && <div className="payment-demo"><h3>Simulated payment · no charge</h3><p>Simulated outcomes only. Use the fixed options below; no payment credentials are collected.</p>
         {simulate && <form onSubmit={event => { event.preventDefault(); void submit("SIMULATE_PAYMENT"); }}><fieldset disabled={blocked} className="payment-form"><legend>Simulate the outstanding balance — no money moves</legend>
-          <p>Demo amount: {money(data.totals.balanceCentavos)} — no money moves</p>
-          <label>Demo method — no money moves<select value={demoMethod} onChange={event => setDemoMethod(event.target.value as Method)}>{data.methods.filter(method => method.startsWith("DEMO_")).map(method => <option key={method} value={method}>{methods[method]}</option>)}</select></label>
-          <label>Demo outcome — no money moves<select value={demoOutcome} onChange={event => setDemoOutcome(event.target.value as DemoOutcome)}><option value="APPROVED">Approved — no money moves</option><option value="DECLINED">Declined — no money moves</option><option value="PENDING">Pending — no money moves</option><option value="CANCELLED">Cancelled — no money moves</option></select></label>
+          <p>Simulation amount: {money(data.totals.balanceCentavos)} — no money moves</p>
+          <label>Simulated payment method<select value={demoMethod} onChange={event => setDemoMethod(event.target.value as Method)}>{data.methods.filter(method => method.startsWith("DEMO_")).map(method => <option key={method} value={method}>{methods[method]}</option>)}</select></label>
+          <label>Simulation result<select value={demoOutcome} onChange={event => setDemoOutcome(event.target.value as DemoOutcome)}><option value="APPROVED">Approved — no money moves</option><option value="DECLINED">Declined — no money moves</option><option value="PENDING">Pending — no money moves</option><option value="CANCELLED">Cancelled — no money moves</option></select></label>
           <button className="button" type="submit" disabled={blocked}>Simulate payment — no money moves</button>
         </fieldset></form>}
       </div>}
       <div className="payment-history"><h3>Payment history</h3><p>Submitted evidence and pending simulations do not count as confirmed payment. Earlier quotation records remain historical.</p>
         {!data.attempts.length && !data.collections.length ? <p>No payment attempts have been recorded.</p> : <ul>{data.attempts.map(attempt => <li key={attempt.id}>
-          {attempt.environment === "DEMO" && <strong className="payment-demo-label">Demo payment — no money moves</strong>}
+          {attempt.environment === "DEMO" && <strong className="payment-demo-label">Simulated payment · no charge</strong>}
           <div className="payment-history-heading"><strong>{methods[attempt.method]}</strong><span>{outcomes[attempt.outcome]}</span></div>
           <p>{money(attempt.amountCentavos)} · Reference: {attempt.reference} · {date(attempt.submittedAt)}</p>
           {attempt.reason && <p>Review reason: <span>{attempt.reason}</span></p>}
@@ -218,12 +218,12 @@ export function BookingPayments({ requestId }: { requestId: string }) {
             <label>Review reason for {attempt.reference}<textarea value={reasons[attempt.id] || ""} onChange={event => setReasons(current => ({ ...current, [attempt.id]: event.target.value }))} maxLength={2000} required /></label>
             <div className="actions"><button type="button" className="button" disabled={blocked || !reasons[attempt.id]?.trim()} onClick={() => submit("REVIEW_GCASH", attempt, "CONFIRM")}>Confirm GCash receipt</button><button type="button" className="button secondary" disabled={blocked || !reasons[attempt.id]?.trim()} onClick={() => submit("REVIEW_GCASH", attempt, "REJECT")}>Reject GCash receipt</button></div>
           </fieldset>}
-          {data.canResolveDemo && attempt.canResolve && data.isOwner && allocationUsable && attempt.environment === "DEMO" && attempt.outcome === "PENDING" && <fieldset disabled={blocked} className="payment-review"><legend>Resolve pending demo payment — no money moves</legend>
-            <label>Resolve demo outcome for {attempt.reference} — no money moves<select value={resolutions[attempt.id] || "APPROVED"} onChange={event => setResolutions(current => ({ ...current, [attempt.id]: event.target.value as Exclude<DemoOutcome, "PENDING"> }))}><option value="APPROVED">Approved — no money moves</option><option value="DECLINED">Declined — no money moves</option><option value="CANCELLED">Cancelled — no money moves</option></select></label>
-            <button type="button" className="button" disabled={blocked} onClick={() => submit("RESOLVE_DEMO", attempt)}>Resolve demo payment — no money moves</button>
+          {data.canResolveDemo && attempt.canResolve && data.isOwner && allocationUsable && attempt.environment === "DEMO" && attempt.outcome === "PENDING" && <fieldset disabled={blocked} className="payment-review"><legend>Resolve pending simulated payment</legend>
+            <label>Resolve simulation result for {attempt.reference} — no money moves<select value={resolutions[attempt.id] || "APPROVED"} onChange={event => setResolutions(current => ({ ...current, [attempt.id]: event.target.value as Exclude<DemoOutcome, "PENDING"> }))}><option value="APPROVED">Approved — no money moves</option><option value="DECLINED">Declined — no money moves</option><option value="CANCELLED">Cancelled — no money moves</option></select></label>
+            <button type="button" className="button" disabled={blocked} onClick={() => submit("RESOLVE_DEMO", attempt)}>Resolve simulated payment</button>
           </fieldset>}
         </li>)}{data.collections.filter(collection => !data.attempts.some(attempt => attempt.collectionId === collection.id)).map(collection => <li key={collection.id}>
-          {collection.environment === "DEMO" && <strong className="payment-demo-label">Demo payment — no money moves</strong>}
+          {collection.environment === "DEMO" && <strong className="payment-demo-label">Simulated payment · no charge</strong>}
           <div className="payment-history-heading"><strong>{methods[collection.method]}</strong><span>Confirmed</span></div><p>{money(collection.amountCentavos)} · Reference: {collection.reference} · {date(collection.recordedAt)}</p>{receiptLink(collection.id, collection.environment)}
         </li>)}</ul>}
       </div>

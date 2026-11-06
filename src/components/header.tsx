@@ -57,7 +57,6 @@ export function Header() {
     {brand}<Link href={pathname === "/login" ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{pathname === "/login" ? "Back to marketplace" : "Back to workspace"}</Link>
   </header>;
   return <>
-    <div className="demo-bar">Development demo <span>No real payment gateway transactions.</span></div>
     <header className={`site-header unified-header${open ? " navigation-expanded" : ""}`}
       onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
       onKeyDown={e => { if (e.key === "Escape" && open) { setOpen(false); toggle.current?.focus(); } }}>
