@@ -3,175 +3,85 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { LogOut, ArrowUpRight, Menu, X } from "lucide-react";
+import { ArrowLeft, LogOut, Menu, X } from "lucide-react";
+
+const links = [
+  ["/", "Home"], ["/rentals", "Rentals"], ["/tours", "Tours"],
+  ["/agencies", "Agencies"], ["/cart", "Cart"],
+  ["/partners", "For agencies"], ["/#roles", "Our roles"],
+] as const;
+const documentRoutes = ["/booking-agreements/", "/booking-inspections/", "/booking-payments/", "/booking-refunds/"];
+
 export function Header() {
   const pathname = usePathname();
-  const selected = (href: string) =>
-    href === "/"
-      ? pathname === "/"
-      : pathname === href ||
-        pathname.startsWith(`${href}/`) ||
-        (href === "/rentals" && pathname.startsWith("/cars/")) ||
-        (href === "/cart" && pathname === "/checkout");
+  const compact = pathname === "/login" || documentRoutes.some(route => pathname.startsWith(route));
+  const selected = (href: string) => href === "/" ? pathname === "/" :
+    !href.includes("#") && (pathname === href || pathname.startsWith(`${href}/`) ||
+      (href === "/rentals" && pathname.startsWith("/cars/")) ||
+      (href === "/cart" && pathname === "/checkout"));
   const { data: session, isPending } = authClient.useSession();
-  const [open, setOpen] = useState(false),
-    [error, setError] = useState(""),
-    [busy, setBusy] = useState(false);
+  const [open, setOpen] = useState(false);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
   const [cartCount, setCartCount] = useState<number | null>(null);
   const userId = session?.user?.id;
+  useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
-    if (!userId) {
-      setCartCount(null);
-      return;
-    }
+    setCartCount(null);
+    if (!userId || compact) return;
     let active = true;
     async function refresh() {
       try {
         const res = await fetch("/api/cart/count");
         if (res.ok) {
           const data = await res.json();
-          if (active) setCartCount(data.count);
+          if (active && Number.isSafeInteger(data.count) && data.count >= 0) setCartCount(data.count);
         }
-      } catch {
-        /* Retain navigation when the count is temporarily unavailable. */
-      }
+      } catch { /* Navigation works if the count is temporarily unavailable. */ }
     }
     void refresh();
     window.addEventListener("rent2go:cart-changed", refresh);
-    return () => {
-      active = false;
-      window.removeEventListener("rent2go:cart-changed", refresh);
-    };
-  }, [userId, pathname]);
+    return () => { active = false; window.removeEventListener("rent2go:cart-changed", refresh); };
+  }, [userId, pathname, compact]);
   async function signOut() {
-    setBusy(true);
-    setError("");
+    setBusy(true); setError("");
     try {
       const result = await authClient.signOut();
-      if (result.error) throw new Error();
-      window.location.href = "/";
-    } catch {
-      setError("Unable to sign out. Please try again.");
-      setBusy(false);
-    }
+      if (result.error) throw Error();
+      window.location.assign("/");
+    } catch { setError("Unable to sign out. Please try again."); setBusy(false); }
   }
-  if (pathname === "/") return null;
-  return (
-    <>
-      <div className="demo-bar">
-        Development demo <span>Payments are simulated. No money moves.</span>
-      </div>
-      <header
-        className={`site-header${open ? " navigation-expanded" : ""}`}
-        onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
-        onKeyDown={(e) => {
-          if (e.key === "Escape" && open) {
-            setOpen(false);
-            toggle.current?.focus();
-          }
-        }}
-      >
-        <Link className="wordmark" href="/">
-          Rent2Go<span>.</span>
-        </Link>
-        <button
-          ref={toggle}
-          className="icon-button navigation-toggle"
-          aria-label={open ? "Close navigation" : "Open navigation"}
-          aria-expanded={open}
-          aria-controls="main-navigation"
-          onClick={() => setOpen(!open)}
-        >
-          {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
-        </button>
-        <nav
-          id="main-navigation"
-          className={open ? "navigation-open" : ""}
-          aria-label="Main navigation"
-        >
-          <Link
-            href="/"
-            aria-current={selected("/") ? "page" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            Home
-          </Link>
-          <Link
-            href="/rentals"
-            aria-current={selected("/rentals") ? "page" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            Car rentals
-          </Link>
-          <Link
-            href="/tours"
-            aria-current={selected("/tours") ? "page" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            Tours
-          </Link>
-          <Link
-            href="/agencies"
-            aria-current={selected("/agencies") ? "page" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            Agencies
-          </Link>
-          <Link
-            href="/cart"
-            aria-current={selected("/cart") ? "page" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            Cart{cartCount !== null ? ` (${cartCount})` : ""}
-          </Link>
-          <Link
-            href="/partners"
-            aria-current={selected("/partners") ? "page" : undefined}
-            onClick={() => setOpen(false)}
-          >
-            For agencies <ArrowUpRight size={15} aria-hidden="true" />
-          </Link>
-          {session?.user ? (
-            <>
-              <Link
-                href="/workspace"
-                aria-current={
-                  selected("/workspace") ||
-                  selected("/agency") ||
-                  selected("/admin")
-                    ? "page"
-                    : undefined
-                }
-                onClick={() => setOpen(false)}
-              >
-                Workspace
-              </Link>
-              <button
-                className="nav-signout"
-                aria-label="Sign out"
-                disabled={busy}
-                onClick={signOut}
-              >
-                <LogOut size={19} aria-hidden="true" /> Sign out
-              </button>
-            </>
-          ) : (
-            <Link
-              className="button small"
-              href="/login"
-              onClick={() => setOpen(false)}
-            >
-              {isPending ? "Account" : "Sign in"}
-            </Link>
-          )}
-        </nav>
-      </header>
-      {error && (
-        <p className="header-error" role="alert">
-          {error}
-        </p>
-      )}
-    </>
-  );
+  const brand = <Link className="wordmark" href="/" aria-label="Rent2Go home">Rent2Go<span>.</span></Link>;
+  if (compact) return <header className="site-header unified-header compact-header">
+    {brand}<Link href={pathname === "/login" ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{pathname === "/login" ? "Back to marketplace" : "Back to workspace"}</Link>
+  </header>;
+  return <>
+    <div className="demo-bar">Development demo <span>No real payment gateway transactions.</span></div>
+    <header className={`site-header unified-header${open ? " navigation-expanded" : ""}`}
+      onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
+      onKeyDown={e => { if (e.key === "Escape" && open) { setOpen(false); toggle.current?.focus(); } }}>
+      {brand}
+      <button type="button" ref={toggle} className="icon-button navigation-toggle" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(!open)}>
+        {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+      </button>
+      <nav id="main-navigation" className={open ? "navigation-open" : ""} aria-label="Main navigation">
+        <div className="navigation-links">
+          {links.map(([href, label]) => <Link key={href} href={href} aria-current={selected(href) ? "page" : undefined} onClick={() => setOpen(false)}>
+            {label}{href === "/cart" && cartCount !== null ? ` (${cartCount})` : ""}
+          </Link>)}
+        </div>
+        <div className="navigation-account">
+          {session?.user ? <>
+            <Link href="/workspace" className="navigation-secondary" aria-current={selected("/workspace") || selected("/agency") || selected("/admin") ? "page" : undefined} onClick={() => setOpen(false)}>Workspace</Link>
+            <button type="button" className="navigation-primary" disabled={busy} onClick={signOut}><LogOut size={17} aria-hidden="true" />{busy ? "Signing out…" : "Sign out"}</button>
+          </> : <>
+            <Link className="navigation-secondary" href="/login" onClick={() => setOpen(false)}>{isPending ? "Account" : "Sign in"}</Link>
+            <Link className="navigation-primary" href="/login?mode=signup" onClick={() => setOpen(false)}>Sign up</Link>
+          </>}
+        </div>
+      </nav>
+    </header>
+    {error && <p className="header-error" role="alert">{error}</p>}
+  </>;
 }

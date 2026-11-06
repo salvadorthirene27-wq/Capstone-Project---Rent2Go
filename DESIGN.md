@@ -41,6 +41,8 @@ Rounded controls and panels complement the incumbent. Use smaller control radii 
 
 ## Components
 
+One root-layout Header serves the home page, marketplace and workspaces, with the same links, forest/mint pill navigation, account controls, cart count and responsive menu. Authentication and standalone saved/printable records use a compact brand/back header. Do not add a separate landing navigation implementation. Contextual workspace sidebars remain distinct from primary site navigation.
+
 Primary buttons use forest with white text; hover uses deeper forest. Selected sidebar items use forest with white labels. Fields use white/light backgrounds and a visible focus outline. Use the same primitives for applicant and reviewer forms. Pending, disabled, error, empty and saved states are explicit. Tables retain horizontal scrolling where necessary on narrow screens.
 
 ## Do's and Don'ts

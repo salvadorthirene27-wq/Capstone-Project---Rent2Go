@@ -3,18 +3,21 @@ import React from "react";
 import { afterEach, it, expect, vi } from "vitest";
 import { render, screen, cleanup } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-const { signOut } = vi.hoisted(() => ({ signOut: vi.fn() }));
-vi.mock("next/navigation", () => ({ usePathname: () => "/cars/demo-car" }));
+const state = vi.hoisted(() => ({ signOut: vi.fn(), pathname: "/cars/demo-car", signedIn: true }));
+const signOut = state.signOut;
+vi.mock("next/navigation", () => ({ usePathname: () => state.pathname }));
 vi.mock("../../src/lib/auth-client", () => ({
   authClient: {
-    useSession: () => ({ data: { user: { id: "demo" } }, isPending: false }),
-    signOut,
+    useSession: () => ({ data: state.signedIn ? { user: { id: "demo" } } : null, isPending: false }),
+    signOut: state.signOut,
   },
 }));
 import { Header } from "../../src/components/header";
 afterEach(() => {
   cleanup();
   vi.resetAllMocks();
+  vi.unstubAllGlobals();
+  state.pathname = "/cars/demo-car"; state.signedIn = true;
 });
 it("provides an accessible mobile navigation toggle with working public agency links", async () => {
   render(<Header />);
@@ -42,7 +45,7 @@ it("shows a recoverable error rather than claiming sign-out when the provider re
 it("keeps the rental section selected on a car detail page and closes the mobile menu after navigation", async () => {
   render(<Header />);
   const user = userEvent.setup();
-  const rentals = screen.getByRole("link", { name: "Car rentals" });
+  const rentals = screen.getByRole("link", { name: "Rentals" });
   expect(rentals.getAttribute("aria-current")).toBe("page");
   expect(
     screen.getByRole("link", { name: "Home" }).getAttribute("aria-current"),
@@ -55,6 +58,38 @@ it("keeps the rental section selected on a car detail page and closes the mobile
       .getByRole("button", { name: "Open navigation" })
       .getAttribute("aria-expanded"),
   ).toBe("false");
+});
+it("uses identical marketplace links and account controls on home and inner pages", () => {
+  state.signedIn = false; state.pathname = "/";
+  const view = render(<Header />);
+  const routes = () => Array.from(screen.getByRole("navigation", { name:"Main navigation" }).querySelectorAll("a")).map(a => [a.textContent, a.getAttribute("href")]);
+  const home = routes();
+  expect(screen.getByRole("link", { name:"Home" }).getAttribute("aria-current")).toBe("page");
+  expect(screen.getByRole("link", { name:"Sign up" }).getAttribute("href")).toBe("/login?mode=signup");
+  expect(screen.getByRole("link", { name:"Our roles" }).getAttribute("href")).toBe("/#roles");
+  state.pathname = "/agencies"; view.rerender(<Header />);
+  expect(routes()).toEqual(home);
+  expect(screen.getByRole("link", { name:"Agencies" }).getAttribute("aria-current")).toBe("page");
+});
+it.each(["/login", "/booking-agreements/demo", "/booking-inspections/demo", "/booking-payments/demo", "/booking-refunds/demo"])("uses a compact header for %s", pathname => {
+  state.pathname = pathname; render(<Header />);
+  expect(screen.queryByRole("navigation", { name:"Main navigation" })).toBeNull();
+  expect(screen.queryByRole("button", { name:"Open navigation" })).toBeNull();
+  expect(screen.getByRole("link", { name: pathname === "/login" ? "Back to marketplace" : "Back to workspace" }).getAttribute("href")).toBe(pathname === "/login" ? "/" : "/workspace");
+});
+it("refreshes the shared cart count on home and after cart changes", async () => {
+  state.pathname = "/";
+  const get = vi.fn().mockResolvedValueOnce({ ok:true, json:async () => ({count:2}) }).mockResolvedValueOnce({ ok:true, json:async () => ({count:3}) });
+  vi.stubGlobal("fetch", get); render(<Header />);
+  expect((await screen.findByRole("link", {name:"Cart (2)"})).getAttribute("href")).toBe("/cart");
+  window.dispatchEvent(new Event("rent2go:cart-changed"));
+  expect(await screen.findByRole("link", {name:"Cart (3)"})).toBeDefined();
+});
+it("closes expanded navigation when the route changes without re-mounting the layout", async () => {
+  const view=render(<Header />); const user=userEvent.setup();
+  await user.click(screen.getByRole("button", {name:"Open navigation"}));
+  state.pathname="/tours"; view.rerender(<Header />);
+  expect(screen.getByRole("button", {name:"Open navigation"}).getAttribute("aria-expanded")).toBe("false");
 });
 it("returns keyboard focus to the menu button when Escape closes navigation", async () => {
   render(<Header />);

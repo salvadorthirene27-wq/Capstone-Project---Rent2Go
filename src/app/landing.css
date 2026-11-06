@@ -1108,27 +1108,11 @@
 }
 
 /* Navigation additions and narrow-screen corrections to the original landing page. */
-.marc-home .home-links { position:absolute; left:50%; transform:translateX(-50%); }
-.marc-home .home-navigation { gap:20px; }
-.marc-home .home-account { margin-left:auto; }
-.marc-home .home-navigation a, .marc-home .home-navigation button { display:inline-flex; align-items:center; justify-content:center; min-height:44px; white-space:nowrap; }
-.marc-home .home-navigation .home-menu-toggle { display:none; color:white; width:44px; height:44px; border:1px solid #abd1c6; border-radius:50%; }
-.marc-home .home-nav-error { position:absolute; right:24px; top:100%; background:#fff; color:#9d2929; padding:12px; border-radius:12px; }
 .marc-home a:focus-visible, .marc-home button:focus-visible { outline:3px solid #abd1c6; outline-offset:4px; }
 .marc-home #roles a { min-height:44px; }
 @media (max-width:1350px) {
- .marc-home .home-links { display:none; }
- .marc-home .home-navigation .home-menu-toggle { display:inline-flex; flex-shrink:0; }
- .marc-home .home-links-open { display:block; top:105px; left:24px; right:24px; transform:none; z-index:30; }
- .marc-home .home-links-open ul { display:flex; flex-wrap:wrap; border-radius:20px; padding:12px; background:#254a40; }
 }
 @media (max-width:640px) {
- .marc-home .home-navigation { display:grid; grid-template-columns:1fr auto; padding:24px 20px; gap:12px; }
- .marc-home .home-account { grid-column:1 / -1; grid-row:2; justify-self:end; margin:0; gap:8px; }
- .marc-home .home-account a, .marc-home .home-account button { padding:8px 12px; }
- .marc-home .home-brand { font-size:21px; grid-column:1; grid-row:1; }
- .marc-home .home-menu-toggle { grid-column:2; grid-row:1; }
- .marc-home .home-links-open { top:100%; }
  .marc-home #roles .scale-105 { scale:1; }
 }
 @media (prefers-reduced-motion:reduce) {
@@ -1144,15 +1128,6 @@
 .marc-home .home-hero-actions a { min-height:52px; text-decoration:none; transition:background-color 180ms, border-color 180ms, color 180ms, box-shadow 180ms, transform 180ms; }
 .marc-home .home-hero-actions a:first-child { color:#193e32; box-shadow:0 5px 14px rgb(0 0 0 / 14%); }
 .marc-home .home-hero-actions a:last-child { border-color:rgb(255 255 255 / 65%); background:rgb(0 0 0 / 16%); }
-.marc-home .home-navigation { z-index:30; }
-.marc-home .home-brand { font-family:Outfit,Inter,sans-serif; font-weight:600; letter-spacing:-.035em; }
-.marc-home .home-links ul { background:rgb(17 45 35 / 75%); backdrop-filter:none; border-color:rgb(255 255 255 / 24%); }
-.marc-home .home-links a { color:#fff; transition:background-color 160ms; }
-.marc-home .home-links a:hover:not([aria-current="page"]), .marc-home .home-links a:focus-visible { background:rgb(255 255 255 / 12%); }
-.marc-home .home-account > a, .marc-home .home-account > button { transition:background-color 160ms, color 160ms, border-color 160ms; }
-.marc-home .home-account > a:first-child { color:#e2f2eb; border-color:#c5e4d8; }
-.marc-home .home-account > a:first-child:hover { color:#193e32; background:#abd1c6; }
-.marc-home .home-menu-toggle:hover { background:rgb(255 255 255 / 12%); }
 .marc-home .home-brand-strip { opacity:.68; transition:opacity 180ms, filter 180ms; }
 .marc-home .home-brands-label, .marc-home .home-footer-meta { color:#58665e; font-size:11px; }
 .marc-home .home-brand-strip:hover { opacity:1; }
@@ -1183,11 +1158,9 @@
 @media (prefers-reduced-motion:no-preference) {
  .marc-home .home-hero-image { animation:home-image-arrive 1100ms cubic-bezier(.16,1,.3,1) both; }
  .marc-home .home-hero-title { animation:home-title-arrive 650ms cubic-bezier(.16,1,.3,1) both; }
- .marc-home .home-links-open ul { animation:home-menu-arrive 180ms cubic-bezier(.16,1,.3,1); }
 }
 @keyframes home-image-arrive { from { transform:scale(1.045); } to { transform:scale(1); } }
 @keyframes home-title-arrive { from { clip-path:inset(0 0 100% 0); transform:translateY(6px); } to { clip-path:inset(0); transform:translateY(0); } }
-@keyframes home-menu-arrive { from { opacity:.5; transform:translateY(-5px); } to { opacity:1; transform:translateY(0); } }
 @media (max-width:760px) {
  .marc-home .home-hero { min-height:720px; height:auto; }
  .marc-home .home-hero > .relative { min-height:720px; }
@@ -1201,12 +1174,11 @@
  .marc-home .home-final-cta h2 { font-size:clamp(2rem, 7vw, 3rem); }
 }
 @media (prefers-reduced-motion:reduce) {
- .marc-home .home-hero-image, .marc-home .home-hero-title, .marc-home .home-links-open ul { animation:none; }
  .marc-home .home-fleet-card:hover .home-fleet-image, .marc-home .home-fleet-card:focus-visible .home-fleet-image, .marc-home .home-role-link:hover svg, .marc-home .home-role-link:focus-visible svg { transform:none; scale:1; }
 }
 
 /* Marketplace refinement: retain the source imagery, composition and palette. */
-.marc-home .home-hero { height:auto; min-height:clamp(720px, calc(100svh - 32px), 820px); }
+.marc-home .home-hero { height:auto; min-height:clamp(620px, calc(100svh - 160px), 740px); }
 .marc-home .home-hero > .relative { min-height:inherit; height:auto; }
 .marc-home .home-hero-content { gap:20px; padding-bottom:56px; }
 .marc-home .home-hero-content > .home-eyebrow { color:var(--mint); font-size:13px; font-weight:500; letter-spacing:.06em; line-height:1.6; }
@@ -1230,14 +1202,6 @@
 .marc-home footer li a { display:inline-flex; align-items:center; min-height:44px; }
 .marc-home .home-footer-meta a { display:inline-flex; align-items:center; min-height:44px; }
 @media (max-width:1350px) {
- .marc-home .home-navigation { display:grid; grid-template-columns:1fr auto; }
- .marc-home .home-brand { justify-self:start; }
- .marc-home .home-menu-toggle { grid-column:2; grid-row:1; }
- .marc-home .home-account { grid-column:1/-1; grid-row:2; justify-self:end; }
- .marc-home .navigation-expanded .home-account { grid-row:3; }
- .marc-home .home-links-open { position:static; grid-column:1/-1; grid-row:2; transform:none; width:100%; }
- .marc-home .home-links-open ul { justify-content:center; border-radius:16px; padding:8px; gap:4px; }
- .marc-home .home-links a { padding-inline:16px; }
 }
 @media (max-width:760px) {
  .marc-home .home-journey { grid-template-columns:minmax(0,1fr); gap:24px; padding:32px 24px; }
@@ -1247,12 +1211,6 @@
  .marc-home .home-tour-link { font-size:14px; }
 }
 @media (max-width:640px) {
- .marc-home .home-navigation { grid-template-columns:1fr auto; }
- .marc-home .home-menu-toggle { grid-column:2; }
- .marc-home .home-account { grid-column:1/-1; grid-row:2; justify-self:stretch; justify-content:flex-end; }
- .marc-home .home-links-open { grid-row:2; }
- .marc-home .home-links-open ul { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:6px; }
- .marc-home .home-links a { width:100%; white-space:normal; padding:10px; }
 }
 @media (prefers-reduced-motion:reduce) {
  .marc-home .home-tour-link:hover svg { transform:none; }

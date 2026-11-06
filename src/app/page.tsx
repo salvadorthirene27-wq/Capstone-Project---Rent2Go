@@ -1,6 +1,5 @@
 import Link from "next/link";
 import Image from "next/image";
-import { HomeNavigation } from "@/components/home-navigation";
 import { HomeMotion } from "@/components/home-motion";
 import { ArrowUpRight, ArrowRight, Check, CarFront, Map, FileCheck2 } from "lucide-react";
 import "./landing.css";
@@ -20,8 +19,6 @@ export default function Home() {
         />
 
         <div className="relative z-10 flex flex-col h-full">
-          <HomeNavigation />
-
           {/* Hero Content - More humble & mission-focused */}
           <div id="main-content" tabIndex={-1} className="home-hero-content flex-grow flex flex-col items-center justify-center gap-5 px-4 text-center">
             <p className="home-eyebrow">Car rentals. Tour packages. Local agencies.</p>

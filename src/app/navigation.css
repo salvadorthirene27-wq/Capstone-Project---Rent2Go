@@ -1,0 +1,39 @@
+/* One navigation surface for the home page, marketplace and role workspaces. */
+.site-header.unified-header { min-height:94px; height:auto; padding:18px 3%; gap:24px; background:var(--surface); }
+.unified-header .wordmark { flex-shrink:0; }
+.site-header.unified-header nav { display:flex; align-items:center; justify-content:flex-end; flex:1; min-width:0; gap:24px; }
+.unified-header .navigation-links { display:flex; align-items:center; gap:3px; padding:6px; border-radius:999px; background:var(--deep); }
+.unified-header .navigation-links > a { display:inline-flex; align-items:center; justify-content:center; min-height:44px; padding:10px 14px; color:white; border-radius:999px; white-space:nowrap; text-decoration:none; font-size:14px; font-weight:500; transition:background-color var(--motion-fast),color var(--motion-fast); }
+.unified-header .navigation-links > a:hover { background:#396354; }
+.unified-header .navigation-links > a[aria-current="page"] { background:var(--mint); color:#193e32; font-weight:600; }
+.unified-header .navigation-links > a:focus-visible { outline-color:var(--mint); outline-offset:3px; }
+.unified-header .navigation-account { display:flex; align-items:center; gap:12px; }
+.unified-header .navigation-account > a,.unified-header .navigation-account > button { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:46px; padding:11px 20px; border-radius:999px; font-size:14px; font-weight:600; white-space:nowrap; text-decoration:none; transition:background-color var(--motion-fast),border-color var(--motion-fast),color var(--motion-fast); }
+.unified-header .navigation-secondary { background:white; border:1px solid var(--control-line); color:var(--deep); }
+.unified-header .navigation-secondary:hover,.unified-header .navigation-secondary[aria-current="page"] { background:var(--soft); border-color:var(--forest); }
+.unified-header .navigation-primary { background:var(--forest); border:1px solid var(--forest); color:white; }
+.unified-header .navigation-primary:hover:not(:disabled) { background:var(--deep); }
+.site-header.unified-header .navigation-toggle { display:none; flex-shrink:0; color:var(--deep); border:1px solid var(--control-line); border-radius:50%; width:46px; height:46px; }
+.site-header.unified-header.compact-header { min-height:80px; }
+.compact-back { display:inline-flex; gap:8px; align-items:center; min-height:44px; font-size:14px; }
+@media (max-width:1320px) {
+ .site-header.unified-header { flex-wrap:wrap; min-height:80px; padding:14px 4%; gap:16px; }
+ .site-header.unified-header .navigation-toggle { display:inline-flex; margin-left:auto; }
+ .site-header.unified-header nav { display:none; }
+ .site-header.unified-header nav.navigation-open { display:flex; position:static; flex:0 0 100%; flex-direction:column; align-items:stretch; width:100%; gap:18px; max-height:none; overflow:visible; padding:14px 0 4px; border:0; border-top:1px solid var(--line); }
+ .site-header.unified-header.navigation-expanded { position:relative; }
+ .unified-header .navigation-links { flex-wrap:wrap; justify-content:center; border-radius:18px; padding:10px; gap:6px; }
+ .unified-header .navigation-links > a { flex:1 0 auto; }
+ .unified-header .navigation-account { justify-content:flex-end; flex-wrap:wrap; }
+}
+@media (max-width:560px) {
+ .unified-header .navigation-links { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); }
+ .unified-header .navigation-links > a { white-space:normal; padding-inline:8px; }
+ .unified-header .navigation-account { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+ .unified-header .navigation-account > a,.unified-header .navigation-account > button { white-space:normal; padding-inline:12px; }
+ .compact-header .wordmark { font-size:25px; }
+ .compact-back { font-size:13px; }
+}
+@media (prefers-reduced-motion:reduce) {
+ .unified-header .navigation-links > a,.unified-header .navigation-account > a,.unified-header .navigation-account > button { transition:none; }
+}
