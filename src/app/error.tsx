@@ -1,16 +1,18 @@
 "use client";
-export default function ErrorPage({ reset }: { reset: () => void }) {
+import Link from "next/link";
+export default function ErrorPage({ retry }: { retry: () => void }) {
   return (
     <main id="main-content" className="public-main">
       <section className="notice public-section">
-        <h1>We couldn’t load this workspace</h1>
+        <h1>We couldn’t load this page</h1>
         <p>
-          Check your connection and try again. If your account is suspended,
-          contact the platform administrator.
+          The service may be temporarily unavailable. Check your connection
+          and try again, or return to the marketplace home page.
         </p>
-        <button className="button" onClick={reset}>
+        <button type="button" className="button" onClick={retry}>
           Try again
         </button>
+        <p><Link href="/">Return to marketplace home</Link></p>
       </section>
     </main>
   );
