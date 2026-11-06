@@ -1,0 +1,25 @@
+"use client";
+import {useEffect,useState} from "react";
+import {extraChargeTypes,extraChargeContexts,extraChargeLabels,extraContextLabels,type ExtraChargePolicy} from "@/modules/partners/extra-charges";
+const recipients={cosigner:"Cosigner",agency:"Agency",platform:"Rent2Go",maintenance:"Maintenance reserve"};
+function parsePercent(s:string){const m=/^(\d{1,3})(?:\.(\d{0,2}))?$/.exec(s.trim());if(!m)return null;const n=Number(m[1])*100+Number((m[2]??"").padEnd(2,"0"));return n<=10000?n:null;}
+function Percent({label,value,onChange,fixed}:{label:string;value:number|null;onChange:(n:number|null)=>void;fixed:boolean}){
+ const [text,setText]=useState(value===null?"":String(value/100));useEffect(()=>{if(parsePercent(text)!==value)setText(value===null?"":String(value/100));},[value]);
+ return <label className="field">{label}<input inputMode="decimal" autoComplete="off" maxLength={6} value={fixed?"0":text} readOnly={fixed} aria-invalid={Boolean(text&&parsePercent(text)===null)} onChange={e=>{setText(e.target.value);onChange(parsePercent(e.target.value));}}/>{fixed?<small>Not applicable to this service.</small>:<small>Percent, 0–100 with up to 2 decimal places. Blank is not configured.</small>}{text&&parsePercent(text)===null&&<small className="error-message">Enter a percentage from 0 to 100, up to 2 decimal places.</small>}</label>;
+}
+export function ExtraChargePolicyEditor({value,services,onChange}:{value:ExtraChargePolicy[]|undefined;services:string[];onChange:(value:ExtraChargePolicy[])=>void}){
+ const policies=value??[],rental=services.some(s=>s==="SELF_DRIVE"||s==="WITH_DRIVER"),tour=services.some(s=>s==="GROUP_TOUR"||s==="PRIVATE_TOUR");
+ function update(index:number,patch:Partial<ExtraChargePolicy>){onChange(policies.map((p,i)=>i===index?{...p,...patch}:p));}
+ return <section className="extra-charge-policies" aria-labelledby="extra-charge-policy-title"><h3 id="extra-charge-policy-title">Extra-charge allocations</h3><p>Configure only the charge types your agency may propose. These percentages divide an accepted charge; they do not set its price or authorize a deduction. Policies require review, and every itemized charge requires renter acceptance.</p><p>Blank means not configured. New revisions take effect after approval and preserve earlier agreements and assessments.</p>
+  {!rental&&!tour&&!policies.length&&<p>Select your services before configuring charge allocations.</p>}
+  {extraChargeTypes.flatMap(type=>extraChargeContexts.filter(context=>(context!=="TOUR_ONLY"||type==="CANCELLATION")&&((context==="TOUR_ONLY"?tour:rental)||policies.some(p=>p.type===type&&p.context===context))).map(context=>{
+   const index=policies.findIndex(p=>p.type===type&&p.context===context),p=policies[index],title=`${extraChargeLabels[type]} · ${extraContextLabels[context]}`,complete=p&&Object.values(p.shares).every(n=>n!==null),total=p?Object.values(p.shares).reduce<number>((sum,n)=>sum+(n??0),0):0;
+   return <div className="extra-charge-choice" key={`${type}:${context}`}><label className="extra-charge-check"><input type="checkbox" checked={Boolean(p)} onChange={e=>onChange(e.target.checked?[...policies,{type,context,explanation:"",shares:{cosigner:context==="CONSIGNED"?null:0,agency:null,platform:null,maintenance:context==="TOUR_ONLY"?0:null}}]:policies.filter((_,i)=>i!==index))}/>{title}</label>
+    {p&&<fieldset><legend>{title} allocation</legend><label className="field">{title} conditions and review process<textarea maxLength={4000} value={p.explanation} onChange={e=>update(index,{explanation:e.target.value})}/></label><div className="field-grid">{(Object.keys(recipients) as(keyof typeof recipients)[]).map(key=><Percent key={key} label={`${title} · ${recipients[key]} (%)`} value={p.shares[key]} fixed={(key==="cosigner"&&context!=="CONSIGNED")||(key==="maintenance"&&context==="TOUR_ONLY")} onChange={n=>update(index,{shares:{...p.shares,[key]:n}})}/>)}</div><p className={complete&&total===10000?"total valid":"total invalid"}>{complete?`Total: ${total/100}%`:`Set every applicable percentage. Current total: ${total/100}%`} · required 100%</p></fieldset>}
+   </div>;
+  }))}
+ </section>;
+}
+export function ExtraChargePolicySummary({policies}:{policies:ExtraChargePolicy[]|undefined}){
+ return <section className="extra-charge-policy-summary"><h3>Extra-charge allocations</h3>{!policies?.length?<p>No extra-charge allocation is configured. A charge requires approved configuration and exact renter acceptance.</p>:policies.map(p=><article key={`${p.type}:${p.context}`}><h4>{extraChargeLabels[p.type]} · {extraContextLabels[p.context]}</h4><p className="preserve-lines">{p.explanation||"Conditions not provided"}</p><dl className="summary-grid">{(Object.keys(recipients) as(keyof typeof recipients)[]).map(key=><div key={key}><dt>{recipients[key]}</dt><dd>{p.shares[key]===null?"Not configured":`${p.shares[key]/100}%`}</dd></div>)}</dl><p>This allocation divides an accepted charge. It does not set an amount or make refundable deposits revenue.</p></article>)}</section>;
+}

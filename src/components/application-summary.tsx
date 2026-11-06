@@ -1,4 +1,5 @@
 import type { ApplicationInput } from "@/modules/partners/schema";
+import {ExtraChargePolicySummary} from "./extra-charge-policies";
 import { driverFeeUnitLabels } from "@/modules/pricing/units";
 import {
   businessFields,
@@ -127,6 +128,7 @@ export function ApplicationSummary({
           versions will be retained.
         </p>
       </section>
+      <ExtraChargePolicySummary policies={p.extraChargePolicies}/>
     </div>
   );
 }

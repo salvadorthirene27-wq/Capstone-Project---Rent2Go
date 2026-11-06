@@ -2161,3 +2161,11 @@ td .text-link {
 .booking-refunds .refund-check { display:flex; gap:10px; align-items:flex-start; margin:20px 0; max-width:70ch; }
 .booking-refunds .refund-check input { flex:0 0 auto; width:18px; height:18px; margin-top:4px; accent-color:#2f5d50; }
 .booking-refunds input:not([type=checkbox]),.booking-refunds select,.booking-refunds textarea { font-size:1rem; max-width:100%; }
+.extra-charge-policies { margin:32px 0 8px; padding-top:24px; border-top:1px solid #d5dfdb; }
+.extra-charge-choice { margin:16px 0; padding:16px 20px; border:1px solid #d5dfdb; border-radius:12px; }
+.extra-charge-check { display:flex; align-items:flex-start; gap:12px; font-weight:600; }
+.extra-charge-check input { flex:0 0 auto; width:18px; height:18px; accent-color:#2f5d50; margin-top:4px; }
+.extra-charge-choice fieldset { padding:16px 0 0; border:0; min-width:0; }
+.extra-charge-choice legend { padding-top:16px; font-size:1rem; }
+.extra-charge-choice input[readonly] { background:#eaf2ef; }
+.extra-charge-policy-summary article { padding:20px 0; border-bottom:1px solid #d5dfdb; }

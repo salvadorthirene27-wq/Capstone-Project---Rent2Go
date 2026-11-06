@@ -2,6 +2,7 @@
 import { useEffect, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, Save, FileUp } from "lucide-react";
 import { ApplicationSummary } from "@/components/application-summary";
+import {ExtraChargePolicyEditor} from "@/components/extra-charge-policies";
 import { driverFeeUnitLabels } from "@/modules/pricing/units";
 import {
   serviceOptions,
@@ -420,7 +421,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
             </h2>
             <p>
               {app.status === "APPROVED"
-                ? "Your submitted policies are retained as an approved version. Inventory and booking operations are the next development modules."
+                ? "Your approved policies govern new requests. Open your agency workspace to manage services and bookings."
                 : "Your submitted details and review history are preserved below."}
             </p>
           </section>
@@ -712,6 +713,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                     override these defaults; approved booking versions remain
                     unchanged.
                   </p>
+                  <ExtraChargePolicyEditor key={`extra-${app.version}`} value={data.extraChargePolicies} services={data.services} onChange={value=>update("extraChargePolicies",value)}/>
                 </>
               )}
               {step === 5 && (

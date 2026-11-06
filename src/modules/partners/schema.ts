@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { driverFeeUnitSchema } from "../pricing/units";
+import {extraChargePolicyList,completeExtraChargePolicy} from "./extra-charges";
 
 export const serviceOptions = [
   "SELF_DRIVE",
@@ -56,6 +57,7 @@ export const draftApplicationSchema = z
       .object({ cosigner: bps, agency: bps, platform: bps, maintenance: bps })
       .strict(),
     consent: z.boolean(),
+    extraChargePolicies:extraChargePolicyList.optional(),
   })
   .strict();
 export type ApplicationInput = z.infer<typeof draftApplicationSchema>;
@@ -141,6 +143,15 @@ export const completeApplicationSchema = draftApplicationSchema.superRefine(
     const rental = v.services.some(
       (s) => s === "SELF_DRIVE" || s === "WITH_DRIVER",
     );
+    const extraKeys=new Set<string>();
+    for(const [index,p]of(v.extraChargePolicies??[]).entries()){
+      const key=`${p.type}:${p.context}`;
+      if(extraKeys.has(key))ctx.addIssue({code:"custom",path:["extraChargePolicies",index],message:"Configure each charge type and service context only once."});
+      extraKeys.add(key);
+      const valid=completeExtraChargePolicy.safeParse(p);
+      if(!valid.success)for(const e of valid.error.issues)ctx.addIssue({code:"custom",path:["extraChargePolicies",index,...e.path],message:e.message});
+      if(p.context==="TOUR_ONLY"?!v.services.some(s=>s==="GROUP_TOUR"||s==="PRIVATE_TOUR"):!rental)ctx.addIssue({code:"custom",path:["extraChargePolicies",index,"context"],message:"This charge context requires a matching selected service."});
+    }
     if (rental) {
       if (!v.dailyRateCentavos)
         issue("dailyRateCentavos", "Enter a positive base rental rate.");
