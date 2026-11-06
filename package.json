@@ -10,6 +10,7 @@
     "test:integration": "vitest run tests/integration --maxWorkers=1",
     "typecheck": "tsc --noEmit",
     "db:migrate": "tsx --env-file=.env.local scripts/migrate.ts",
+    "db:check": "tsx --env-file=.env.local scripts/check-db.ts",
     "admin:bootstrap": "tsx --env-file=.env.local scripts/bootstrap.ts",
     "booking:expire-holds": "tsx --env-file=.env.local scripts/expire-booking-holds.ts --enable"
   },
