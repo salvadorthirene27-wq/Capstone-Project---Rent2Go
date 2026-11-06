@@ -153,7 +153,9 @@ export function VehicleActions({
           )}
         {!editable && !accept && !review && offer.state !== "APPROVED" && (
           <p>
-            {offer.state === "WITHDRAWN"
+            {offer.state === "PUBLISHED"
+              ? "This vehicle is published. Your operating agency manages bookings and availability. Revised terms require a new review."
+              : offer.state === "WITHDRAWN"
               ? "This vehicle is withdrawn. A revised submission, owner consent and compliance review are required before it returns to market."
               : "Waiting for the next reviewer. The submitted version is locked."}
           </p>

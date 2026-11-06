@@ -1,4 +1,3 @@
-import Link from "next/link";
 import {ArrowRight,FileText,CalendarDays,Wallet,ClipboardCheck} from "lucide-react";
 const next:Record<string,{label:string;detail:string;href:string}>={
  REQUIREMENTS_PENDING:{label:"Review booking requirements",detail:"Submit the requested documents and follow the agency's review.",href:"#requirements-heading"},
@@ -23,14 +22,14 @@ const next:Record<string,{label:string;detail:string;href:string}>={
 export function BookingJourney({status}:{status:string}){
  const action=next[status];
  return <section className="booking-journey" aria-label="Booking steps">
-  {action&&<div className="booking-next"><div><span>Next step</span><h2>{action.label}</h2><p>{action.detail}</p></div><Link className="button" href={action.href}>Go to this step<ArrowRight size={17} aria-hidden="true"/></Link></div>}
+  {action&&<div className="booking-next"><div><span>Next step</span><h2>{action.label}</h2><p>{action.detail}</p></div><a className="button" href={action.href}>Go to this step<ArrowRight size={17} aria-hidden="true"/></a></div>}
   <nav aria-label="Booking sections">
-   <Link href="#requirements-heading"><FileText size={17} aria-hidden="true"/>Documents</Link>
-   <Link href="#quotation-heading">Quotation</Link><Link href="#agreement-heading">Agreement</Link>
-   <Link href="#payments-heading"><Wallet size={17} aria-hidden="true"/>Payments</Link>
-   <Link href="#fulfillment-heading"><CalendarDays size={17} aria-hidden="true"/>Service</Link>
-   <Link href="#assessment-title"><ClipboardCheck size={17} aria-hidden="true"/>Assessment</Link>
-   <Link href="#refunds-heading">Refunds</Link><Link href="#cancellation-heading">Cancellation</Link>
+   <a href="#requirements-heading"><FileText size={17} aria-hidden="true"/>Documents</a>
+   <a href="#quotation-heading">Quotation</a><a href="#agreement-heading">Agreement</a>
+   <a href="#payments-heading"><Wallet size={17} aria-hidden="true"/>Payments</a>
+   <a href="#fulfillment-heading"><CalendarDays size={17} aria-hidden="true"/>Service</a>
+   <a href="#assessment-title"><ClipboardCheck size={17} aria-hidden="true"/>Assessment</a>
+   <a href="#refunds-heading">Refunds</a><a href="#cancellation-heading">Cancellation</a>
   </nav>
  </section>;
 }

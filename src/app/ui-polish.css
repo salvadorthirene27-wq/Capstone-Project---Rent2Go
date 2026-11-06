@@ -81,6 +81,7 @@ details[open] > summary { color: var(--deep); }
 .assessment-totals dd { margin:0; font-weight:600; }
 .assessment-charge { padding:16px 0; border-top:1px solid var(--line); }
 .booking-assessments fieldset { display:grid; gap:16px; margin:24px 0; }
+.booking-assessments button[aria-pressed="true"] { background:var(--forest); border-color:var(--forest); color:white; }
 .assessment-check { display:flex; gap:12px; align-items:flex-start; }
 .assessment-check input { flex-shrink:0; margin-top:4px; }
 .assessment-draft .field { display:grid; gap:8px; margin-bottom:16px; }

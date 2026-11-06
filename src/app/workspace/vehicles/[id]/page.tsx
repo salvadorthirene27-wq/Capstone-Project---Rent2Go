@@ -2,6 +2,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Workspace } from "@/components/workspace";
 import { VehicleEditor } from "@/components/vehicles/vehicle-editor";
+import { OwnerAllocationReviews } from "@/components/vehicles/owner-allocation-reviews";
 import { pageActor } from "@/lib/page-actor";
 import { vehicleDetail } from "@/modules/vehicles/service";
 import { DomainError } from "@/modules/partners/workflow";
@@ -43,7 +44,9 @@ export default async function Page({
           </>
         )}
       </p>
+      {detail.ownership==='CONSIGNED'&&detail.ownerId===actor.id&&<p><a href="#owner-allocation-title">Review this vehicle’s charge allocations</a></p>}
       <VehicleEditor key={`${detail.id}:${detail.version}`} initial={detail} />
+      {detail.ownership==='CONSIGNED'&&detail.ownerId===actor.id&&<OwnerAllocationReviews offerId={detail.id}/>}
     </Workspace>
   );
 }

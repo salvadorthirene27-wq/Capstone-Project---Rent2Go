@@ -10,6 +10,7 @@ import {lockBookingAuthority} from "./quotation";
 import {calculateAssessmentProposal} from "./assessment-calculation";
 import {assessmentSource,assessmentFunds} from "./assessment-source";
 import {assessmentCommand,assessmentQuery} from "./assessment-schema";
+import {ownerAllocationSummary} from "./owner-allocation";
 
 async function context(c:PoolClient,actor:Actor,id:string,lock=false){
  const r=(await c.query(`SELECT id,agency_id,renter_id,status,version FROM booking_request WHERE id=$1${lock?' FOR UPDATE':''}`,[uuid.parse(id)])).rows[0],user=await storedActor(actor,c);
@@ -37,7 +38,7 @@ async function projection(c:PoolClient,ctx:Context,historyPage=1){
  const history=(await c.query(`${rowsSql} WHERE a.request_id=$1 ORDER BY a.revision DESC LIMIT 20 OFFSET $2`,[ctx.r.id,(historyPage-1)*20])).rows.map(r=>view(ctx,r,source));
  const effective=(await c.query(`${rowsSql} WHERE a.request_id=$1 AND d.decision='ACCEPT' ORDER BY a.revision DESC LIMIT 1`,[ctx.r.id])).rows[0];
  return {requestId:ctx.r.id as string,requestVersion:ctx.r.version as number,status:ctx.r.status as string,isOwner:ctx.owner,isOperator:ctx.operator,source,
- canPropose:ctx.operator&&Boolean(source&&!source.blockedReason)&&(!current||Boolean(current.decision)),current:current?view(ctx,current,source):null,effective:effective?view(ctx,effective,source):null,history,historyPage,historyPages:Math.max(1,Math.ceil(total/20))};
+  canPropose:ctx.operator&&Boolean(source&&!source.blockedReason)&&(!current||Boolean(current.decision)),current:current?view(ctx,current,source):null,effective:effective?view(ctx,effective,source):null,history,historyPage,historyPages:Math.max(1,Math.ceil(total/20)),ownerAllocationReviews:current?await ownerAllocationSummary(c,ctx.r.id,current.id,ctx.operator):[]};
 }
 export type AssessmentState=Awaited<ReturnType<typeof projection>>;
 export async function getAssessments(actor:Actor,id:string,query:unknown={}){
