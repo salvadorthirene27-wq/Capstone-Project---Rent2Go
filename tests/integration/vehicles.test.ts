@@ -722,4 +722,4 @@ it("withdraws vehicle modes that the effective approved agency policy no longer 
     reason: "Rental service is no longer enabled.",
   });
   expect(published.state).toBe("WITHDRAWN");
-}, 30000);
+}, 60000); // Two complete consignment approvals plus a reviewed policy revision use many real network transactions.

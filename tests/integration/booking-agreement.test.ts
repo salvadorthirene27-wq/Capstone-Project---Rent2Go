@@ -66,7 +66,8 @@ it("withdraws pending documents without extending holds and preserves the exact 
  const second=await issue(withdrawn);expect(second.agreement!.revision).toBe(2);expect(second.agreement!.expiresAt).toBe(first.agreement!.expiresAt);
  const old=await getAgreementById(renter,first.agreement!.id);expect(old.agreement.id).toBe(first.agreement!.id);expect(old.agreement.outcome).toBe("WITHDRAWN");expect(second.history).toHaveLength(2);
  await expect(getAgreementById(foreign,first.agreement!.id)).rejects.toMatchObject({status:404});
-});
+},60000); // Full booking/quote/withdraw/reissue flow uses many native database round trips.
+
 it("rechecks current actor and agency after storage without creating signature evidence",async()=>{
  const s=await issue(await accepted()),input=sign(s);await authorizeAgreementSignature(renter,s.requestId,input);
  try{await db.query("UPDATE app_actor SET suspended=true WHERE id=$1",[renter.id]);await expect(attachAgreementSignature(renter,s.requestId,input,file())).rejects.toMatchObject({status:403});}finally{await db.query("UPDATE app_actor SET suspended=false WHERE id=$1",[renter.id]);}

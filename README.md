@@ -68,3 +68,7 @@ While running a local demonstration, launch `npx tsx --env-file=.env.local scrip
 ## Account and privacy review
 
 Account holders can open `/account-status` to request account information, an exact display-name correction, privacy removal review, deactivation or reactivation. Requests require independent Super Admin review at `/admin/privacy`; necessary financial/booking/consent history is retained. Existing obligations must be resolved before voluntary deactivation. Disabled users retain only their own status/review portal. Super Admin user-access and limited audit views are at `/admin/users` and `/admin/audit`. See [account/privacy workflow](docs/workflows/account-privacy-governance.md). These features do not claim immediate erasure or deletion of the managed authentication account.
+
+## Private backup and recovery
+
+`npm run backup:export -- --tools ABSOLUTE_PG_BIN --folder PRIVATE_NEW_FOLDER` exports a consistent logical database and verified file objects. `npm run backup:verify-restore -- --tools ABSOLUTE_PG_BIN --folder PRIVATE_PACKAGE` checks restoration in a fresh isolated database; it cannot overwrite the app/test databases or current bucket. Packages stay outside this repository. See [the exact scope and operator steps](docs/workflows/backup-recovery.md), including provider-owned defaults and external Auth/storage cutover limits.

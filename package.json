@@ -16,7 +16,9 @@
     "email:verify": "tsx --env-file=.env.local scripts/verify-email.ts",
     "email:process": "tsx --env-file=.env.local scripts/process-email.ts --enable-email",
     "email:recover": "tsx --env-file=.env.local scripts/process-email.ts --recover-only",
-    "email:self-check": "tsx --env-file=.env.local scripts/email-self-check.ts --send-self-check"
+    "email:self-check": "tsx --env-file=.env.local scripts/email-self-check.ts --send-self-check",
+    "backup:export": "tsx --env-file=.env.local scripts/recovery.ts export",
+    "backup:verify-restore": "tsx --env-file=.env.local scripts/recovery.ts restore-isolated"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.1000.0",
