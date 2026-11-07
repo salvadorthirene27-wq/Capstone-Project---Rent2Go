@@ -1,6 +1,7 @@
 "use client";
 import {useEffect,useRef,useState} from 'react';
 import {Mail,RefreshCw} from 'lucide-react';
+import Link from 'next/link';
 import type {EmailSettings} from '@/modules/email/service';
 import {date} from '@/modules/partners/presentation';
 
@@ -27,7 +28,8 @@ export function EmailUpdates(){
    <button type="button" className="button secondary" disabled={busy} onClick={()=>void load(undefined,data?.page??1)}><RefreshCw size={16} aria-hidden="true"/>{busy?'Loading…':'Refresh email settings'}</button>
    {data&&<>
     <p className="preserve-lines"><strong>Account email:</strong> {data.email}</p>
-    {!data.verified&&<p className="notice">Verify your account email before enabling email updates.</p>}
+    {data.emailChanged&&<p className="notice">Your account email changed. Save your preferences again to choose updates for this address. Earlier queued emails will not be sent.</p>}
+    {!data.verified&&<p className="notice">Verify your account email before enabling email updates. <Link href="/workspace/account">Open account verification</Link></p>}
     {!data.sendingEnabled&&<p className="notice">Email sending is currently paused. Your in-app updates remain available.</p>}
     <form onSubmit={e=>{e.preventDefault();void load({action:'PREFERENCE',version:data.version,enabled,acknowledgement:ack});}}>
      <fieldset disabled={busy}><legend>Email preferences</legend>

@@ -16,6 +16,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
   <nav id="workspace-links" className="workspace-navigation-groups" aria-label="Workspace navigation" onClick={e=>{if((e.target as Element).closest('a'))setOpen(false);}}>
    <Link href="/workspace"><Home size={19} aria-hidden="true"/>Workspace home</Link>
    <Link href="/workspace/notifications"><Bell size={19} aria-hidden="true"/>Notifications</Link>
+   <Link href="/workspace/account"><ShieldCheck size={19} aria-hidden="true"/>Account & security</Link>
    {agency&&<div className="workspace-nav-group"><p>Agency workspace</p>
     <Link href={`/agency/${agency}`} exact><LayoutDashboard size={19} aria-hidden="true"/>Agency overview</Link>
     <Link href={`/agency/${agency}/bookings`}><ClipboardList size={19} aria-hidden="true"/>Agency bookings</Link>

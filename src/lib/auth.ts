@@ -13,7 +13,7 @@ export async function requireActor() {
     throw new DomainError("Sign in to continue.", 401);
   const u = session.user;
   await db.query(
-    "INSERT INTO app_actor(id,email,name) VALUES($1,$2,$3) ON CONFLICT(id) DO NOTHING",
+    "INSERT INTO app_actor(id,email,name) VALUES($1,$2,$3) ON CONFLICT(id) DO UPDATE SET email=excluded.email WHERE app_actor.email IS DISTINCT FROM excluded.email",
     [u.id, u.email, u.name || "Rent2Go user"],
   );
   return storedActor({ id: u.id });

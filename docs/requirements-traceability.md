@@ -45,3 +45,5 @@ Authority updated 5 November 2026: user-approved 82-page `RENT2GO_REFINED_MANUSC
 The approved manuscript and revised workflow figures have been reviewed. New-system development evidence is recorded per module in STATUS.md; formal human usability results remain uncollected. Tests from Marc Albert's repository do not validate this system.
 
 Notification email evidence: optional verified-session opt-in, four transaction-linked future-event sources, recipient history, definite-rejection retries, unknown-outcome recovery and one user-confirmed sender-only Gmail message. See workflows/email-updates.md. Managed Auth verification/reset delivery and full operational launch/recovery remain distinct verification items.
+
+Account-security evidence: authenticated current-account verification, three-step code/password recovery, current-password refusal at the application auth proxy, preserved application roles/suspension and fresh consent after email changes. Live user-performed registration/verification/reset/reuse-refusal/new-sign-in and scoped session-ID revocation checks are recorded in workflows/account-security.md.

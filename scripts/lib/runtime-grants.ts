@@ -30,6 +30,9 @@ export async function grantRuntimePrivileges(client:Pick<PoolClient,"query">){
    -- still rejects every actual update, including this identity column.
    GRANT UPDATE(id) ON email_message TO rent2go_app;
   END IF;
+  IF to_regprocedure('public.rent2go_current_credential_digest(text)') IS NOT NULL THEN
+   GRANT EXECUTE ON FUNCTION rent2go_current_credential_digest(text) TO rent2go_app;
+  END IF;
   IF to_regclass('public.booking_assessment') IS NOT NULL THEN
    GRANT SELECT,INSERT ON booking_assessment_command,booking_assessment,booking_assessment_decision TO rent2go_app;
   END IF;

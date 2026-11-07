@@ -26,7 +26,8 @@ async function projection(c:PoolClient,user:Actor,identity:EmailIdentity,page:nu
  const rows=(await c.query(`SELECT m.id,m.source,m.created_at,m.preference_version,m.email,(m.created_at<clock_timestamp()-interval '7 days') expired,a.ordinal,a.dispatch_at,r.outcome,r.reason,r.created_at finished_at
  FROM email_message m JOIN LATERAL(SELECT * FROM email_attempt WHERE message_id=m.id ORDER BY ordinal DESC LIMIT 1)a ON true
  LEFT JOIN email_result r ON r.attempt_id=a.id WHERE m.recipient_id=$1 ORDER BY m.created_at DESC,m.id DESC LIMIT 20 OFFSET $2`,[user.id,(page-1)*20])).rows;
- return {enabled:preference?.enabled??false,version:preference?.version??0,email:identity.email,
+ const emailChanged=Boolean(preference&&preference.email.toLowerCase()!==identity.email.toLowerCase());
+ return {enabled:Boolean(preference?.enabled&&!emailChanged),emailChanged,version:preference?.version??0,email:identity.email,
   verified:identity.id===user.id&&identity.emailVerified&&identity.email.toLowerCase()===user.email?.toLowerCase(),
   sendingEnabled:process.env.EMAIL_SEND_ENABLED==='true',page,pageCount,total,
   items:rows.map(r=>({id:r.id as string,source:r.source as string,createdAt:(r.created_at as Date).toISOString(),attempts:r.ordinal as number,status:(r.outcome??(r.dispatch_at?'SENDING':'QUEUED')) as string,reason:(r.reason??'') as string,canRetry:Boolean(r.outcome==='REJECTED'&&r.ordinal<3&&!r.expired&&preference?.enabled&&preference.version===r.preference_version&&preference.email===r.email&&identity.emailVerified&&identity.email.toLowerCase()===r.email.toLowerCase()),finishedAt:r.finished_at?(r.finished_at as Date).toISOString():null}))};
