@@ -2229,6 +2229,15 @@ td .text-link {
 .notification-actions { display:flex; flex-wrap:wrap; gap:12px; align-items:center; margin-top:20px; }
 .inbox-access-note { margin:0; color:var(--muted); font-size:.875rem; }
 @media(max-width:600px) { .inbox-toolbar,.notification-card { padding:20px; } .inbox-toolbar>* { width:100%; } .inbox-heading h1 { font-size:1.75rem; } .inbox-unread-count { margin-top:8px; } .notification-actions .button { width:100%; } }
+.document-text-assistance { margin:20px 0; padding:20px; border:1px solid var(--line); border-radius:var(--radius); background:var(--surface); }
+.document-text-assistance summary { font-weight:600; cursor:pointer; min-height:44px; padding:10px 0; color:var(--deep); }
+.document-text-assistance fieldset { padding:20px 0; border:0; min-width:0; }
+.document-text-assistance legend { font-weight:600; padding:0; }
+.ocr-check { display:flex; gap:12px; align-items:flex-start; margin:20px 0; line-height:1.6; }
+.ocr-check input { flex:0 0 auto; width:20px; min-height:20px; height:20px; margin-top:3px; accent-color:var(--forest); }
+.ocr-text { white-space:pre-wrap; overflow-wrap:anywhere; background:var(--soft); color:var(--ink); padding:20px; border-radius:var(--radius); max-height:420px; overflow:auto; font-family:inherit; font-size:1rem; line-height:1.7; }
+.ocr-permission,.ocr-result { border-top:1px solid var(--line); padding-top:20px; margin-top:24px; }
+@media(max-width:600px) { .document-text-assistance { padding:16px; } .document-text-assistance .button { width:100%; margin-right:0; } }
 .extra-charge-policies { margin:32px 0 8px; padding-top:24px; border-top:1px solid #d5dfdb; }
 .extra-charge-choice { margin:16px 0; padding:16px 20px; border:1px solid #d5dfdb; border-radius:12px; }
 .extra-charge-check { display:flex; align-items:flex-start; gap:12px; font-weight:600; }

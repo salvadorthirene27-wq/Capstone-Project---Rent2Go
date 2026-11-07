@@ -1,6 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import {DocumentTextAssistance} from './document-ocr';
 
 type Purpose = "IDENTITY" | "DRIVER_LICENSE";
 type Evidence = { id: string; purpose: Purpose; name: string; mime: string; size: number; uploadedAt: string; status: "PENDING" | "ACCEPTED" | "CHANGES_REQUESTED"; reason: string; expiresOn: string | null };
@@ -74,6 +75,7 @@ export function BookingRequirements({ requestId }: { requestId: string }) {
           {file ? <>
             <p><a href={`/api/booking-files/${encodeURIComponent(file.id)}`} target="_blank" rel="noopener noreferrer">{file.name}</a> · {statuses[file.status]}<br/>{Math.ceil(file.size / 1024)} KB · Uploaded {file.uploadedAt.slice(0, 10)}<br/>Expiry: {file.expiresOn || "Not provided"}</p>
             {file.reason && <p className="preserve-lines"><strong>Review reason:</strong> {file.reason}</p>}
+            <DocumentTextAssistance key={file.id} requestId={requestId} fileId={file.id} version={data.requestVersion} disabled={blocked}/>
           </> : <p>No document uploaded.</p>}
           {editable && <form onSubmit={async event => {
             event.preventDefault(); const form = event.currentTarget, body = new FormData(form), selected = (form.elements.namedItem("file") as HTMLInputElement).files?.[0];

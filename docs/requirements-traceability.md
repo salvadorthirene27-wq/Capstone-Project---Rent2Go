@@ -10,7 +10,7 @@ Authority updated 5 November 2026: user-approved 82-page `RENT2GO_REFINED_MANUSC
 | Consigned vehicle documents/review | 17, 22, 35, 46 | Ownership, agency partnership, platform compliance, Cosigner workspace; TST-09 |
 | Rule-based recommendations | 14, 18, 26, 32 | Eligibility filtering, declared preference ranking, honest popularity |
 | Request → human review → approval → quote → agreement | 20–21, 31, 33, 44 | Explicit lifecycle and immutable revisions; TST-03/05 |
-| Private documents and OCR assistance | 13–14, 21, 26, 33, 49 | Private file authorization, OCR adapter, human final decision; TST-04 |
+| Private documents and OCR assistance | 13–14, 21, 26, 33, 49 | Private file authorization, exact-document OCR consent/jobs/results and independent human comparison implemented; actual synthetic provider and role/race checks; TST-04 |
 | Manual GCash/cash payment review | 14, 21, 26, 31, 34 | Evidence/review and collection records; TST-06 |
 | Pre/post condition, release/return | 18, 26, 31, 34 | Inspection and fulfillment gates; TST-07 |
 | Pre-release cancellation and reviewed refund | 21, 26, 31 | Independent cancellation/refund/settlement records; TST-08 |

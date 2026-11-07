@@ -18,6 +18,10 @@ export async function grantRuntimePrivileges(client:Pick<PoolClient,"query">){
   IF to_regclass('public.notification_read_receipt') IS NOT NULL THEN
    GRANT SELECT,INSERT ON vehicle_notification,notification_read_receipt TO rent2go_app;
   END IF;
+  IF to_regclass('public.booking_ocr_job') IS NOT NULL THEN
+   GRANT SELECT,INSERT ON booking_ocr_command,booking_ocr_consent,booking_ocr_job,booking_ocr_result,booking_ocr_review TO rent2go_app;
+   GRANT UPDATE(dispatch_at,ended_at) ON booking_ocr_job TO rent2go_app;
+  END IF;
   IF to_regclass('public.booking_assessment') IS NOT NULL THEN
    GRANT SELECT,INSERT ON booking_assessment_command,booking_assessment,booking_assessment_decision TO rent2go_app;
   END IF;
