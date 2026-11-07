@@ -1,0 +1,17 @@
+import {beforeAll,afterAll,it,expect} from 'vitest';
+import {randomUUID} from 'node:crypto';
+import {db} from '../../src/lib/db';
+import {createPrivacyCase} from '../../src/modules/governance/privacy';
+import {getInbox,markNotificationsRead,notificationEmailPermitted} from '../../src/modules/notifications/service';
+const user={id:randomUUID(),role:'RENTER' as const},admin={id:randomUUID(),role:'SUPER_ADMIN' as const},foreign={id:randomUUID(),role:'RENTER' as const};let caseId:string,notice:string;
+beforeAll(async()=>{for(const u of [user,admin,foreign])await db.query("INSERT INTO app_actor(id,email,name,role)VALUES($1,$2,'Synthetic governance notice participant',$3)",[u.id,`${u.id}@example.test`,u.role]);caseId=(await createPrivacyCase(user,{idempotencyKey:randomUUID(),kind:'ACCESS',message:'PRIVATE request details remain only inside the protected case.',acknowledged:true})).id;notice=(await db.query('SELECT id FROM governance_notification WHERE recipient_id=$1 AND case_id=$2',[user.id,caseId])).rows[0].id;},30000);
+afterAll(()=>db.end());
+it('delivers generic recipient-only case links and exact durable read receipts',async()=>{
+ const own=await getInbox(user,{category:'GOVERNANCE'});expect(own.items[0].link).toBe(`/account-status/privacy/${caseId}`);expect(JSON.stringify(own)).not.toContain('PRIVATE');const platform=await getInbox(admin,{category:'GOVERNANCE'});expect(platform.items[0].link).toBe(`/admin/privacy/${caseId}`);expect((await getInbox(foreign,{category:'GOVERNANCE'})).total).toBe(0);await markNotificationsRead(user,{items:[{source:'GOVERNANCE',id:notice}]});expect((await getInbox(user,{category:'GOVERNANCE'})).items[0].readAt).not.toBeNull();await expect(markNotificationsRead(foreign,{items:[{source:'GOVERNANCE',id:notice}]})).rejects.toMatchObject({status:404});
+});
+it('redacts former-reviewer access and gates queued email using the current source authority',async()=>{
+ const n=(await getInbox(admin,{category:'GOVERNANCE'})).items[0],c=await db.connect();try{expect(await notificationEmailPermitted(c,admin,'GOVERNANCE',n.id)).toBe(true);await db.query("UPDATE app_actor SET role='RENTER' WHERE id=$1",[admin.id]);const changed=await getInbox(admin,{category:'GOVERNANCE'});expect(changed.items[0].link).toBeNull();expect(changed.items[0].message).toContain('Source access changed');expect(await notificationEmailPermitted(c,{...admin,role:'RENTER'},'GOVERNANCE',n.id)).toBe(false);}finally{c.release();}
+});
+it('maps the sixth email source atomically without dispatching or exposing an enabled fixture to other processors',async()=>{
+ const c=await db.connect(),notification=randomUUID();try{await c.query('BEGIN');await c.query('INSERT INTO email_preference(actor_id,email,enabled,version)VALUES($1,$2,true,1)',[user.id,`${user.id}@example.test`]);await c.query("INSERT INTO governance_notification(id,recipient_id,case_id,message)VALUES($1,$2,$3,'Generic protected update')",[notification,user.id,caseId]);const queued=(await c.query('SELECT source,recipient_id,notification_id FROM email_message WHERE notification_id=$1',[notification])).rows[0];expect(queued).toEqual({source:'GOVERNANCE',recipient_id:user.id,notification_id:notification});expect((await c.query("SELECT email_source_recipient('GOVERNANCE',$1) recipient",[notification])).rows[0].recipient).toBe(user.id);await c.query('ROLLBACK');expect((await db.query('SELECT 1 FROM email_message WHERE notification_id=$1',[notification])).rowCount).toBe(0);}finally{await c.query('ROLLBACK');c.release();}
+});

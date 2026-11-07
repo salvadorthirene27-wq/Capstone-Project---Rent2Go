@@ -6,6 +6,7 @@ export async function pageActor() {
     return await requireActor();
   } catch (e) {
     if (e instanceof DomainError && e.status === 401) redirect("/login");
+    if (e instanceof DomainError && e.status === 403) redirect("/account-status");
     throw e;
   }
 }

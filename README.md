@@ -60,3 +60,7 @@ The interface complements the original develop version's forest green/mint brand
 ## Quotation expiry
 
 While running a local demonstration, launch `npx tsx --env-file=.env.local scripts/expire-booking-holds.ts --enable` in a separate terminal. Stop any earlier unmanaged launcher first. The managed launcher refuses duplicate instances; `--once` performs one bounded pass. Stop the worker when the demonstration ends. Super Admin can inspect `/admin/operations` for recent contact, successful batches and backlog. See [service-health workflow](docs/workflows/service-health.md). This does not enable notification email sending.
+
+## Account and privacy review
+
+Account holders can open `/account-status` to request account information, an exact display-name correction, privacy removal review, deactivation or reactivation. Requests require independent Super Admin review at `/admin/privacy`; necessary financial/booking/consent history is retained. Existing obligations must be resolved before voluntary deactivation. Disabled users retain only their own status/review portal. Super Admin user-access and limited audit views are at `/admin/users` and `/admin/audit`. See [account/privacy workflow](docs/workflows/account-privacy-governance.md). These features do not claim immediate erasure or deletion of the managed authentication account.

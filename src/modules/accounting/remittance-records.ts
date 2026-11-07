@@ -2,12 +2,13 @@ import {z} from 'zod';
 import {transaction} from '../../lib/db';
 import {uuid} from '../../lib/http';
 import {DomainError,type Actor} from '../partners/workflow';
+import {audit} from '../partners/service';
 import {remittanceContext} from './remittance-source';
 export const platformRecordKind=z.enum(['REMITTANCE','RECEIPT','AGENCY_CREDIT','CREDIT_APPLICATION']);
 export async function remittanceEvidenceForRead(actor:Actor,id:string){return transaction(async c=>{
- await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');
+ await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ');
  const row=(await c.query('SELECT t.file_id,t.mime,t.backend,a.id account_id,a.agency_id,a.environment FROM platform_remittance_attempt t JOIN platform_account a ON a.id=t.account_id WHERE t.file_id=$1',[uuid.parse(id)])).rows[0];if(!row)throw new DomainError('Private remittance evidence not found.',404);
- await remittanceContext(c,actor,{agencyId:row.agency_id,environment:row.environment});return {objectKey:`${row.account_id}/${row.file_id}`,mime:row.mime as string,backend:row.backend as string,name:`remittance-${row.file_id}.${row.mime==='image/png'?'png':row.mime==='image/jpeg'?'jpg':'pdf'}`};
+ const ctx=await remittanceContext(c,actor,{agencyId:row.agency_id,environment:row.environment});await audit(c,ctx.user,'REMITTANCE_EVIDENCE_VIEWED',id,{agencyId:row.agency_id,environment:row.environment});return {objectKey:`${row.account_id}/${row.file_id}`,mime:row.mime as string,backend:row.backend as string,name:`remittance-${row.file_id}.${row.mime==='image/png'?'png':row.mime==='image/jpeg'?'jpg':'pdf'}`};
 });}
 export async function getPlatformRecord(actor:Actor,kindInput:string,idInput:string){
  const kind=platformRecordKind.parse(kindInput),id=uuid.parse(idInput),table={REMITTANCE:'platform_remittance',RECEIPT:'platform_remittance_receipt',AGENCY_CREDIT:'platform_agency_credit',CREDIT_APPLICATION:'platform_credit_application'}[kind];

@@ -2264,3 +2264,11 @@ td .text-link {
 .remittance-account .assessment-record > .button + .button { margin-inline-start: 8px; }
 .remittance-account :is(h2,h3)[id] { scroll-margin-top: 110px; }
 @media (max-width: 480px) { .remittance-account .assessment-record { padding: 18px; } .remittance-account .assessment-record > .button + .button { margin-inline-start: 0; margin-block-start: 8px; } }
+
+.account-status-page { max-width: 900px; margin: 40px auto; padding: 24px; min-width: 0; }
+.privacy-review { min-width: 0; margin-block: 28px; overflow-wrap: anywhere; }
+.privacy-review fieldset { min-inline-size: 0; border: 1px solid var(--line); border-radius: 16px; padding: 24px; margin-block: 24px; }
+.privacy-review legend { font-size: 1.05rem; color: var(--deep); }
+.privacy-review .assessment-check { min-height: 44px; margin-block: 20px; line-height: 1.6; }
+.privacy-review .assessment-check input { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--forest); }
+@media(max-width:480px) { .account-status-page { margin-block: 16px; padding: 20px; } .privacy-review fieldset { padding: 18px; } }

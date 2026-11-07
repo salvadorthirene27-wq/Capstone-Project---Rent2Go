@@ -17,6 +17,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
    <Link href="/workspace"><Home size={19} aria-hidden="true"/>Workspace home</Link>
    <Link href="/workspace/notifications"><Bell size={19} aria-hidden="true"/>Notifications</Link>
    <Link href="/workspace/account"><ShieldCheck size={19} aria-hidden="true"/>Account & security</Link>
+   <Link href="/account-status"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy requests</Link>
    {agency&&<div className="workspace-nav-group"><p>Agency workspace</p>
     <Link href={`/agency/${agency}`} exact><LayoutDashboard size={19} aria-hidden="true"/>Agency overview</Link>
     <Link href={`/agency/${agency}/bookings`}><ClipboardList size={19} aria-hidden="true"/>Agency bookings</Link>
@@ -47,6 +48,9 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href="/admin/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>Platform reports</Link>
     <Link href="/admin/remittances"><Wallet size={19} aria-hidden="true"/>Agency remittances</Link>
     <Link href="/admin/operations"><ShieldCheck size={19} aria-hidden="true"/>Service health</Link>
+    <Link href="/admin/privacy"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy review</Link>
+    <Link href="/admin/users"><ShieldCheck size={19} aria-hidden="true"/>User access & roles</Link>
+    <Link href="/admin/audit"><ClipboardList size={19} aria-hidden="true"/>Audit review</Link>
    </div>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>
   </nav>

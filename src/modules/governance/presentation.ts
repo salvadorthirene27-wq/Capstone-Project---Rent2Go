@@ -1,0 +1,1 @@
+export const privacyLabels:Record<string,string>={ACCESS:'Account information',CORRECTION:'Display-name correction',REMOVAL:'Privacy removal review',DEACTIVATION:'Account deactivation',REACTIVATION:'Account reactivation'};

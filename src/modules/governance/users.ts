@@ -1,0 +1,31 @@
+import {randomUUID} from 'node:crypto';
+import {z} from 'zod';
+import type {PoolClient} from 'pg';
+import {transaction} from '../../lib/db';
+import {uuid,versionSchema} from '../../lib/http';
+import {storedActor,audit} from '../partners/service';
+import {DomainError,type Actor} from '../partners/workflow';
+import {notifyUserAccess} from './notifications';
+import {digest} from '../cart/pricing';
+const actorId=z.string().min(1).max(128),reason=z.string().trim().min(10).max(3000);
+export const userQuery=z.object({search:z.string().trim().max(80).default(''),page:z.coerce.number().int().min(1).max(10000).default(1)}).strict();
+export const userCommand=z.object({version:versionSchema,digest:z.string().regex(/^[a-f0-9]{64}$/),idempotencyKey:uuid,action:z.enum(['SUSPEND','REACTIVATE','CHANGE_ROLE']),role:z.enum(['RENTER','COSIGNER','AGENCY_ADMIN','SUPER_ADMIN']).optional(),reason,acknowledged:z.literal(true)}).strict().refine(v=>(v.action==='CHANGE_ROLE')===(v.role!==undefined),{path:['role'],message:'Choose a role only for a role change.'});
+async function admin(c:PoolClient,actor:Actor){const u=await storedActor(actor,c);if(u.role!=='SUPER_ADMIN'||(await c.query('SELECT is_test_fixture FROM app_actor WHERE id=$1',[u.id])).rows[0]?.is_test_fixture)throw new DomainError('Platform user-governance access is required.',403);return u;}
+const safeUser=(r:any)=>{const value={id:r.id as string,name:r.name as string,role:r.role as Actor['role'],suspended:r.suspended as boolean,version:r.governance_version as number};return {...value,digest:digest(value)};};
+async function subject(c:PoolClient,id:string){const r=(await c.query("SELECT id,name,role,suspended,governance_version FROM app_actor WHERE id=$1 AND NOT is_test_fixture AND id NOT LIKE 'system:%'",[actorId.parse(id)])).rows[0];if(!r)throw new DomainError('User account not found.',404);return r;}
+async function view(c:PoolClient,user:Actor,id:string){const r=safeUser(await subject(c,id)),history=(await c.query('SELECT action,reason,body,created_at FROM account_governance_event WHERE subject_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20',[id])).rows;return {...r,isSelf:user.id===id,history:history.map(e=>({action:e.action as string,reason:e.reason as string,body:e.body as Record<string,unknown>,createdAt:(e.created_at as Date).toISOString()}))};}
+export async function getGovernanceUser(actor:Actor,id:string){return transaction(async c=>{await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');return view(c,await admin(c,actor),id);});}
+export type GovernanceUser=Awaited<ReturnType<typeof getGovernanceUser>>;
+export async function getGovernanceUsers(actor:Actor,input:unknown={}){return transaction(async c=>{
+ await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');await admin(c,actor);const q=userQuery.parse(input),where="NOT is_test_fixture AND id NOT LIKE 'system:%' AND ($1::text='' OR strpos(lower(name),lower($1))>0 OR id=$1)",rows=(await c.query(`SELECT id,name,role,suspended,governance_version FROM app_actor WHERE ${where} ORDER BY name,id LIMIT 20 OFFSET $2`,[q.search,(q.page-1)*20])).rows,total=Number((await c.query(`SELECT count(*) n FROM app_actor WHERE ${where}`,[q.search])).rows[0].n);return {search:q.search,page:q.page,pageCount:Math.max(1,Math.ceil(total/20)),items:rows.map(safeUser),total};
+});}
+export async function changeGovernanceUser(actor:Actor,idInput:string,input:unknown){const id=actorId.parse(idInput),command=userCommand.parse(input);try{return await transaction(async c=>{
+ await c.query('SELECT pg_advisory_xact_lock(481038)');await c.query('SELECT id FROM app_actor WHERE id=ANY($1::text[]) ORDER BY id FOR UPDATE',[[...new Set([actor.id,id])].sort()]);const u=await admin(c,actor),old=await subject(c,id);if(u.id===id)throw new DomainError('Another active Super Admin must review changes to your own account.',403);
+ const hash=digest({id,command}),retry=(await c.query('SELECT digest FROM account_governance_command WHERE actor_id=$1 AND request_key=$2',[u.id,command.idempotencyKey])).rows[0];if(retry){if(retry.digest!==hash)throw new DomainError('This retry key belongs to another account action.',409);return view(c,u,id);}
+ const saved=safeUser(old);if(saved.version!==command.version||saved.digest!==command.digest)throw new DomainError('This account changed. Review its current role and access again.',409);
+ if(command.action==='SUSPEND'&&old.suspended||command.action==='REACTIVATE'&&!old.suspended||command.action==='CHANGE_ROLE'&&old.role===command.role)throw new DomainError('This account already has the requested setting.',409);
+ if(command.action==='CHANGE_ROLE'&&command.role==='AGENCY_ADMIN'&&!(await c.query('SELECT 1 FROM agency WHERE owner_id=$1 UNION ALL SELECT 1 FROM agency_member WHERE actor_id=$1 AND active LIMIT 1',[id])).rowCount)throw new DomainError('An approved agency relationship is required for the agency-admin role.',409);
+ const next=command.action==='CHANGE_ROLE'?(await c.query('UPDATE app_actor SET role=$2 WHERE id=$1 RETURNING id,name,role,suspended,governance_version',[id,command.role])).rows[0]:(await c.query('UPDATE app_actor SET suspended=$2 WHERE id=$1 RETURNING id,name,role,suspended,governance_version',[id,command.action==='SUSPEND'])).rows[0],eventId=randomUUID();
+ await c.query('INSERT INTO account_governance_event(id,subject_id,actor_id,action,reason,before_version,after_version,body)VALUES($1,$2,$3,$4,$5,$6,$7,$8)',[eventId,id,u.id,command.action,command.reason,old.governance_version,next.governance_version,{before:{role:old.role,suspended:old.suspended},after:{role:next.role,suspended:next.suspended},statement:'Existing bookings, financial history, agency ownership and memberships are preserved. Role assignment alone does not create an agency partnership.'}]);
+ await c.query('INSERT INTO account_governance_command(id,actor_id,subject_id,request_key,digest,event_id)VALUES($1,$2,$3,$4,$5,$6)',[randomUUID(),u.id,id,command.idempotencyKey,hash,eventId]);await audit(c,u,'ACCOUNT_'+command.action,eventId,{subjectId:id});await notifyUserAccess(c,eventId);return view(c,u,id);
+ });}catch(e){if((e as {code?:string}).code==='23514')throw new DomainError('This action would leave the platform without an active administrator or violates the saved account rules.',409);throw e;}}

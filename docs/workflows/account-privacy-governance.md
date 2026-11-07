@@ -1,0 +1,28 @@
+# Account access, privacy requests and audit review
+
+Requests use the current verified managed-session identity; the client cannot choose another requester, set a role or bypass suspension. Ordinary application routes still reject suspended accounts. A separate limited account-status portal allows the same person to read their own saved decisions and request information, correction or reactivation. It does not restore booking, agency, financial or administrative permissions.
+
+## Independent privacy review
+
+1. The account holder selects account information, an exact display-name correction, privacy removal review, deactivation or reactivation and acknowledges the explanation. A privacy removal request is a review, not immediate erasure. Only one open request of each type is allowed per person.
+2. A current unsuspended Super Admin reviews the exact saved version and digest. Their own request requires another reviewer. They may request information, decline with a reason or approve the disclosed outcome. A requester can reply to an information request or withdraw an open case. Terminal cases retain immutable history. Repeated information cycles are bounded; final resolution remains possible.
+3. An information approval saves the current account summary. It does not expose another person's records, provider credentials or a complete financial archive. Existing authorized booking and statement workflows remain separate.
+4. An approved correction changes the current application display name. Historical agreements, receipts, evidence and earlier accepted snapshots retain their original names. Email/password changes remain managed authentication workflows.
+5. Approved removal/deactivation disables ordinary workspace access while retaining necessary booking, financial, agreement, consent and evidence history. The result expressly states that data has not been erased. Approval is blocked while existing bookings, open refunds, accepted unpaid credit-refund entitlements, pending credit reviews, withdrawals, owner earnings/recovery, platform dues or agency carry remain unsettled. Refund entitlements are protected even before a renter files a refund request. Fully applied agency carry is calculated across the account, so a grant and its different destination source do not create a false residual.
+6. A disabled person can use the limited status portal to request reactivation. Independent approval restores ordinary access without changing their role, agency approvals, vehicle compliance or historical service commitments. Application suspension does not claim to delete the managed authentication account or revoke provider sessions; every ordinary request still checks the current application actor.
+
+All mutations use current authority, exact optimistic versions and actor-bound retry keys. A transaction-level governance lock and ordered actor locks serialize review with access changes. New booking insertion independently locks and rechecks the renter, preventing a checkout started earlier from committing through a suspension race. Financial posting and owner/platform-source conservation remain governed by their existing workflows.
+
+## User-access management
+
+Super Admin can search paginated display names or exact account references, review current roles and access, and record role changes, temporary suspension or restoration with a substantive reason and explicit acknowledgment. Email addresses and identity documents are not exposed in the directory. Service and fixture identities are excluded. The operator cannot change their own access or role through this screen; another active Super Admin is required. The database also protects the last active administrator.
+
+An agency-admin role requires an actual approved agency relationship. Role assignment alone cannot create ownership or membership. Temporary suspension is distinct from voluntary deactivation, service cancellation, refund execution or data deletion. It preserves existing obligations and can prevent the person from completing their next required action; restore access after resolving the suspension reason before expecting those actions. Every applied change preserves its reason, versions and immutable event/command history.
+
+## Notifications and audit
+
+Generic GOVERNANCE notices link the account holder to their limited status/case portal and current platform reviewers to their authorized review. Former reviewers retain a redacted notice without private source details. Read receipts are exact and recipient-bound. Optional email queues use the same sixth source and current permission checks; this module does not enable or send notification email.
+
+The platform audit view is paginated and can filter exact event codes. It shows event time, record reference and a small whitelist of operational context. Raw reasons, email addresses, credentials, document bytes and unfiltered metadata are not copied into that feed. Saved case reviews and account-access histories have their own narrower authorized views. Recent account histories show their explicit twenty-record bound; earlier events remain preserved.
+
+This workflow implements reviewed access controls and retained history. Automated evidence purging, legal retention periods, ownership sale/transfer and a complete managed-auth/object restore are separate decisions or verification tasks; no data-erasure or completed-restore result is implied.

@@ -14,7 +14,8 @@ const documentRoutes = ["/booking-agreements/", "/booking-inspections/", "/booki
 
 export function Header() {
   const pathname = usePathname();
-  const compact = pathname === "/login" || documentRoutes.some(route => pathname.startsWith(route));
+  const accountPortal=pathname.startsWith("/account-status");
+  const compact = accountPortal || pathname === "/login" || documentRoutes.some(route => pathname.startsWith(route));
   const selected = (href: string) => href === "/" ? pathname === "/" :
     !href.includes("#") && (pathname === href || pathname.startsWith(`${href}/`) ||
       (href === "/rentals" && pathname.startsWith("/cars/")) ||
@@ -54,7 +55,7 @@ export function Header() {
   }
   const brand = <Link className="wordmark" href="/" aria-label="Rent2Go home">Rent2Go<span>.</span></Link>;
   if (compact) return <header className="site-header unified-header compact-header">
-    {brand}<Link href={pathname === "/login" ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{pathname === "/login" ? "Back to marketplace" : "Back to workspace"}</Link>
+    {brand}<Link href={(pathname === "/login" || accountPortal) ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{(pathname === "/login" || accountPortal) ? "Back to marketplace" : "Back to workspace"}</Link>
   </header>;
   return <>
     <header className={`site-header unified-header${open ? " navigation-expanded" : ""}`}

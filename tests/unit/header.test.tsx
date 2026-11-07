@@ -111,3 +111,7 @@ it("dismisses expanded navigation when keyboard focus moves into page content", 
   expect(screen.getByRole("button", { name: "Open navigation" }).getAttribute("aria-expanded")).toBe("false");
   expect(document.activeElement).toBe(screen.getByRole("button", { name: "Page action" }));
 });
+
+it('uses a compact marketplace return for the restricted account-status portal',()=>{
+ state.pathname='/account-status';render(<Header/>);expect(screen.queryByRole('navigation',{name:'Main navigation'})).toBeNull();expect(screen.getByRole('link',{name:'Back to marketplace'}).getAttribute('href')).toBe('/');
+});
