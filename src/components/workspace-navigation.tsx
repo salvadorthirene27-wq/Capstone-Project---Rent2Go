@@ -24,6 +24,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href={`/agency/${agency}/tours`}><Map size={19} aria-hidden="true"/>Tours & packages</Link>
     <Link href={`/agency/${agency}/resources`}><CalendarDays size={19} aria-hidden="true"/>Availability & drivers</Link>
     <Link href={`/agency/${agency}/accounting`}><Wallet size={19} aria-hidden="true"/>Owner earnings & payouts</Link>
+    <Link href={`/agency/${agency}/remittances`}><Building2 size={19} aria-hidden="true"/>Rent2Go remittances</Link>
     <Link href={`/agency/${agency}/reports`}><ChartNoAxesCombined size={19} aria-hidden="true"/>Agency reports</Link>
    </div>}
    <div className="workspace-nav-group"><p>Your bookings</p>
@@ -44,6 +45,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href="/admin" exact><ShieldCheck size={19} aria-hidden="true"/>Partner reviews</Link>
     <Link href="/admin/vehicles"><CarFront size={19} aria-hidden="true"/>Vehicle compliance</Link>
     <Link href="/admin/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>Platform reports</Link>
+    <Link href="/admin/remittances"><Wallet size={19} aria-hidden="true"/>Agency remittances</Link>
    </div>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>
   </nav>

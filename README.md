@@ -1,6 +1,6 @@
 # Rent2Go
 
-A multi-agency car rental and tour marketplace for a capstone project. Rent2Go supports agency onboarding and approval, vehicle consignment and compliance, rental and group/private-tour catalogs, availability-aware search, cart and booking requests, private document review, quotations, agreements, manual and simulated payments, service fulfillment, financial assessment and settlement, owner withdrawals, separately accepted closed-booking credits and earnings recovery, reports, notifications, advisory OCR, and account security. See [implementation status and remaining work](docs/STATUS.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
+A multi-agency car rental and tour marketplace for a capstone project. Rent2Go supports agency onboarding and approval, vehicle consignment and compliance, rental and group/private-tour catalogs, availability-aware search, cart and booking requests, private document review, quotations, agreements, manual and simulated payments, service fulfillment, financial assessment and settlement, owner withdrawals, separately accepted closed-booking credits and earnings recovery, platform remittances and accepted agency credits, reports, notifications, advisory OCR, and account security. See [implementation status and remaining work](docs/STATUS.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
 
 GPS/geofencing is outside this project's scope. The old repository, database and environment file are not used. No adoption figures or usability results are claimed.
 
@@ -35,7 +35,7 @@ The current deployment uses a private Neon S3-compatible bucket. `STORAGE_DRIVER
 
 Uploads support PDF/PNG/JPEG, signature/type checks and an 8 MB limit. Document acceptance is an administrator's review; upload validation does not establish authenticity or perform malware scanning.
 
-Current application forms collect manual cash/GCash and demo card/GCash/PayPal preferences. **They do not yet execute a gateway transaction.** Later demo adapters must remain visibly separated from real financial records. No real charge or settlement is implemented or claimed by this slice.
+Current application forms collect manual cash/GCash and demo card/GCash/PayPal preferences. **They do not yet execute a gateway transaction.** Simulated payment, refund, payout and remittance records stay visibly separate from manual external-payment records. Manual proof is a claim until the applicable independent review confirms it. PayMongo integration remains deferred; no live gateway charge is claimed.
 
 ## Checks
 
@@ -53,6 +53,6 @@ On Windows, the build command loads a process-scoped fallback for asynchronous d
 
 ## Scope and financial policies
 
-Default consigned shares are Cosigner 70%, agency 10%, Rent2Go 10%, vehicle maintenance 10%. Agency-owned cars use agency 80%, Rent2Go 10%, maintenance 10%; tour-only uses agency 90% and Rent2Go 10%. These defaults are configurable by agreement. The agency holds maintenance allocations separately for the vehicle. Refundable deposits are not service revenue. Financial posting, payouts and accounting are future modules, not implied by an approved application.
+Default consigned shares are Cosigner 70%, agency 10%, Rent2Go 10%, vehicle maintenance 10%. Agency-owned cars use agency 80%, Rent2Go 10%, maintenance 10%; tour-only uses agency 90% and Rent2Go 10%. These defaults are configurable by agreement. The agency holds maintenance allocations separately for the vehicle. Refundable deposits are not service revenue. Financial posting uses exact accepted settlements and conserved immutable allocations. Owner withdrawals/payouts and platform remittances are recorded separately; approval, a reservation, or an upload alone is not proof of payment. Later credits preserve the original financial records and require the affected parties’ exact acceptance. See [platform remittance workflow](docs/workflows/platform-remittances.md).
 
 The interface complements the original develop version's forest green/mint branding with newly implemented source. See [product context](PRODUCT.md) and [design reference](DESIGN.md).

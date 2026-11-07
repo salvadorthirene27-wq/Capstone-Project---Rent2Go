@@ -4,6 +4,7 @@ import {storedActor,audit} from '../partners/service';
 import {DomainError,type Actor} from '../partners/workflow';
 import {agencyOperatingContext} from '../agencies/service';
 import {reportScope,reportWindow,exportCommand,type ReportScope} from './schema';
+import {platformFactsSql} from '../accounting/remittance-source';
 import {csvDocument,phpDecimal,type CsvCell} from './csv';
 
 type Context={user:Actor;scope:ReportScope;agencyId:string|null;ownerId:string|null};
@@ -53,6 +54,14 @@ async function financialMetrics(c:PoolClient,ctx:Context,w:Window){
  if(allocations.reduce((n,e)=>n+BigInt(e.amountCentavos),0n)!==BigInt(r.earned))throw new DomainError('The report allocation totals require financial review.',409);
  const credit=(await reportQueryDb(c,`SELECT COALESCE(sum(x.amount_centavos),0)::text amount,COALESCE(sum(x.amount_centavos) FILTER(WHERE e.recipient='PLATFORM'),0)::text platform FROM booking_revenue_credit x JOIN booking_revenue_entry e ON e.id=x.entry_id JOIN booking_closed_credit_post p ON p.credit_id=x.credit_id WHERE ${tenant('e')} AND e.environment=$3 AND ${period('p.created_at')}`,params)).rows[0];
  add('credits','Accepted revenue reductions posted in period',credit.amount);add('platformCredits','Rent2Go allocation reductions posted in period',credit.platform);
+ const movements=(await reportQueryDb(c,`SELECT
+ (SELECT COALESCE(sum(r.amount_centavos),0)::text FROM platform_remittance_receipt r JOIN platform_account a ON a.id=r.account_id WHERE ${tenant('a')} AND a.environment=$3 AND ${period('r.created_at')}) receipts,
+ (SELECT COALESCE(sum(r.amount_centavos),0)::text FROM platform_agency_credit r JOIN platform_account a ON a.id=r.account_id WHERE ${tenant('a')} AND a.environment=$3 AND ${period('r.created_at')}) accepted,
+ (SELECT COALESCE(sum(r.amount_centavos),0)::text FROM platform_credit_application r JOIN platform_account a ON a.id=r.account_id WHERE ${tenant('a')} AND a.environment=$3 AND ${period('r.created_at')}) applied`,params)).rows[0];
+ add('platformReceipts','Rent2Go payment receipts recorded in period',movements.receipts);add('agencyCreditAccepted','Agency credits explicitly accepted in period',movements.accepted);add('agencyCreditApplied','Accepted agency credit applied in period',movements.applied);
+ const balances=(await reportQueryDb(c,`${platformFactsSql(tenant('e'),'$3::text')} SELECT COALESCE(sum(due),0)::text due,COALESCE(sum(reserved),0)::text reserved,COALESCE(sum(excess-granted),0)::text pending,COALESCE(sum(granted-applied),0)::text available FROM balances`,params)).rows[0];
+ add('platformDue','Current unreserved platform dues',balances.due,'money','CURRENT');add('platformReserved','Current remittance reservations',balances.reserved,'money','CURRENT');add('agencyCreditAvailable','Current accepted agency credit available',balances.available,'money','CURRENT');add('agencyCreditPending','Current excess awaiting agency acceptance',balances.pending,'money','CURRENT');
+
  return {metrics,allocations};
 }
 async function operationalMetrics(c:PoolClient,ctx:Context,w:Window){
@@ -64,6 +73,10 @@ async function operationalMetrics(c:PoolClient,ctx:Context,w:Window){
 }
 function statement(ctx:Context,w:Window){
  const column=(key:string,label:string,format:ReportColumn['format']='text'):ReportColumn=>({key,label,format});
+ if(['REMITTANCES','AGENCY_CREDITS','CREDIT_APPLICATIONS'].includes(w.record)){
+  const table={REMITTANCES:'platform_remittance_receipt',AGENCY_CREDITS:'platform_agency_credit',CREDIT_APPLICATIONS:'platform_credit_application'}[w.record as 'REMITTANCES'|'AGENCY_CREDITS'|'CREDIT_APPLICATIONS'];
+  return {columns:[column('title','Agency'),column('date','Recorded','date'),...(w.record==='REMITTANCES'?[column('method','Method'),column('reference','Payment reference')]:[]),column('amount',w.record==='REMITTANCES'?'Payment receipt (PHP)':w.record==='AGENCY_CREDITS'?'Credit accepted (PHP)':'Credit applied (PHP)','money')],sql:`SELECT x.id row_key,x.created_at sort_at,COALESCE(x.body->>'agencyName',r.payload->>'businessName') title,x.body->>'method' method,x.body->>'reference' reference,x.amount_centavos FROM ${table} x JOIN platform_account a ON a.id=x.account_id JOIN agency g ON g.id=a.agency_id JOIN partner_revision r ON r.application_id=g.application_id AND r.revision=g.approved_revision WHERE ${tenant('a')} AND a.environment=$3 AND ${period('x.created_at')}`};
+ }
  if(w.record==='ALLOCATIONS')return {columns:[column('title','Vehicle or service'),column('date','Financial close','date'),column('source','Revenue source'),column('recipient','Recipient'),column('bps','Agreed share','percent'),column('amount','Allocated revenue (PHP)','money')],sql:`SELECT e.id AS row_key,f.created_at AS sort_at,l.public_snapshot->>'title' title,e.source_kind source,e.recipient,e.bps,e.amount_centavos,r.id request_id,r.agency_id FROM booking_revenue_entry e JOIN booking_financial_close f ON f.id=e.close_id JOIN booking_request r ON r.id=e.request_id JOIN booking_quotation_line l ON l.quote_id=e.quote_id AND l.line_id=e.line_id WHERE ${tenant('r')} AND ($2::text IS NULL OR (e.beneficiary_actor_id=$2 AND e.recipient='COSIGNER')) AND e.environment=$3 AND e.amount_centavos>0 AND ${period('f.created_at')}`};
  if(w.record==='CREDITS')return {columns:[column('title','Vehicle or service'),column('date','Credit posted','date'),column('recipient','Recipient'),column('amount','Earnings reduction (PHP)','money')],sql:`SELECT x.id AS row_key,p.created_at AS sort_at,l.public_snapshot->>'title' title,e.recipient,x.amount_centavos,a.id credit_id FROM booking_revenue_credit x JOIN booking_revenue_entry e ON e.id=x.entry_id JOIN booking_closed_credit a ON a.id=x.credit_id JOIN booking_closed_credit_post p ON p.credit_id=a.id JOIN booking_quotation_line l ON l.quote_id=e.quote_id AND l.line_id=e.line_id WHERE ${tenant('e')} AND ($2::text IS NULL OR (e.beneficiary_actor_id=$2 AND e.recipient='COSIGNER')) AND e.environment=$3 AND x.amount_centavos>0 AND ${period('p.created_at')}`};
  if(w.record==='COLLECTIONS')return {columns:[column('date','Collection recorded','date'),column('method','Method'),column('reference','Collection reference'),column('amount','Confirmed amount (PHP)','money')],sql:`SELECT k.id AS row_key,k.recorded_at AS sort_at,k.method,k.reference,k.amount_centavos FROM booking_payment_collection k WHERE ${tenant('k')} AND k.environment=$3 AND ${period('k.recorded_at')}`};
@@ -76,7 +89,8 @@ function row(ctx:Context,w:Window,r:any):ReportRow{
  for(const key of ['title','source','recipient','method','reference'])if(r[key]!==undefined)values[key]=r[key];
  if(r.bps!==undefined)values.bps=Number(r.bps);
  for(const key of ['closed','platform','payouts','credits','platformCredits'])if(r[key]!==undefined)values[key]=money(r[key]);
- const link=w.record==='CREDITS'?`/closed-credits/${r.credit_id}`:w.record==='PAYOUTS'?`/owner-payouts/${r.row_key}`:w.record==='COLLECTIONS'?`/booking-payments/${r.row_key}`:w.record==='REFUNDS'?`/booking-refunds/${r.row_key}`:w.record==='ALLOCATIONS'&&ctx.scope.type==='AGENCY'?`/agency/${ctx.agencyId}/bookings/${r.request_id}`:null;
+ const kind={REMITTANCES:'RECEIPT',AGENCY_CREDITS:'AGENCY_CREDIT',CREDIT_APPLICATIONS:'CREDIT_APPLICATION'}[w.record as 'REMITTANCES'|'AGENCY_CREDITS'|'CREDIT_APPLICATIONS'];
+ const link=kind?`/platform-records/${kind}/${r.row_key}`:w.record==='CREDITS'?`/closed-credits/${r.credit_id}`:w.record==='PAYOUTS'?`/owner-payouts/${r.row_key}`:w.record==='COLLECTIONS'?`/booking-payments/${r.row_key}`:w.record==='REFUNDS'?`/booking-refunds/${r.row_key}`:w.record==='ALLOCATIONS'&&ctx.scope.type==='AGENCY'?`/agency/${ctx.agencyId}/bookings/${r.request_id}`:null;
  return {id:r.row_key as string,values,link};
 }
 async function records(c:PoolClient,ctx:Context,w:Window,all=false){

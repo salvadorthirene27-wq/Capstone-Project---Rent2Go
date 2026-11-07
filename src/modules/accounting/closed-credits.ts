@@ -9,6 +9,7 @@ import {digest} from '../cart/pricing';
 import {financialContext} from '../bookings/finance-context';
 import {lockBookingAuthority} from '../bookings/quotation';
 import {creditIncrement,cumulativeCredit,creditRounding,recoveryConsent,type Recipient} from './credit-calculation';
+import {lockPlatformReduction,notifyPlatformReduction} from './remittance-source';
 
 const reason=z.string().trim().min(1).max(2000),base={version:z.number().int().positive(),idempotencyKey:uuid};
 export const closedCreditCommand=z.discriminatedUnion('action',[
@@ -113,6 +114,8 @@ export async function changeClosedCredit(actor:Actor,requestId:string,input:unkn
    await c.query('INSERT INTO booking_closed_credit(id,close_id,request_id,quote_id,agency_id,environment,source_kind,source_id,line_id,actor_id,owner_id,amount_centavos,owner_centavos,baseline_centavos,reason,body,digest,owner_digest)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)',[creditId,f.id,requestId,f.quote_id,request.agency_id,f.environment,command.sourceKind,command.sourceId,source[0].line_id,user.id,ownerId,command.amountCentavos,increment.COSIGNER,previous,command.reason,body,digest({creditId,closeDigest:f.digest,reason:command.reason,body}),ownerHash]);
   }else{
    const d=detail!,a=d.a;creditId=a.id;ownerId=a.owner_id;affectedOwner=Number(a.owner_centavos)>0?ownerId:null;
+   const platformPart=(a.body as Body).allocations.find(e=>e.recipient==='PLATFORM');
+   if(command.action==='POST_CREDIT'&&platformPart)await lockPlatformReduction(c,platformPart.entryId,platformPart.creditCentavos);
    await lockAccounts(c,request.agency_id,f.environment,ownerId?[ownerId]:[]);
    const authority=await lockBookingAuthority(c,{r:request,user,owner:d.renter||d.owner},[request.renter_id,...(ownerId?[ownerId]:[])],command.action!=='DECIDE_CREDIT');if(!authority.active)throw new DomainError('This agency is unavailable.',409);
    const record=await view(c,d),exactDigest=d.owner?a.owner_digest:a.digest;
@@ -130,6 +133,7 @@ export async function changeClosedCredit(actor:Actor,requestId:string,input:unkn
     if(previous!==Number(a.baseline_centavos))throw new DomainError('The original source balance changed. Prepare new credit terms.',409);
     await c.query('INSERT INTO booking_closed_credit_post(credit_id,actor_id)VALUES($1,$2)',[a.id,user.id]);
     for(const e of (a.body as Body).allocations)await c.query('INSERT INTO booking_revenue_credit(id,credit_id,entry_id,amount_centavos)VALUES($1,$2,$3,$4)',[randomUUID(),a.id,e.entryId,e.creditCentavos]);
+    if(platformPart&&platformPart.creditCentavos>0)await notifyPlatformReduction(c,user,platformPart.entryId,a.id);
    }
   }
   await c.query('INSERT INTO booking_closed_credit_command(id,request_id,actor_id,idempotency_key,digest)VALUES($1,$2,$3,$4,$5)',[randomUUID(),requestId,user.id,command.idempotencyKey,hash]);

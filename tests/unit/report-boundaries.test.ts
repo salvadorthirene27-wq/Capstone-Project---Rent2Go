@@ -15,3 +15,11 @@ it('quotes multiline CSV cells and neutralizes formulas hidden behind whitespace
 it('preserves centavo precision in PHP decimal text even near the safe integer limit',()=>{
  expect(phpDecimal(1)).toBe('0.01');expect(phpDecimal(-1)).toBe('-0.01');expect(phpDecimal(Number.MAX_SAFE_INTEGER)).toBe('90071992547409.91');expect(()=>phpDecimal(10.001)).toThrow();
 });
+
+it('limits remittance receipts and credit statements to agency or platform finance scopes',()=>{
+ for(const record of ['REMITTANCES','AGENCY_CREDITS','CREDIT_APPLICATIONS']){
+  expect(()=>reportWindow({record},'2026-11-08','OWNER')).toThrow();
+  expect(reportWindow({record},'2026-11-08','AGENCY').record).toBe(record);
+  expect(reportWindow({record},'2026-11-08','PLATFORM').record).toBe(record);
+ }
+});

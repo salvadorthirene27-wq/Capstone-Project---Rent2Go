@@ -1,5 +1,7 @@
 # Implementation and evidence status
 
+- Platform remittances now use immutable original PLATFORM sources, exact agency reservations, manual private claims followed by independent actual-receipt review, and clearly labeled simulated outcomes. Later credits preserve the original receipt; excess requires exact agency acceptance before a separate future-dues application. Agency/platform statements and audited CSV distinguish receipts, accepted grants and applications; owner reports exclude them. Current balances calculate each source separately, and inactive agencies retain authorized historical finance access. Migration035 plus additive036 file-metadata hardening are applied to both databases. Verification:395 unit/UI/route cases;9 native remittance cases including two concurrency checks;2 dedicated inbox/email-source checks;33 existing credit/payout/report/inbox/email regressions;1 focused direct proof-metadata/manual-lifecycle rerun; production build and sequential TypeScript;120 four-role actual HTTP checks across read/prepare/credit/finish,45 earlier navigation/workspace checks and original ledger conservation. The simulated walkthrough paid PHP150, credited a PHP3000 tour source, explicitly accepted/applied PHP150 agency carry, and separately recorded its simulated renter refund. Original16 allocation entries/PHP16300 remain immutable; Cosigner PHP4760 earned/PHP1000 paid/PHP3760 available/PHP500 queued stay unchanged. No remittance email was dispatched. Desktop/mobile visual and print review remain pending because the switched account disables local browser access; no responsive success is claimed for these new pages. See `workflows/platform-remittances.md`.
+
 Updated8 November2026. Development continued after the account switch against the approved refined manuscript. This records development with synthetic data, not capstone usability findings.
 
 ## Working modules
@@ -116,7 +118,7 @@ Updated8 November2026. Development continued after the account switch against th
 
 ## Still required
 
-1. Platform remittance and its independently reviewed receipt/payment records. Accepted post-close revenue credits, separately bounded refunds and original-owner future-earnings recovery are implemented; original financial history stays immutable. New charges after financial closing are not introduced by the credit workflow.
+1. Final desktop/mobile/print walkthrough of remittance, agency-credit and saved platform records once local browser access is enabled. Remittance accounting and independent receipt/credit workflows are implemented; original financial history stays immutable. New charges after financial closing are not introduced by the credit workflow.
 2. An explicitly authorized operational notification-email launch and the final end-to-end defense walkthrough. Managed-account verification/recovery, notification outbox/SMTP and advisory OCR assistance now have live workflow evidence.
 3. Resource-aware agency/ownership transfer and removal, account/privacy/retention governance and remaining resource/fulfillment/agreement/print browser walkthroughs.
 4. Full application/Auth/object backup and tested restore, worker launch/liveness/singleton checks and complete cross-role/concurrency/defense validation. Current private table exports exclude managed Auth and stored object bytes.

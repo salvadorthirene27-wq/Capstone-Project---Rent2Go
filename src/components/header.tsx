@@ -10,7 +10,7 @@ const links = [
   ["/agencies", "Agencies"], ["/cart", "Cart"],
   ["/partners", "For agencies"], ["/#roles", "Our roles"],
 ] as const;
-const documentRoutes = ["/booking-agreements/", "/booking-inspections/", "/booking-payments/", "/booking-refunds/", "/owner-payouts/"];
+const documentRoutes = ["/booking-agreements/", "/booking-inspections/", "/booking-payments/", "/booking-refunds/", "/owner-payouts/", "/platform-records/"];
 
 export function Header() {
   const pathname = usePathname();

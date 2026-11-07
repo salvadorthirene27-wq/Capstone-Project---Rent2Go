@@ -2250,3 +2250,17 @@ td .text-link {
 .auth-fields{border:0;padding:0;margin:0;min-width:0}.auth-password-control{position:relative}.auth-password-control input{padding-right:3.5rem}.auth-password-control .password-visibility{position:absolute;right:.25rem;top:50%;transform:translateY(-50%);display:grid;place-items:center;width:44px;height:44px;border:0;border-radius:.5rem;background:transparent;color:var(--forest);cursor:pointer}.password-visibility:focus-visible{outline:2px solid var(--forest);outline-offset:-3px}.auth-password-field{display:grid;gap:.35rem}.auth-password-field label{margin-bottom:0}.auth-links button,.account-security button{min-height:44px}.account-security{max-width:880px}.account-security h2{display:flex;align-items:center;gap:.6rem;flex-wrap:wrap}.account-verification-state{display:flex;align-items:center;gap:.5rem;color:var(--forest);font-weight:600}.account-security fieldset{min-width:0;border:1px solid var(--line);border-radius:var(--radius);padding:1rem;margin-block:1.25rem}.account-security input[name=verification-code]{max-width:18rem;letter-spacing:.2em;font-size:1.2rem}.account-security .context-section{overflow-wrap:anywhere}
 .sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}.auth-fields{display:grid;gap:1.1rem}
 .auth-recovery-steps{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:.6rem;list-style:none;padding:0;margin:1.5rem 0}.auth-recovery-steps li{display:flex;align-items:center;gap:.4rem;padding:.65rem .25rem;border-bottom:2px solid var(--line);font-size:.8rem;line-height:1.35;color:var(--muted)}.auth-recovery-steps li[aria-current=step]{color:var(--deep);border-color:var(--forest);font-weight:650}.auth-recovery-steps span{display:grid;place-items:center;flex:0 0 1.45rem;height:1.45rem;border-radius:50%;background:var(--soft);color:var(--deep)}.auth-code-note{font-size:.88rem;color:var(--muted)}
+
+/* Financial references stay readable at narrow widths. */
+.remittance-account, .platform-record { min-width: 0; }
+.remittance-account fieldset { min-inline-size: 0; }
+.remittance-account :is(p,h2,h3,h4,dd,a,li), .platform-record :is(p,h1,h2,h3,dd,li) { overflow-wrap: anywhere; }
+
+.remittance-account fieldset { margin-block: 24px; }
+.remittance-account legend { font-size: 1.05rem; color: var(--deep); }
+.remittance-account .assessment-check { min-height: 44px; align-items: flex-start; margin-block: 20px; line-height: 1.6; }
+.remittance-account .assessment-check input { width: 20px; height: 20px; flex: 0 0 20px; accent-color: var(--forest); }
+.remittance-account details > summary { min-height: 44px; padding-block: 12px; cursor: pointer; }
+.remittance-account .assessment-record > .button + .button { margin-inline-start: 8px; }
+.remittance-account :is(h2,h3)[id] { scroll-margin-top: 110px; }
+@media (max-width: 480px) { .remittance-account .assessment-record { padding: 18px; } .remittance-account .assessment-record > .button + .button { margin-inline-start: 0; margin-block-start: 8px; } }

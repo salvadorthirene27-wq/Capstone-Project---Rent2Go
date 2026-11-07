@@ -26,7 +26,11 @@ const delivered=`
  UNION ALL
  SELECT 'VEHICLE',n.id,n.message,n.created_at,NULL::timestamptz,(v.owner_actor_id=$1 OR (o.revision>0 AND ${operate('o.agency_id')}) OR $2::text='SUPER_ADMIN'),
  CASE WHEN v.owner_actor_id=$1 THEN '/workspace/vehicles/'||o.id WHEN ${operate('o.agency_id')} THEN '/agency/'||o.agency_id||'/vehicles' ELSE '/admin/vehicles' END
- FROM vehicle_notification n JOIN vehicle_offer o ON o.id=n.offer_id JOIN physical_vehicle v ON v.id=o.vehicle_id WHERE n.recipient_id=$1`;
+ FROM vehicle_notification n JOIN vehicle_offer o ON o.id=n.offer_id JOIN physical_vehicle v ON v.id=o.vehicle_id WHERE n.recipient_id=$1
+ UNION ALL
+ SELECT 'REMITTANCE',n.id,CASE WHEN a.environment='DEMO' THEN 'Simulated remittance records · no money moves. '||n.message ELSE n.message END,n.created_at,NULL::timestamptz,(platform_agency_operator($1,a.id) OR platform_independent_reviewer($1,a.id)),
+ CASE WHEN platform_agency_operator($1,a.id) THEN '/agency/'||a.agency_id||'/remittances?environment='||a.environment ELSE '/admin/remittances/'||a.agency_id||'?environment='||a.environment END
+ FROM remittance_notification n JOIN platform_account a ON a.id=n.account_id WHERE n.recipient_id=$1`;
 const source=`WITH delivered AS(${delivered}),inbox AS(SELECT n.*,COALESCE(r.read_at,n.legacy_read_at) read_at FROM delivered n LEFT JOIN notification_read_receipt r ON r.source=n.source AND r.notification_id=n.id AND r.recipient_id=$1)`;
 
 export async function notificationEmailPermitted(c:PoolClient,user:Actor,kind:string,id:string){return Boolean((await c.query(`WITH delivered AS(${delivered}) SELECT permitted FROM delivered WHERE source=$3 AND id=$4`,[user.id,user.role,kind,id])).rows[0]?.permitted);}
