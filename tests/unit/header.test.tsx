@@ -71,7 +71,7 @@ it("uses identical marketplace links and account controls on home and inner page
   expect(routes()).toEqual(home);
   expect(screen.getByRole("link", { name:"Agencies" }).getAttribute("aria-current")).toBe("page");
 });
-it.each(["/login", "/booking-agreements/demo", "/booking-inspections/demo", "/booking-payments/demo", "/booking-refunds/demo"])("uses a compact header for %s", pathname => {
+it.each(["/login", "/booking-agreements/demo", "/booking-inspections/demo", "/booking-payments/demo", "/booking-refunds/demo", "/owner-payouts/demo"])("uses a compact header for %s", pathname => {
   state.pathname = pathname; render(<Header />);
   expect(screen.queryByRole("navigation", { name:"Main navigation" })).toBeNull();
   expect(screen.queryByRole("button", { name:"Open navigation" })).toBeNull();
