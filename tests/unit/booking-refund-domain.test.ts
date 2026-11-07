@@ -13,5 +13,5 @@ it("keeps reservations and paid refunds separate while bounding both by original
 });
 it("does not call an approved or pending simulation paid and validates separate history/source pages",()=>{
  expect(refundStage(null,null,false,false)).toBe("PENDING_REVIEW");expect(refundStage("APPROVE",null,false,false)).toBe("APPROVED");expect(refundStage("APPROVE",null,false,true)).toBe("DEMO_PENDING");expect(refundStage("APPROVE",null,true,false)).toBe("PAID");expect(refundStage("APPROVE","REVOKE",false,false)).toBe("REVOKED");
- expect(refundListQuery.parse({})).toEqual({sourcePage:1,historyPage:1});expect(refundListQuery.safeParse({sourcePage:0}).success).toBe(false);
+ expect(refundListQuery.parse({})).toEqual({creditPage:1,sourcePage:1,historyPage:1});expect(refundListQuery.safeParse({sourcePage:0}).success).toBe(false);
 });

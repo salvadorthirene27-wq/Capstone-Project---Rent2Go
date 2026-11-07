@@ -3,7 +3,7 @@ import {ownerBalances} from '../../src/modules/accounting/balances';
 import {withdrawalCommand,payoutEvidenceCommand} from '../../src/modules/accounting/schema';
 import {randomUUID} from 'node:crypto';
 it('keeps queued requests distinct from reserved and paid owner earnings',()=>{
- expect(ownerBalances(21000n,4000n,7000n,30000n)).toEqual({earnedCentavos:21000,paidCentavos:4000,reservedCentavos:7000,requestedCentavos:30000,availableCentavos:10000,recoveryCentavos:0});
+ expect(ownerBalances(21000n,4000n,7000n,30000n)).toEqual({earnedCentavos:21000,paidCentavos:4000,reservedCentavos:7000,requestedCentavos:30000,availableCentavos:10000,recoveryCentavos:0,creditCentavos:0,netEarnedCentavos:21000});
 });
 it('shows a recovery obligation rather than inventing spendable money when paid and reserved exceed earnings',()=>{
  expect(ownerBalances(5000n,7000n,1000n,0n)).toMatchObject({availableCentavos:0,recoveryCentavos:3000});

@@ -1,4 +1,4 @@
-import {assertFinancialOpen} from "./finance-guard";
+import {closedRefundGate,closedCreditCapacity} from "./closed-refund";
 import {randomUUID} from "node:crypto";
 import type {PoolClient} from "pg";
 import {transaction} from "../../lib/db";
@@ -20,7 +20,7 @@ async function context(c:PoolClient,actor:Actor,id:string,lock=false){
  if(!owner&&!operator)throw new DomainError("Request not found.",404);return {r,user,owner,operator};
 }
 type Context=Awaited<ReturnType<typeof context>>;
-const rowSql=`SELECT r.*,d.decision,d.reason AS decision_reason,d.created_at AS decided_at,x.action AS cancellation,x.reason AS cancellation_reason,x.created_at AS cancelled_at,p.id AS payment_id,p.recorded_at AS paid_at,
+const rowSql=`SELECT r.*,(SELECT l.credit_id FROM booking_closed_refund_link l WHERE l.refund_id=r.id) AS closed_credit_id,d.decision,d.reason AS decision_reason,d.created_at AS decided_at,x.action AS cancellation,x.reason AS cancellation_reason,x.created_at AS cancelled_at,p.id AS payment_id,p.recorded_at AS paid_at,
  (SELECT t.id FROM booking_refund_attempt t WHERE t.refund_id=r.id AND t.initial_outcome='PENDING' AND NOT EXISTS(SELECT 1 FROM booking_refund_resolution z WHERE z.attempt_id=t.id) ORDER BY t.created_at DESC,t.id DESC LIMIT 1) AS pending_attempt_id
  FROM booking_refund_request r LEFT JOIN booking_refund_decision d ON d.refund_id=r.id LEFT JOIN booking_refund_cancel x ON x.refund_id=r.id LEFT JOIN booking_refund_payment p ON p.refund_id=r.id`;
 const openSql="payment_id IS NULL AND cancellation IS NULL AND (decision IS NULL OR decision='APPROVE')";
@@ -31,9 +31,9 @@ async function capacity(c:PoolClient,collectionId:string){
  FROM booking_payment_collection k WHERE k.id=$1`,[collectionId])).rows[0];if(!row)throw new DomainError("Collection not found.",404);return refundCapacity(Number(row.confirmed),Number(row.reserved),Number(row.paid));
 }
 async function view(c:PoolClient,ctx:Context,r:any){
- const stage=refundStage(r.decision,r.cancellation,Boolean(r.payment_id),Boolean(r.pending_attempt_id)),eligible=refundableStatus(ctx.r.status),approved=["APPROVED","DEMO_PENDING"].includes(stage);
+ const stage=refundStage(r.decision,r.cancellation,Boolean(r.payment_id),Boolean(r.pending_attempt_id)),eligible=refundableStatus(ctx.r.status)||Boolean(r.closed_credit_id),approved=["APPROVED","DEMO_PENDING"].includes(stage);
  const attempts=(await c.query("SELECT t.id,t.method,t.reference,t.initial_outcome,t.note,t.created_at,t.file_id,z.outcome FROM booking_refund_attempt t LEFT JOIN booking_refund_resolution z ON z.attempt_id=t.id WHERE t.refund_id=$1 ORDER BY t.created_at DESC,t.id DESC LIMIT 10",[r.id])).rows;
- return {id:r.id as string,collectionId:r.collection_id as string,environment:r.environment as "MANUAL"|"DEMO",amountCentavos:Number(r.amount_centavos),reason:r.reason as string,digest:r.digest as string,createdAt:(r.created_at as Date).toISOString(),policies:r.policy_snapshot as {quoteId:string;quoteDigest:string;services:{title:string;cancellationPolicy:string;refundPolicy:string;damagePolicy:string}[]},stage,decisionReason:r.decision_reason as string|null,cancellationReason:r.cancellation_reason as string|null,paymentId:r.payment_id as string|null,paidAt:r.paid_at?(r.paid_at as Date).toISOString():null,pendingAttemptId:r.pending_attempt_id as string|null,
+ return {id:r.id as string,creditId:r.closed_credit_id as string|null,collectionId:r.collection_id as string,environment:r.environment as "MANUAL"|"DEMO",amountCentavos:Number(r.amount_centavos),reason:r.reason as string,digest:r.digest as string,createdAt:(r.created_at as Date).toISOString(),policies:r.policy_snapshot as {quoteId:string;quoteDigest:string;services:{title:string;cancellationPolicy:string;refundPolicy:string;damagePolicy:string}[]},stage,decisionReason:r.decision_reason as string|null,cancellationReason:r.cancellation_reason as string|null,paymentId:r.payment_id as string|null,paidAt:r.paid_at?(r.paid_at as Date).toISOString():null,pendingAttemptId:r.pending_attempt_id as string|null,
  canReview:ctx.operator&&eligible&&stage==="PENDING_REVIEW",canWithdraw:ctx.owner&&stage==="PENDING_REVIEW",canRevoke:ctx.operator&&approved,canRecordManual:ctx.operator&&eligible&&stage==="APPROVED"&&r.environment==="MANUAL",canSimulate:ctx.operator&&eligible&&stage==="APPROVED"&&r.environment==="DEMO",canResolveDemo:ctx.operator&&eligible&&stage==="DEMO_PENDING"&&r.environment==="DEMO",
  attempts:attempts.map(t=>({id:t.id as string,method:t.method as string,reference:t.reference as string,outcome:(t.outcome??t.initial_outcome) as string,note:t.note as string,createdAt:(t.created_at as Date).toISOString(),evidenceId:t.file_id as string|null}))};
 }
@@ -44,8 +44,11 @@ async function projection(c:PoolClient,ctx:Context,input:unknown={}){
  const sourceCount=Number(sourceRows[0]?.total??(await c.query("SELECT count(*) n FROM booking_payment_collection WHERE request_id=$1",[id])).rows[0].n);
  const activeRows=(await c.query(`SELECT * FROM (${rowSql} WHERE r.request_id=$1) v WHERE ${openSql} ORDER BY created_at,id LIMIT 20`,[id])).rows,open=[];for(const r of activeRows)open.push(await view(c,ctx,r));
  const historyRows=(await c.query(`SELECT *,count(*) OVER()::int AS total FROM (${rowSql} WHERE r.request_id=$1) v WHERE NOT (${openSql}) ORDER BY created_at DESC,id DESC LIMIT 20 OFFSET $2`,[id,(pages.historyPage-1)*20])).rows,history=[];for(const r of historyRows)history.push(await view(c,ctx,r));
+ const creditSql=`SELECT a.id,a.body->>'title' title,a.amount_centavos-COALESCE((SELECT sum(r.amount_centavos) FROM booking_closed_refund_link l JOIN booking_refund_request r ON r.id=l.refund_id LEFT JOIN booking_refund_decision d ON d.refund_id=r.id WHERE l.credit_id=a.id AND (d.decision IS NULL OR d.decision='APPROVE') AND NOT EXISTS(SELECT 1 FROM booking_refund_cancel x WHERE x.refund_id=r.id)),0) AS available,p.created_at FROM booking_closed_credit a JOIN booking_closed_credit_post p ON p.credit_id=a.id WHERE a.request_id=$1`;
+ const creditRows=(await c.query(`SELECT *,count(*) OVER()::int total FROM (${creditSql}) v WHERE available>0 ORDER BY created_at DESC,id DESC LIMIT 20 OFFSET $2`,[id,(pages.creditPage-1)*20])).rows;
+ const creditCount=Number(creditRows[0]?.total??(await c.query(`SELECT count(*) n FROM (${creditSql}) v WHERE available>0`,[id])).rows[0].n),credits=creditRows.map(a=>({id:a.id as string,title:a.title as string,availableCentavos:Number(a.available)})),closed=Boolean((await c.query('SELECT 1 FROM booking_financial_close WHERE request_id=$1',[id])).rowCount);
  const historyCount=Number(historyRows[0]?.total??(await c.query(`SELECT count(*) n FROM (${rowSql} WHERE r.request_id=$1) v WHERE NOT (${openSql})`,[id])).rows[0].n);
- return {requestId:id as string,requestVersion:ctx.r.version as number,status:ctx.r.status as string,isOwner:ctx.owner,isOperator:ctx.operator,canRequest:ctx.owner&&refundableStatus(ctx.r.status)&&open.length<20&&sourceCount>0,sources,sourcePage:pages.sourcePage,sourcePages:Math.max(1,Math.ceil(sourceCount/20)),open,history,historyPage:pages.historyPage,historyPages:Math.max(1,Math.ceil(historyCount/20))};
+ return {requestId:id as string,requestVersion:ctx.r.version as number,status:ctx.r.status as string,isOwner:ctx.owner,isOperator:ctx.operator,canRequest:ctx.owner&&(refundableStatus(ctx.r.status)||creditCount>0)&&open.length<20&&sourceCount>0,credits,closed,creditPage:pages.creditPage,creditPages:Math.max(1,Math.ceil(creditCount/20)),sources,sourcePage:pages.sourcePage,sourcePages:Math.max(1,Math.ceil(sourceCount/20)),open,history,historyPage:pages.historyPage,historyPages:Math.max(1,Math.ceil(historyCount/20))};
 }
 export async function getRefunds(actor:Actor,id:string,input:unknown={}){return transaction(async c=>{await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");return projection(c,await context(c,actor,id),input);});}
 type RefundState=Awaited<ReturnType<typeof getRefunds>>;
@@ -54,7 +57,7 @@ async function authorize(c:PoolClient,actor:Actor,id:string,command:RefundComman
  if(operator?!ctx.operator:!ctx.owner)throw new DomainError(operator?"Only an independent agency operator may review or execute refunds.":"Only the renter may request or withdraw a refund.",403);
  await lockBookingAuthority(c,ctx,[ctx.r.renter_id],operator);const hash=digest({command,...(fileHash?{fileHash}:{})}),old=(await c.query("SELECT digest FROM booking_refund_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3",[id,ctx.user.id,command.idempotencyKey])).rows[0];
  if(old){if(old.digest!==hash)throw new DomainError("This retry key belongs to another refund action.",409);return {ctx,hash,replayed:true as const};}
- await assertFinancialOpen(c,id);
+ await closedRefundGate(c,id,command);
  if(ctx.r.version!==command.version)throw new DomainError("This request changed. Reload refunds before continuing.",409);return {ctx,hash,replayed:false as const};
 }
 async function exact(c:PoolClient,ctx:Context,command:Extract<RefundCommand,{refundId:string}>){
@@ -80,19 +83,21 @@ async function run(actor:Actor,id:string,command:RefundCommand,file?:RefundEvide
   const v=await authorize(c,actor,id,command,file?.sha256),{ctx}=v;if(v.replayed)return {state:await projection(c,ctx),usedFile:false};const commandId=randomUUID();
   await c.query("INSERT INTO booking_refund_command(id,request_id,actor_id,idempotency_key,digest,action)VALUES($1,$2,$3,$4,$5,$6)",[commandId,id,ctx.user.id,command.idempotencyKey,v.hash,command.action]);let refundId:string,environment:string;
   if(command.action==="REQUEST_REFUND"){
-   if(!refundableStatus(ctx.r.status))throw new DomainError("Refund requests require cancelled, physically finished or historical payment reconciliation. Active service disputes follow separate review.",409);
+   if(!refundableStatus(ctx.r.status)&&!command.creditId)throw new DomainError("Refund requests require cancelled, physically finished or historical payment reconciliation. Active service disputes follow separate review.",409);
    if(Number((await c.query(`SELECT count(*) n FROM (${rowSql} WHERE r.request_id=$1) v WHERE ${openSql}`,[id])).rows[0].n)>=20)throw new DomainError("Resolve existing refund requests before opening more than20 at once.",409);
    const k=(await c.query("SELECT k.*,q.digest AS quote_digest,q.public_snapshot FROM booking_payment_collection k JOIN booking_quotation q ON q.id=k.quote_id WHERE k.id=$1 AND k.request_id=$2",[command.collectionId,id])).rows[0];if(!k)throw new DomainError("Collection not found.",404);
    if(command.amountCentavos>(await capacity(c,k.id)).availableCentavos)throw new DomainError("The requested amount exceeds the unreserved, unrefunded source collection.",409);
+   if(command.creditId){const credit=await closedCreditCapacity(c,id,command.creditId);if(credit.quoteId!==k.quote_id||credit.environment!==k.environment||command.amountCentavos>credit.availableCentavos)throw new DomainError("This request exceeds or mismatches its posted closed-booking credit.",409);}
    refundId=randomUUID();environment=k.environment;const policy={quoteId:k.quote_id,quoteDigest:k.quote_digest,services:k.public_snapshot.lines.map((l:any)=>{const p=k.public_snapshot.policies?.find((p:any)=>p.lineId===l.lineId);return {title:l.title,cancellationPolicy:p?.cancellationPolicy??"",refundPolicy:p?.refundPolicy??"",damagePolicy:p?.damagePolicy??""};})},now=(await c.query("SELECT clock_timestamp() now")).rows[0].now as Date;
    const hash=digest({id:refundId,requestId:id,collectionId:k.id,environment,amountCentavos:command.amountCentavos,reason:command.reason,createdAt:now.toISOString(),policies:policy});
    await c.query("INSERT INTO booking_refund_request(id,request_id,collection_id,quote_id,agency_id,environment,actor_id,amount_centavos,reason,policy_snapshot,digest,created_at)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12)",[refundId,id,k.id,k.quote_id,ctx.r.agency_id,environment,ctx.user.id,command.amountCentavos,command.reason,policy,hash,now]);
+   if(command.creditId)await c.query("INSERT INTO booking_closed_refund_link(refund_id,credit_id)VALUES($1,$2)",[refundId,command.creditId]);
   }else{
    const {r,record}=await exact(c,ctx,command);refundId=r.id;environment=r.environment;
    if(command.action==="REVIEW_REFUND"){
     if(!record.canReview)throw new DomainError("Only a pending refund may be independently reviewed.",409);
     if(command.decision==="APPROVE"&&Number(r.amount_centavos)>(await capacity(c,r.collection_id)).availableCentavos)throw new DomainError("Other approved refunds reserved this source balance. Reject or request a corrected amount.",409);
-    if(command.decision==="APPROVE")await assertAssessmentRefundCapacity(c,id,r.quote_id,Number(r.amount_centavos));
+    if(command.decision==="APPROVE"&&!r.closed_credit_id)await assertAssessmentRefundCapacity(c,id,r.quote_id,Number(r.amount_centavos));
     await c.query("INSERT INTO booking_refund_decision(id,refund_id,request_id,actor_id,decision,reason)VALUES($1,$2,$3,$4,$5,$6)",[randomUUID(),r.id,id,ctx.user.id,command.decision,command.reason]);
    }else if(command.action==="WITHDRAW_REFUND"||command.action==="REVOKE_REFUND"){
     if(!(command.action==="WITHDRAW_REFUND"?record.canWithdraw:record.canRevoke))throw new DomainError("Only a pending request may be withdrawn or an unpaid approval revoked. Paid refunds remain immutable.",409);

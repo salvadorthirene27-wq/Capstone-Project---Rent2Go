@@ -3,6 +3,7 @@ import React from 'react';
 import {afterEach,it,expect,vi} from 'vitest';
 import {render,screen,cleanup,waitFor} from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+vi.mock('../../src/components/closed-credits',()=>({OwnerClosedCredits:()=>null}));
 vi.mock('next/navigation',()=>({useRouter:()=>({refresh:vi.fn()})}));
 import {OwnerAccount} from '../../src/components/owner-account';
 const scope={agencyId:'c79318ab-a56e-4cc8-a8b0-a3e4676d7b36',ownerId:'owner',environment:'DEMO' as const},base={scope,accountId:null,requestVersion:1,agencyName:'Agency One',ownerName:'Synthetic owner',isOwner:true,isOperator:false,agencyActive:true,balances:{earnedCentavos:21000,availableCentavos:21000,requestedCentavos:0,reservedCentavos:0,paidCentavos:0,recoveryCentavos:0},canRequest:true,open:[],history:[],ledger:[],page:1,pageCount:1,ledgerPage:1,ledgerPageCount:1},reply=(body:unknown,status=200)=>({ok:status<400,status,json:async()=>body});

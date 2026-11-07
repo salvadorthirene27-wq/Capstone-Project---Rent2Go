@@ -1,3 +1,4 @@
+import {BookingClosedCredits} from "@/components/closed-credits";
 import {BookingSettlement} from "@/components/booking-settlement";
 import {BookingRefunds} from "@/components/booking-refunds";
 import {BookingAssessments} from "@/components/booking-assessments";
@@ -40,7 +41,7 @@ export default async function Page({
       <BookingFulfillment key={`fulfillment-${booking.version}`} requestId={(await params).id} />
       <BookingRefunds key={`refunds-${booking.version}`} requestId={(await params).id} />
       <BookingAssessments key={`assessments-${booking.version}`} requestId={(await params).id} />
-      <BookingSettlement requestId={booking.id}/>
+      <BookingSettlement requestId={booking.id}/><BookingClosedCredits requestId={booking.id}/>
     </Workspace>
   );
 }

@@ -10,11 +10,11 @@ export const reportScope=z.discriminatedUnion('type',[
  z.object({type:z.literal('PLATFORM')}).strict(),
 ]);
 export type ReportScope=z.infer<typeof reportScope>;
-export const reportQuery=z.object({environment:z.enum(['MANUAL','DEMO']).default('MANUAL'),from:calendarDate.optional(),to:calendarDate.optional(),record:z.enum(['ALLOCATIONS','COLLECTIONS','REFUNDS','PAYOUTS','AGENCIES']).optional(),page:z.coerce.number().int().min(1).max(10000).default(1)}).strict();
+export const reportQuery=z.object({environment:z.enum(['MANUAL','DEMO']).default('MANUAL'),from:calendarDate.optional(),to:calendarDate.optional(),record:z.enum(['ALLOCATIONS','CREDITS','COLLECTIONS','REFUNDS','PAYOUTS','AGENCIES']).optional(),page:z.coerce.number().int().min(1).max(10000).default(1)}).strict();
 export function reportWindow(input:unknown,today:string,scope:ReportScope['type']){
  const q=reportQuery.parse(input),end=q.to??calendarDate.parse(today),start=q.from??`${end.slice(0,7)}-01`,days=(Date.parse(`${end}T00:00:00Z`)-Date.parse(`${start}T00:00:00Z`))/86400000+1;
  if(days<1||days>366)throw new DomainError('Choose an end date on or after the start, within 366 days.',422);
- const allowed=scope==='PLATFORM'?['AGENCIES']:scope==='OWNER'?['ALLOCATIONS','PAYOUTS']:['ALLOCATIONS','COLLECTIONS','REFUNDS','PAYOUTS'],record=q.record??allowed[0];
+ const allowed=scope==='PLATFORM'?['AGENCIES']:scope==='OWNER'?['ALLOCATIONS','CREDITS','PAYOUTS']:['ALLOCATIONS','CREDITS','COLLECTIONS','REFUNDS','PAYOUTS'],record=q.record??allowed[0];
  if(!allowed.includes(record))throw new DomainError('This report record type is unavailable for your scope.',403);
  return {...q,from:start,to:end,record:record as NonNullable<typeof q.record>,allowedRecords:allowed};
 }

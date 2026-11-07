@@ -1,6 +1,6 @@
 # Rent2Go
 
-A new multi-agency car rental and tour marketplace for a capstone project. **In active development.** Agency partnership/review, vehicle ownership/compliance, protected resource calendars, and group/private tour catalogs are implemented. Availability-aware rental/tour search, recommendations and explicit driver pricing are also implemented. The booking cart, booking operations and financial settlement remain pending. See [implementation status](docs/STATUS.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
+A multi-agency car rental and tour marketplace for a capstone project. Rent2Go supports agency onboarding and approval, vehicle consignment and compliance, rental and group/private-tour catalogs, availability-aware search, cart and booking requests, private document review, quotations, agreements, manual and simulated payments, service fulfillment, financial assessment and settlement, owner withdrawals, separately accepted closed-booking credits and earnings recovery, reports, notifications, advisory OCR, and account security. See [implementation status and remaining work](docs/STATUS.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
 
 GPS/geofencing is outside this project's scope. The old repository, database and environment file are not used. No adoption figures or usability results are claimed.
 

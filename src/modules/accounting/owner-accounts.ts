@@ -31,7 +31,8 @@ async function balances(c:PoolClient,ctx:Context){
  const earned=(await c.query("SELECT COALESCE(sum(amount_centavos),0)::text n FROM booking_revenue_entry WHERE agency_id=$1 AND beneficiary_actor_id=$2 AND environment=$3 AND recipient='COSIGNER'",[agencyId,ownerId,environment])).rows[0].n;
  const totals=ctx.account?(await c.query(`SELECT COALESCE(sum(amount_centavos) FILTER(WHERE decision IS NULL),0)::text requested,COALESCE(sum(amount_centavos) FILTER(WHERE decision='APPROVE'),0)::text reserved FROM (${withdrawalRows} WHERE w.account_id=$1) v WHERE ${openPredicate}`,[ctx.account.id])).rows[0]:{requested:'0',reserved:'0'};
  const paid=ctx.account?(await c.query('SELECT COALESCE(-sum(amount_centavos),0)::text n FROM owner_account_entry WHERE account_id=$1',[ctx.account.id])).rows[0].n:'0';
- return ownerBalances(BigInt(earned),BigInt(paid),BigInt(totals.reserved),BigInt(totals.requested));
+ const credits=(await c.query("SELECT COALESCE(sum(x.amount_centavos),0)::text n FROM booking_revenue_credit x JOIN booking_revenue_entry e ON e.id=x.entry_id WHERE e.agency_id=$1 AND e.beneficiary_actor_id=$2 AND e.environment=$3 AND e.recipient='COSIGNER'",[agencyId,ownerId,environment])).rows[0].n;
+ return ownerBalances(BigInt(earned),BigInt(paid),BigInt(totals.reserved),BigInt(totals.requested),BigInt(credits));
 }
 async function attemptRows(c:PoolClient,withdrawalIds:string[]){return(await c.query('SELECT t.*,r.outcome AS resolved_outcome,r.reason AS resolution_reason FROM owner_payout_attempt t LEFT JOIN owner_payout_resolution r ON r.attempt_id=t.id WHERE t.withdrawal_id=ANY($1::uuid[]) ORDER BY t.created_at,t.id',[withdrawalIds])).rows;}
 function withdrawalView(ctx:Context,w:any,attempts:any[],available:number){
@@ -51,6 +52,16 @@ async function projection(c:PoolClient,ctx:Context,page=1,ledgerPage=1){
 }
 export type OwnerAccountState=Awaited<ReturnType<typeof projection>>;
 export async function authorizeOwnerAccountView(actor:Actor,scope:AccountScope){return transaction(async c=>{await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');await context(c,actor,scope);});}
+export async function getOwnerCredits(actor:Actor,scope:AccountScope,page=1){
+ z.number().int().min(1).max(10000).parse(page);
+ return transaction(async c=>{
+  await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');await context(c,actor,scope);
+  const params=[scope.agencyId,scope.ownerId,scope.environment],where="a.agency_id=$1 AND a.owner_id=$2 AND a.environment=$3 AND a.owner_centavos>0";
+  const rows=(await c.query(`SELECT a.id,a.body->>'title' title,a.owner_centavos,a.reason,a.created_at,p.created_at posted_at,x.reason withdrawn_reason,(SELECT d.decision FROM booking_closed_credit_decision d WHERE d.credit_id=a.id AND d.party='OWNER') decision,(SELECT d.decision FROM booking_closed_credit_decision d WHERE d.credit_id=a.id AND d.party='RENTER') renter_decision FROM booking_closed_credit a LEFT JOIN booking_closed_credit_post p ON p.credit_id=a.id LEFT JOIN booking_closed_credit_cancel x ON x.credit_id=a.id WHERE ${where} ORDER BY a.created_at DESC,a.id DESC LIMIT 20 OFFSET $4`,[...params,(page-1)*20])).rows;
+  const total=Number((await c.query(`SELECT count(*) n FROM booking_closed_credit a WHERE ${where}`,params)).rows[0].n);
+  return {page,pageCount:Math.max(1,Math.ceil(total/20)),items:rows.map(a=>({id:a.id as string,title:a.title as string,amountCentavos:Number(a.owner_centavos),reason:a.reason as string,createdAt:(a.created_at as Date).toISOString(),stage:a.posted_at?'POSTED':a.withdrawn_reason?'WITHDRAWN':a.decision==='DISPUTE'||a.renter_decision==='DISPUTE'?'DISPUTED':a.decision==='ACCEPT'?'ACCEPTED':a.renter_decision==='ACCEPT'?'AWAITING YOUR REVIEW':'AWAITING RENTER'}))};
+ });
+}
 export async function getOwnerAccount(actor:Actor,scope:AccountScope,input:unknown={environment:scope.environment}){const q=accountQuery.parse(input);if(q.environment!==scope.environment)throw new DomainError('Account environment does not match.',422);return transaction(async c=>{await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');return projection(c,await context(c,actor,scope),q.page,q.ledgerPage);});}
 
 async function lockAccount(c:PoolClient,ctx:Context){
@@ -133,7 +144,8 @@ export async function getOwnerAccounts(actor:Actor,input:unknown={}){
   const count=Number((await c.query(`SELECT count(*) n FROM (SELECT e.agency_id,e.beneficiary_actor_id FROM booking_revenue_entry e WHERE ${where} GROUP BY e.agency_id,e.beneficiary_actor_id HAVING sum(e.amount_centavos)>0) v`,params)).rows[0].n),ids=rows.filter(r=>r.account_id).map(r=>r.account_id);
   const pending=(await c.query(`SELECT account_id,COALESCE(sum(amount_centavos) FILTER(WHERE decision IS NULL),0)::text requested,COALESCE(sum(amount_centavos) FILTER(WHERE decision='APPROVE'),0)::text reserved FROM (${withdrawalRows} WHERE w.account_id=ANY($1::uuid[])) v WHERE ${openPredicate} GROUP BY account_id`,[ids])).rows;
   const paid=(await c.query('SELECT account_id,(-sum(amount_centavos))::text paid FROM owner_account_entry WHERE account_id=ANY($1::uuid[]) GROUP BY account_id',[ids])).rows;
-  return {environment:q.environment,agencyId:q.agencyId??null,page:q.page,pageCount:Math.max(1,Math.ceil(count/20)),total:count,items:rows.map(r=>{const p=pending.find(x=>x.account_id===r.account_id);return {agencyId:r.agency_id as string,ownerId:r.owner_id as string,environment:r.environment as 'MANUAL'|'DEMO',agencyName:r.agency_name as string,ownerName:r.owner_name as string,balances:ownerBalances(BigInt(r.earned),BigInt(paid.find(x=>x.account_id===r.account_id)?.paid??0),BigInt(p?.reserved??0),BigInt(p?.requested??0))};})};
+  const credits=(await c.query("SELECT a.id account_id,sum(x.amount_centavos)::text amount FROM booking_revenue_credit x JOIN booking_revenue_entry e ON e.id=x.entry_id JOIN owner_account a ON a.agency_id=e.agency_id AND a.owner_id=e.beneficiary_actor_id AND a.environment=e.environment WHERE e.recipient='COSIGNER' AND a.id=ANY($1::uuid[]) GROUP BY a.id",[ids])).rows;
+  return {environment:q.environment,agencyId:q.agencyId??null,page:q.page,pageCount:Math.max(1,Math.ceil(count/20)),total:count,items:rows.map(r=>{const p=pending.find(x=>x.account_id===r.account_id);return {agencyId:r.agency_id as string,ownerId:r.owner_id as string,environment:r.environment as 'MANUAL'|'DEMO',agencyName:r.agency_name as string,ownerName:r.owner_name as string,balances:ownerBalances(BigInt(r.earned),BigInt(paid.find(x=>x.account_id===r.account_id)?.paid??0),BigInt(p?.reserved??0),BigInt(p?.requested??0),BigInt(credits.find(x=>x.account_id===r.account_id)?.amount??0))};})};
  });
 }
 export async function ownerPayoutFile(actor:Actor,id:string){return transaction(async c=>{
