@@ -1,0 +1,22 @@
+// @vitest-environment jsdom
+import {afterEach,expect,it,vi} from 'vitest';
+import {cleanup,render,screen,waitFor} from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import {EmailUpdates} from '../../src/components/email-settings';
+const data={enabled:false,version:0,email:'renter@example.test',verified:true,sendingEnabled:false,page:1,pageCount:1,total:0,items:[]};
+afterEach(()=>{cleanup();vi.unstubAllGlobals();});
+async function open(){await userEvent.setup().click(screen.getByText('Email updates',{exact:false,selector:'summary'}));await screen.findByText('Account email:');}
+it('loads only when opened and requires an explicit acknowledgement before saving a preference',async()=>{
+ const user=userEvent.setup(),fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify(data))).mockResolvedValueOnce(new Response(JSON.stringify({...data,enabled:true,version:1})));
+ vi.stubGlobal('fetch',fetcher);render(<EmailUpdates/>);expect(fetcher).not.toHaveBeenCalled();await open();expect(fetcher).toHaveBeenCalledTimes(1);await user.click(screen.getByRole('button',{name:'Save email preferences'}));expect(fetcher).toHaveBeenCalledTimes(1);
+ await user.click(screen.getByRole('checkbox',{name:'Send new updates to my account email'}));await user.click(screen.getByRole('checkbox',{name:'I confirm this email preference change.'}));await user.click(screen.getByRole('button',{name:'Save email preferences'}));await screen.findByRole('status');
+ expect(JSON.parse(fetcher.mock.calls[1][1].body)).toEqual({action:'PREFERENCE',version:0,enabled:true,acknowledgement:true});expect((screen.getByRole('checkbox',{name:'I confirm this email preference change.'}) as HTMLInputElement).checked).toBe(false);
+});
+it('explains paused sending and unverified email without disabling the in-app inbox',async()=>{vi.stubGlobal('fetch',vi.fn().mockResolvedValue(new Response(JSON.stringify({...data,verified:false}))));render(<EmailUpdates/>);await open();expect(screen.getByText(/Verify your account email/)).toBeTruthy();expect(screen.getByText(/Email sending is currently paused/)).toBeTruthy();expect((screen.getByRole('checkbox',{name:'Send new updates to my account email'}) as HTMLInputElement).disabled).toBe(true);});
+it('clears private settings after denied refresh, and never offers a retry for uncertain outcomes',async()=>{
+ const user=userEvent.setup(),fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({...data,total:1,items:[{id:'a',source:'BOOKING',createdAt:'2026-11-07T00:00:00Z',attempts:1,status:'UNKNOWN',reason:'OUTCOME_UNCONFIRMED',finishedAt:null}]}))).mockResolvedValueOnce(new Response(JSON.stringify({error:'Access denied.'}),{status:403}));vi.stubGlobal('fetch',fetcher);render(<EmailUpdates/>);await open();expect(screen.getByText('Outcome unconfirmed')).toBeTruthy();expect(screen.queryByRole('button',{name:'Retry rejected email'})).toBeNull();await user.click(screen.getByRole('button',{name:'Refresh email settings'}));await screen.findByRole('alert');expect(screen.queryByText('renter@example.test')).toBeNull();
+});
+it('keeps the same retry identity after a lost response and aborts an outstanding read when unmounted',async()=>{
+ const user=userEvent.setup(),fetcher=vi.fn().mockResolvedValueOnce(new Response(JSON.stringify({...data,enabled:true,total:1,items:[{id:'fca42fe6-c46c-45af-807f-4b529403580b',source:'BOOKING',createdAt:'2026-11-07T00:00:00Z',attempts:1,status:'REJECTED',canRetry:true,reason:'SMTP_REJECTED',finishedAt:null}]}))).mockRejectedValueOnce(Error('Network lost')).mockResolvedValueOnce(new Response(JSON.stringify(data)));vi.stubGlobal('fetch',fetcher);render(<EmailUpdates/>);await open();await user.click(screen.getByRole('button',{name:'Retry rejected email'}));await screen.findByRole('alert');await user.click(screen.getByRole('button',{name:'Retry rejected email'}));await waitFor(()=>expect(fetcher).toHaveBeenCalledTimes(3));expect(fetcher.mock.calls[1][1].body).toBe(fetcher.mock.calls[2][1].body);
+ cleanup();const pending=vi.fn().mockReturnValue(new Promise(()=>{}));vi.stubGlobal('fetch',pending);const view=render(<EmailUpdates/>);await userEvent.setup().click(screen.getByText('Email updates',{exact:false,selector:'summary'}));await waitFor(()=>expect(pending).toHaveBeenCalledOnce());const signal=pending.mock.calls[0][1].signal;view.unmount();expect(signal.aborted).toBe(true);
+});

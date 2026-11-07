@@ -28,6 +28,8 @@ const delivered=`
  CASE WHEN v.owner_actor_id=$1 THEN '/workspace/vehicles/'||o.id WHEN ${operate('o.agency_id')} THEN '/agency/'||o.agency_id||'/vehicles' ELSE '/admin/vehicles' END
  FROM vehicle_notification n JOIN vehicle_offer o ON o.id=n.offer_id JOIN physical_vehicle v ON v.id=o.vehicle_id WHERE n.recipient_id=$1`;
 const source=`WITH delivered AS(${delivered}),inbox AS(SELECT n.*,COALESCE(r.read_at,n.legacy_read_at) read_at FROM delivered n LEFT JOIN notification_read_receipt r ON r.source=n.source AND r.notification_id=n.id AND r.recipient_id=$1)`;
+
+export async function notificationEmailPermitted(c:PoolClient,user:Actor,kind:string,id:string){return Boolean((await c.query(`WITH delivered AS(${delivered}) SELECT permitted FROM delivered WHERE source=$3 AND id=$4`,[user.id,user.role,kind,id])).rows[0]?.permitted);}
 type Query=ReturnType<typeof inboxQuery.parse>;
 async function projection(c:PoolClient,user:Actor,q:Query){
  const params=[user.id,user.role,q.status,q.category],where="($3::text='ALL' OR read_at IS NULL) AND ($4::text='ALL' OR source=$4)",totals=(await c.query(`${source} SELECT count(*) FILTER(WHERE read_at IS NULL)::int unread,count(*) FILTER(WHERE ${where})::int total FROM inbox`,params)).rows[0];

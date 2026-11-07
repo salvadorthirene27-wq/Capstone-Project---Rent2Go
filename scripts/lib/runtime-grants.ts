@@ -22,6 +22,14 @@ export async function grantRuntimePrivileges(client:Pick<PoolClient,"query">){
    GRANT SELECT,INSERT ON booking_ocr_command,booking_ocr_consent,booking_ocr_job,booking_ocr_result,booking_ocr_review TO rent2go_app;
    GRANT UPDATE(dispatch_at,ended_at) ON booking_ocr_job TO rent2go_app;
   END IF;
+  IF to_regclass('public.email_message') IS NOT NULL THEN
+   GRANT SELECT,INSERT ON email_preference,email_message,email_attempt,email_result TO rent2go_app;
+   GRANT UPDATE(email,enabled,version,updated_at) ON email_preference TO rent2go_app;
+   GRANT UPDATE(dispatch_at) ON email_attempt TO rent2go_app;
+   -- PostgreSQL row locks require an UPDATE privilege; the immutable trigger
+   -- still rejects every actual update, including this identity column.
+   GRANT UPDATE(id) ON email_message TO rent2go_app;
+  END IF;
   IF to_regclass('public.booking_assessment') IS NOT NULL THEN
    GRANT SELECT,INSERT ON booking_assessment_command,booking_assessment,booking_assessment_decision TO rent2go_app;
   END IF;
