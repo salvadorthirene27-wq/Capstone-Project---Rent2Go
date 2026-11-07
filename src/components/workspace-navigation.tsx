@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {usePathname} from "next/navigation";
-import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet,ChartNoAxesCombined} from "lucide-react";
+import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet,ChartNoAxesCombined,Bell} from "lucide-react";
 import {WorkspaceLink as Link} from "./workspace-link";
 import type {Actor} from "@/modules/partners/workflow";
 
@@ -15,6 +15,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
   <button type="button" ref={toggle} className="workspace-menu-button" aria-expanded={open} aria-controls="workspace-links" onClick={()=>setOpen(!open)}>Workspace menu<ChevronDown size={18} aria-hidden="true"/></button>
   <nav id="workspace-links" className="workspace-navigation-groups" aria-label="Workspace navigation" onClick={e=>{if((e.target as Element).closest('a'))setOpen(false);}}>
    <Link href="/workspace"><Home size={19} aria-hidden="true"/>Workspace home</Link>
+   <Link href="/workspace/notifications"><Bell size={19} aria-hidden="true"/>Notifications</Link>
    {agency&&<div className="workspace-nav-group"><p>Agency workspace</p>
     <Link href={`/agency/${agency}`} exact><LayoutDashboard size={19} aria-hidden="true"/>Agency overview</Link>
     <Link href={`/agency/${agency}/bookings`}><ClipboardList size={19} aria-hidden="true"/>Agency bookings</Link>

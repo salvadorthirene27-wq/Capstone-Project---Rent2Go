@@ -249,7 +249,7 @@ it("preserves a signed revision through separate agency proposal, owner consent,
     version: offer.version,
     revision: offer.revision,
   });
-  const pub = (await publicVehicles()).find((v: any) => v.id === offer.id);
+  const pub = (await publicVehicles(offer.id)).find((v: any) => v.id === offer.id);
   expect(pub?.facts.model).toBe("Vios");
   expect(JSON.stringify(pub)).not.toContain(owner.id);
   expect(JSON.stringify(pub)).not.toContain(offer.registration);
@@ -265,7 +265,7 @@ it("preserves a signed revision through separate agency proposal, owner consent,
     revision: offer.revision,
     reason: "Prepare a corrected listing revision.",
   });
-  expect((await publicVehicles()).some((v: any) => v.id === offer.id)).toBe(
+  expect((await publicVehicles(offer.id)).some((v: any) => v.id === offer.id)).toBe(
     false,
   );
   await expect(
@@ -705,7 +705,7 @@ it("withdraws vehicle modes that the effective approved agency policy no longer 
     "APPROVE",
     "Agency now offers tours only; rentals removed.",
   );
-  expect((await publicVehicles()).some((v) => v.id === published.id)).toBe(
+  expect((await publicVehicles(published.id)).some((v) => v.id === published.id)).toBe(
     false,
   );
   await expect(
