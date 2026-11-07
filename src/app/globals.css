@@ -1126,6 +1126,36 @@ summary {
 .finance-table th,.finance-table td {overflow-wrap:normal;white-space:normal;}
 .finance-table td:last-child {white-space:nowrap;}
 .finance-table-note {display:block;font-weight:400;color:var(--muted);margin-top:8px;}
+.report-filters {display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,170px),1fr));align-items:end;gap:16px;margin:28px 0;}
+.report-filters .field {margin:0;min-width:0;}
+.report-filters input,.report-filters select {min-width:0;width:100%;}
+.report-filters .error-message {grid-column:1/-1;}
+.report-section {margin:40px 0;}
+.report-allocation-chart {margin:24px 0;padding:24px;border:1px solid var(--line);border-radius:16px;background:white;}
+.report-allocation-chart figcaption {font-weight:600;}
+.report-allocation-chart ul {list-style:none;padding:0;display:grid;gap:20px;}
+.report-allocation-chart li>div:first-child {display:flex;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:8px;}
+.report-bar-track {height:12px;background:var(--soft);border-radius:6px;overflow:hidden;}
+.report-bar-track span {display:block;height:100%;background:var(--forest);border-radius:inherit;}
+.report-allocation-table td {white-space:nowrap;}
+.report-table table {font-size:.9rem;}
+.report-table th {font-size:.85rem;}
+.report-money {white-space:nowrap;}
+.report-record-cards {display:none;}
+.report-export {margin:32px 0;}
+.report-export>p {max-width:75ch;}
+.report-export fieldset {padding:24px;border:1px solid var(--line);border-radius:16px;}
+.report-status-list {list-style:none;max-width:760px;margin:24px 0;padding:0;}
+.report-status-list li {display:flex;justify-content:space-between;gap:20px;border-bottom:1px solid var(--line);padding:12px 0;}
+@media(max-width:760px) {
+ .report-table {display:none;}
+ .report-record-cards {display:grid;gap:16px;margin-top:24px;}
+ .report-record-cards .assessment-record {margin:0;}
+ .report-record-cards .assessment-totals>div {align-items:flex-start;gap:16px;}
+ .report-record-cards .assessment-totals dd {max-width:60%;overflow-wrap:anywhere;text-align:right;}
+ .report-record-cards .button {margin-top:16px;}
+ .report-allocation-chart,.report-export fieldset {padding:20px;}
+}
 table {
   width: 100%;
   border-collapse: collapse;

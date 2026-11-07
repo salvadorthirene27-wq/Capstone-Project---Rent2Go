@@ -16,7 +16,7 @@ Authority updated 5 November 2026: user-approved 82-page `RENT2GO_REFINED_MANUSC
 | Pre-release cancellation and reviewed refund | 21, 26, 31 | Independent cancellation/refund/settlement records; TST-08 |
 | Tour-only fulfillment skips vehicle handover | 31 | Tour attendance/completion without artificial rental gates |
 | Cosigner earnings, commissions, withdrawals | 17–19, 22, 26, 35, 46 | Versioned agreements, reconciled ledger, payout evidence; TST-09 |
-| Analytics/reports | 18–19, 26, 37, 41, 55 | DB-backed, scoped, accessible figures/export, no fabricated metrics |
+| Analytics/reports | 18–19, 26, 37, 41, 55 | Implemented scoped DB-backed statements, Philippine dates, accessible chart/table and audited exact CSV; see workflows/financial-reports.md; no fabricated metrics |
 | Notifications, session/security, audit/privacy | 14, 22, 26, 40, 49, 55 | Outbox/email, scoped notifications, recovery, governance; TST-11/12 |
 | GPS/geofencing | Many pages including 18, 26, 39, 49, 66 | **Excluded by user. Do not implement.** |
 | Formal testing and usability evidence | 27–29, 50, 56–75 | Real build-linked tests, defect/retest log; human evaluation remains pending |

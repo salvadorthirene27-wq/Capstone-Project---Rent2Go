@@ -25,6 +25,13 @@ it("keeps platform review links scoped to the super administrator",()=>{
  view.rerender(<WorkspaceNavigation role="SUPER_ADMIN"/>);
  expect(screen.getByRole("link",{name:"Partner reviews"}).getAttribute("href")).toBe("/admin");
 });
+it("selects platform reports without also selecting the partner review root",()=>{
+ state.path="/admin/reports";render(<WorkspaceNavigation role="SUPER_ADMIN"/>);
+ const nav=screen.getByRole("navigation",{name:"Workspace navigation"});
+ expect(within(nav).getByRole("link",{name:"Platform reports"}).getAttribute("aria-current")).toBe("page");
+ expect(within(nav).getByRole("link",{name:"Partner reviews"}).getAttribute("aria-current")).toBeNull();
+ expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);
+});
 it("closes the menu with Escape and restores focus to its toggle",async()=>{
  render(<WorkspaceNavigation role="COSIGNER"/>);const user=userEvent.setup(),toggle=screen.getByRole("button",{name:"Workspace menu"});
  await user.click(toggle);expect(toggle.getAttribute("aria-expanded")).toBe("true");

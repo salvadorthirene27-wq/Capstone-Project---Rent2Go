@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {usePathname} from "next/navigation";
-import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet} from "lucide-react";
+import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet,ChartNoAxesCombined} from "lucide-react";
 import {WorkspaceLink as Link} from "./workspace-link";
 import type {Actor} from "@/modules/partners/workflow";
 
@@ -22,6 +22,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href={`/agency/${agency}/tours`}><Map size={19} aria-hidden="true"/>Tours & packages</Link>
     <Link href={`/agency/${agency}/resources`}><CalendarDays size={19} aria-hidden="true"/>Availability & drivers</Link>
     <Link href={`/agency/${agency}/accounting`}><Wallet size={19} aria-hidden="true"/>Owner earnings & payouts</Link>
+    <Link href={`/agency/${agency}/reports`}><ChartNoAxesCombined size={19} aria-hidden="true"/>Agency reports</Link>
    </div>}
    <div className="workspace-nav-group"><p>Your bookings</p>
     <Link href="/cart"><CarFront size={19} aria-hidden="true"/>My cart</Link>
@@ -31,14 +32,16 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href="/workspace/vehicles"><CarFront size={19} aria-hidden="true"/>My personal vehicles</Link>
     <Link href="/workspace/resources"><CalendarDays size={19} aria-hidden="true"/>My vehicle calendars</Link>
     <Link href="/workspace/earnings"><Wallet size={19} aria-hidden="true"/>My vehicle earnings</Link>
+    <Link href="/workspace/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>My earnings reports</Link>
    </div>
    <div className="workspace-nav-group"><p>Agency partnership</p>
     <Link href="/workspace/application"><Building2 size={19} aria-hidden="true"/>Agency application</Link>
     <Link href="/partners"><Building2 size={19} aria-hidden="true"/>Partnership guide</Link>
    </div>
-   {role==='SUPER_ADMIN'&&<div className="workspace-nav-group"><p>Platform reviews</p>
-    <Link href="/admin"><ShieldCheck size={19} aria-hidden="true"/>Partner reviews</Link>
+   {role==='SUPER_ADMIN'&&<div className="workspace-nav-group"><p>Platform workspace</p>
+    <Link href="/admin" exact><ShieldCheck size={19} aria-hidden="true"/>Partner reviews</Link>
     <Link href="/admin/vehicles"><CarFront size={19} aria-hidden="true"/>Vehicle compliance</Link>
+    <Link href="/admin/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>Platform reports</Link>
    </div>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>
   </nav>

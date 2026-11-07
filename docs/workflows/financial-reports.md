@@ -1,0 +1,33 @@
+# Financial reports
+
+Agency reports, personal earnings reports and platform aggregate reports use saved collections, refunds, financial closes, allocation entries and owner payouts. They create no financial transaction and do not rewrite accepted records. No migration is required; both databases remain at028.
+
+## Access and privacy
+
+Active agency owners and active members can view their agency. Personal reports derive the original owner from the authenticated account; the client cannot choose another owner. Super Admin receives per-agency aggregates, without individual renter records or owner payout destinations. Ordinary agency suspension blocks agency operations while preserving already earned historical owner/platform figures. Suspended actors and internal fixtures cannot export. Owner statements omit whole-booking collections/refunds, other recipients' finances and renter documents. An agency statement can link to an already protected source record; an owner allocation cannot link to the whole booking.
+
+## Dates and financial meaning
+
+Filters use actual inclusive Philippine calendar dates, at most366days. Default dates are the database's current Manila month and day. The SQL interval begins at Manila midnight on the first date and ends before midnight after the last date. Collections/refunds use their recorded timestamps; owner payouts use payout creation time. Closed revenue and every recipient allocation use the same parent financial-close timestamp. Quoted deposits on closed records are reference amounts only, separate from earnings and proof of collection/refund entitlement. An allocation does not establish a completed payout or platform remittance.
+
+Manual and simulated financial records are selected separately. Operational request, reservation and service-outcome counts cover both environments and say so explicitly. Request statuses describe the current state of requests submitted within the selected period. Actual returns and tour completions are separate events; financial closure is separate again. Internal fixture actors are excluded from these operational counts. The four allocation totals must exactly equal closed net revenue or the report fails for financial review.
+
+Owner period earnings/payouts are distinct from current balances across all recorded dates. Each owner/agency/environment account is calculated independently before totals are combined; liabilities cannot be hidden by cross-agency netting. Queued withdrawal requests are separate from approved reservations. Maintenance reserves remain agency-held and are not owner-withdrawable.
+
+## Display and export
+
+The shared workspace navigation links to `/agency/[id]/reports`, `/workspace/reports` and `/admin/reports`. Filters use a GET form with date feedback. Invalid page filters produce an explicit fallback notice; a valid simulated selection is preserved. Agency/platform allocations have labeled bars and an equivalent table. Statements use20-row pagination on desktop, readable cards on phones and protected source links. Empty statements display genuine empty states.
+
+CSV download is an Origin-protected, rate-limited POST requiring an explicit purpose and acknowledgement. A repeatable-read transaction locks and rechecks current access, reads the complete filtered statement and records a purpose/scope audit without row contents, wallets or private documents. Concurrent access/record conflicts fail with a refresh message. Exports include all filtered rows regardless of the displayed page, at most5000; larger requests fail with narrower-date guidance, never silently truncate. They include exact integer centavos and integer-derived PHP decimal text; timestamp headings identify UTC. Quoting, embedded delimiters/newlines and disguised spreadsheet formula prefixes are handled. Responses are private, uncached CSV attachments with server-owned filenames and record/as-of metadata. No user-supplied filename is accepted.
+
+The interface disables unacknowledged/over-limit downloads, prevents duplicate clicks in flight, preserves failed purpose text, aborts requests when the scoped export component is removed and resets consent when applied scope/date/record filters change. Success says the CSV was prepared; the browser handles the actual download.
+
+## Verification
+
+- 311 unit/interface/route cases in72 files pass. New cases cover calendar bounds, owner record restrictions, exact CSV centavos, formula injection, duplicate/forged scope filters, Origin, attachment metadata, failed export feedback, duplicate clicks, unmount abort, invalid-date focus and single selected platform navigation.
+- 6 isolated PostgreSQL cases pass: conservation, owner/tenant/platform privacy, restricted-runtime export/audit, unavailable agency history, actor-suspension race, Manila midnight boundaries and complete-export limit. Large-volume synthetic records exist only in the isolated database and are not research findings.
+- 40 actual authenticated HTTP/DOM/CSV checks pass across the four sample roles. Read-only comparisons preserve owner earnings476000centavos, payouts100000, available376000 and queued50000; agency closed revenue1630000 equals recipient allocations. Current restricted native database connectivity passes. Original settlement and payout conservation checks remain unchanged.
+- Production build and sequential TypeScript check pass. An initial build caught typing mistakes in new test fixtures; corrected before the successful build. Initial HTTP helper expectations used a guessed owner-line amount and abbreviated page titles; the helper was corrected to compare each actual immutable row and actual page heading, retaining the known owner/agency aggregate assertions. No financial assertion or stored fact was weakened.
+- Actual CUA review covers1440px desktop and375px mobile for owner, agency and platform reports, plus812px owner landscape. No page-level horizontal overflow; phone cards replace the wide statement table. The agency chart's four amounts match its equivalent table. A real browser owner CSV download preserves exact amounts. Applying another statement type resets purpose/acknowledgement. The sample account was signed out and viewport reset. Largest-text/reduced-motion emulation and a full human usability/assistive-technology evaluation are not established by these checks.
+
+Evidence is saved privately in local outputs; no account credential, database URL or downloaded private CSV is committed. Platform remittance, compensating post-close adjustments/recovery, notifications/outbox/OCR application integration, governance and complete restore/defense verification remain separate work.

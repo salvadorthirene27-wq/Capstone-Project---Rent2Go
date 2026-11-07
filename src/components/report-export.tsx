@@ -1,0 +1,14 @@
+"use client";
+import {useEffect,useRef,useState} from 'react';
+import type {ReportScope} from '@/modules/reports/schema';
+type Filters={environment:'MANUAL'|'DEMO';from:string;to:string;record:string};
+export function ReportExport({scope,filters,total}:{scope:ReportScope;filters:Filters;total:number}){
+ const [purpose,setPurpose]=useState(''),[checked,setChecked]=useState(false),[busy,setBusy]=useState(false),[error,setError]=useState(''),[message,setMessage]=useState(''),alive=useRef(true),request=useRef<AbortController|null>(null),saving=useRef(false);
+ useEffect(()=>{alive.current=true;return()=>{alive.current=false;request.current?.abort();};},[]);
+ async function download(){if(saving.current)return;saving.current=true;setBusy(true);setError('');setMessage('');const controller=new AbortController();request.current=controller;
+  try{const r=await fetch('/api/reports/export',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scope,filters,purpose,acknowledged:checked}),signal:controller.signal});if(!r.ok){const body=await r.json();throw Error(body.error??'Unable to prepare the statement.');}const blob=await r.blob();if(!alive.current)return;
+   const name=/filename="([a-z0-9.-]+)"/i.exec(r.headers.get('Content-Disposition')??'')?.[1]??'rent2go-financial-report.csv',url=URL.createObjectURL(blob),link=document.createElement('a');link.href=url;link.download=name;document.body.append(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000);setMessage('CSV prepared. Your browser handles the download.');
+  }catch(e){if(alive.current&&!(e instanceof Error&&e.name==='AbortError'))setError(e instanceof Error?e.message:'Unable to prepare the statement.');}finally{if(alive.current){saving.current=false;setBusy(false);}}
+ }
+ return <details className="report-export"><summary>Export this financial statement (CSV)</summary><p>Download all {total.toLocaleString('en-PH')} filtered records, including rows beyond this page. Exports are limited to 5,000 records; choose a narrower period for larger statements. PHP amounts and exact centavos are included. Export purpose and scope are recorded.</p><fieldset disabled={busy}><legend>Confirm statement export</legend><label className="field">Export purpose<textarea value={purpose} maxLength={500} onChange={e=>setPurpose(e.target.value)}/></label><label className="assessment-check"><input type="checkbox" checked={checked} onChange={e=>setChecked(e.target.checked)}/>I checked the statement type, financial records and date range for this download.</label><button className="button" type="button" disabled={busy||!checked||purpose.trim().length<5||total>5000} onClick={download}>{busy?'Preparing CSV…':'Download filtered CSV'}</button></fieldset>{error&&<p role="alert" className="error-message">{error}</p>}{message&&<p role="status">{message}</p>}</details>;
+}
