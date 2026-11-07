@@ -1,0 +1,13 @@
+# Quotation expiry and service health
+
+The local expiry launcher requires the designated new project/database and explicit `--enable`. Run `npx tsx --env-file=.env.local scripts/expire-booking-holds.ts --enable` in a separate terminal while demonstrating the site. Add `--once` for one bounded pass; add `--test` only for the isolated database. Stop an older unmanaged launcher before switching to this version. Closing the website does not start or stop a separately launched worker.
+
+One managed instance claims a database-clock lease for ninety seconds. Every cycle holds its coordination row while the existing bounded expiry routine runs. A duplicate launcher refuses to start a batch. A replacement can claim an expired lease after loss of contact, and the earlier instance cannot release or operate the replacement's lease. Transaction row locks work with the current pooled connection; session advisory locks are not used.
+
+The existing booking-level locks, resource release checks and recorded commitments remain the final safety boundary if a connection fails during processing. Expiry releases unpaid, uncommitted holds and preserves recorded money requiring reconciliation. It does not cancel a paid committed service. A failed multi-request batch may have completed some earlier transactions, so its total is recorded as unavailable instead of claiming zero releases. Retrying uses the same booking safety checks.
+
+Each completed managed cycle saves a category-only outcome, server timestamps and a known successful release count or an unavailable failed count. Exception messages, credentials, actor identities and booking details are excluded from operational history. History is immutable; live lease state is separately mutable. A process crash leaves stale contact until its lease expires rather than inventing a successful stop.
+
+`/admin/operations` and `/api/operations` are current unsuspended Super Admin views. They distinguish database reachability, recent worker contact, the last successful/failed cycle, expired uncommitted backlog, and the configured notification-email dispatch switch. Ten recent cycle records are shown. These observations do not prove email delivery, storage restoration or overall system health. No process, booking or email action is launched from the screen.
+
+For a local demonstration, open the service-health screen before starting the walkthrough. If contact is stale or recent batches failed, inspect the separately launched worker, restore connectivity and refresh the screen. Stop the worker when local demonstrations are no longer needed; its fifteen-second polling uses database compute. Normal notification email remains independently disabled until explicitly configured and authorized.

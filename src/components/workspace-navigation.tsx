@@ -46,6 +46,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href="/admin/vehicles"><CarFront size={19} aria-hidden="true"/>Vehicle compliance</Link>
     <Link href="/admin/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>Platform reports</Link>
     <Link href="/admin/remittances"><Wallet size={19} aria-hidden="true"/>Agency remittances</Link>
+    <Link href="/admin/operations"><ShieldCheck size={19} aria-hidden="true"/>Service health</Link>
    </div>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>
   </nav>

@@ -15,3 +15,5 @@ Mutation locks follow request, source listings, agency, sorted relevant actors, 
 Run the server with `npm run start` and the expiry worker in a second terminal with `npm run booking:expire-holds`. Both use the ignored local configuration. The worker refuses an unexpected project, host or database; isolated test use requires an explicit `--test` argument. It does not use the old supplied database.
 
 Rental allocation snapshots apply agreed percentages to the entire service revenue including driver fees, as confirmed by the user. Refundable deposits remain separate. This module creates no earnings or money movement; reconciliation and settlement occur later.
+
+The current launcher also coordinates a single managed instance through a database-clock lease and retains successful/failed batch observations. Super Admin can review `/admin/operations`; see [service health](service-health.md). A failed batch may have completed some booking transactions, so its overall release count is unavailable; retries preserve the original idempotent expiry protections.
