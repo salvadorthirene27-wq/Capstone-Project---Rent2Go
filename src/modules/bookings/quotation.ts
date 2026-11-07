@@ -1,3 +1,4 @@
+import {readPlatformTerms} from '../platform/read';
 import {assertNoPendingCancellation,cancellationPending} from "./cancellation-guard";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
@@ -201,8 +202,9 @@ async function allocate(c: PoolClient, ctx: Awaited<ReturnType<typeof context>>,
     throw new DomainError("Invalid quotation total.", 409);
   const policies = saved.map(l => quotationPolicies(l.id, l.public_quote.selection.kind, l.policy_snapshot, l.service_snapshot));
   const revision = Number((await c.query("SELECT COALESCE(max(revision),0)+1 AS revision FROM booking_quotation WHERE request_id=$1", [r.id])).rows[0].revision);
-  const snapshot = { lines: publicLines, totals, policies }, digest = quotationDigest({ id: quoteId, requestId: r.id, revision, issuedAt, expiresAt, ...snapshot });
-  await c.query("INSERT INTO booking_quotation(id,request_id,revision,digest,issued_by,issued_at,expires_at,public_snapshot)VALUES($1,$2,$3,$4,$5,$6,$7,$8)", [quoteId, r.id, revision, digest, user.id, issuedAt, expiresAt, JSON.stringify(snapshot)]);
+  const platformTerms = await readPlatformTerms(c);
+  const snapshot = { lines: publicLines, totals, policies, platformTerms }, digest = quotationDigest({ id: quoteId, requestId: r.id, revision, issuedAt, expiresAt, ...snapshot });
+  await c.query("INSERT INTO booking_quotation(id,request_id,revision,digest,issued_by,issued_at,expires_at,public_snapshot,platform_terms_revision)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)", [quoteId, r.id, revision, digest, user.id, issuedAt, expiresAt, JSON.stringify(snapshot),platformTerms.revision]);
   for (const line of saved)
     await c.query("INSERT INTO booking_quotation_line(quote_id,request_id,line_id,public_snapshot,private_financial_snapshot)VALUES($1,$2,$3,$4,$5)", [quoteId, r.id, line.id, JSON.stringify(publicLines.find(l => l.lineId === line.id)), JSON.stringify(quotationFinancial(line.private_financial_snapshot, line.public_quote.estimate))]);
   await c.query("INSERT INTO booking_hold(id,request_id,quote_id,expires_at)VALUES($1,$2,$3,$4)", [holdId, r.id, quoteId, expiresAt]);

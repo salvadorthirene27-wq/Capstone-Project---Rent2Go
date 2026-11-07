@@ -5,6 +5,7 @@ import { date, money } from "@/modules/partners/presentation";
 
 type Outcome = "CANCELLED" | "PENDING" | "ACCEPTED" | "DECLINED" | "WITHDRAWN" | "EXPIRED";
 type Quote = {
+  platformTerms?: import("@/modules/platform/schema").PlatformTerms;
   id: string; revision: number; digest: string; issuedAt: string; expiresAt: string;
   lines: { lineId: string; title: string; kind: string; startAt: string; endAt: string; partySize: number; serviceCentavos: number; refundableDepositCentavos: number; driverName: string | null }[];
   totals: { serviceCentavos: number; refundableDepositCentavos: number; totalCentavos: number };
@@ -131,6 +132,7 @@ export function BookingQuotation({ requestId }: { requestId: string }) {
             {Object.entries(policyLabels).map(([key, label]) => <p className="preserve-lines" key={key}><strong>{label}</strong><br />{policy[key as keyof typeof policyLabels] || "None stated."}</p>)}
           </details>)}
         </div>)}
+        {quote.platformTerms && <section className="context-section"><h4>{quote.platformTerms.title}</h4><p>Platform terms version {quote.platformTerms.revision}</p><p className="preserve-lines">{quote.platformTerms.text}</p><a href={`/terms?revision=${quote.platformTerms.revision}`}>Open saved platform terms</a></section>}
         <dl className="quotation-totals">
           <div><dt>Services</dt><dd>{money(quote.totals.serviceCentavos)}</dd></div>
           <div><dt>Refundable deposits</dt><dd>{money(quote.totals.refundableDepositCentavos)}</dd></div>

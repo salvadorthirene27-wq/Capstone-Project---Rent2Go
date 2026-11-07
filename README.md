@@ -19,6 +19,10 @@ On this workstation the new environment is already configured. Start with step 6
 
 Migration/setup tools intentionally allow only the new project/endpoint and explicitly named `rent2go` / `rent2go_test` databases. Provisioning a different project requires reviewing and updating those target guards. `DATABASE_URL` is the restricted runtime connection; `MIGRATION_DATABASE_URL` is the owner connection. Automated tests use only `TEST_DATABASE_URL`.
 
+## Platform settings and public policies
+
+An active Super Admin manages `/admin/settings`. Published starting shares apply to new agency drafts; approved agency policies supply new vehicle/tour defaults. New quotations and agreements preserve their exact platform terms version. Existing drafts and financial records retain their saved values. `/terms` and `/help` are public; evidence-review scheduling never deletes private files automatically. See [the settings workflow](docs/workflows/platform-settings.md).
+
 ## Accounts and agency workflow
 
 Register through `/login`, then open `/workspace`. Public registration never grants administrative access. The application can be saved before completion. Submission requires configured policies, rates, a 100% revenue allocation and registration evidence; manual GCash additionally requires its business-owned QR.

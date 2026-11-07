@@ -157,3 +157,15 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
   *, *::before, *::after { animation: none !important; transition: none !important; scroll-behavior: auto !important; }
   .button:not(:disabled):active, .icon-button:not(:disabled):active { transform: none; }
 }
+
+/* Versioned marketplace policy and accessible help. */
+.platform-settings { max-width: 64rem; }
+.platform-settings fieldset { margin-block: 1.5rem; padding: clamp(1rem, 3vw, 1.75rem); border: 1px solid var(--border, #cbd8d1); border-radius: 16px; min-width: 0; }
+.platform-settings legend { font-weight: 600; padding-inline: .5rem; }
+.settings-shares { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:1rem; }
+.help-answer { padding-block: 1rem; border-bottom: 1px solid var(--border, #cbd8d1); }
+.help-answer summary { min-height:44px; display:list-item; align-content:center; cursor:pointer; font-weight:600; }
+.help-answer p { max-width:70ch; }
+.platform-settings :where(input,textarea) { max-width:100%; }
+@media(max-width:700px) { .settings-shares { grid-template-columns:repeat(2,minmax(0,1fr)); } }
+@media(max-width:380px) { .settings-shares { grid-template-columns:1fr; } }

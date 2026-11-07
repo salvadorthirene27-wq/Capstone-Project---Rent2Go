@@ -1,3 +1,4 @@
+import {termsSnapshot} from '../platform/schema';
 import { z } from "zod";
 import { uuid, versionSchema } from "../../lib/http";
 import { digest } from "../cart/pricing";
@@ -13,10 +14,10 @@ export const signatureCommand = z.object({...exact,agreementId:uuid,signerName:z
 export const agreementDigest=digest;
 const service=z.object({lineId:uuid,title:z.string(),kind:z.enum(["RENTAL","TOUR"]),startAt:z.string(),endAt:z.string(),partySize:z.number().int().positive(),serviceCentavos:z.number().int().nonnegative(),refundableDepositCentavos:z.number().int().nonnegative(),driverName:z.string().nullable()});
 const policy=z.object({lineId:uuid,terms:z.string(),cancellationPolicy:z.string(),refundPolicy:z.string(),damagePolicy:z.string(),latePolicy:z.string()});
-const acceptedSnapshot=z.object({lines:z.array(service).min(1),totals:z.object({serviceCentavos:z.number().int().nonnegative(),refundableDepositCentavos:z.number().int().nonnegative(),totalCentavos:z.number().int().nonnegative()}),policies:z.array(policy).min(1)});
+const acceptedSnapshot=z.object({platformTerms:termsSnapshot.optional(),lines:z.array(service).min(1),totals:z.object({serviceCentavos:z.number().int().nonnegative(),refundableDepositCentavos:z.number().int().nonnegative(),totalCentavos:z.number().int().nonnegative()}),policies:z.array(policy).min(1)});
 export function agreementBody(agencyName:string,renterName:string,snapshot:unknown){
  const q=acceptedSnapshot.parse(snapshot);
- return {agencyName,renterName,services:q.lines,totals:q.totals,policies:q.policies,acknowledgement:AGREEMENT_ACKNOWLEDGEMENT};
+ return {agencyName,renterName,services:q.lines,totals:q.totals,policies:q.policies,...(q.platformTerms?{platformTerms:q.platformTerms}:{}),acknowledgement:AGREEMENT_ACKNOWLEDGEMENT};
 }
 export type AgreementBody=ReturnType<typeof agreementBody>;
 export function validateSignerName(typed:string,saved:string){

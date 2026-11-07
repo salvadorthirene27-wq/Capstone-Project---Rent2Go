@@ -1,3 +1,4 @@
+import {agencyOwnedShares} from '../platform/schema';
 import { searchVehicles } from "../marketplace/vehicles";
 import { randomUUID, createHash } from "node:crypto";
 import type { PoolClient } from "pg";
@@ -19,7 +20,6 @@ import {
 } from "./schema";
 import {
   normalizeRegistration,
-  defaultVehicleShares,
   decideVehicleTransition,
   type VehicleState,
   type VehicleOwnership,
@@ -116,7 +116,7 @@ export async function createVehicleOffer(actor: Actor, input: unknown) {
         shares:
           data.ownership === "CONSIGNED"
             ? p.split
-            : defaultVehicleShares("AGENCY_OWNED"),
+            : agencyOwnedShares(p.split),
         allocationBasis: "SERVICE_REVENUE_EXCLUDING_REFUNDABLE_DEPOSIT",
       };
       const vehicleId = randomUUID(),

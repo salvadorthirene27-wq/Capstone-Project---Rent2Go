@@ -25,6 +25,7 @@ export function AgreementDocument({revision,issuedAt,expiresAt,body,signature}: 
       <div><dt>Refundable deposits</dt><dd>{money(body.totals.refundableDepositCentavos)}</dd></div>
       <div><dt>Agreement total</dt><dd>{money(body.totals.totalCentavos)}</dd></div>
     </dl>
+    {body.platformTerms&&<section><h4>{body.platformTerms.title}</h4><p>Platform terms version {body.platformTerms.revision}</p><p className="preserve-lines">{body.platformTerms.text}</p></section>}
     <section><h4>Electronic consent</h4><p>{body.acknowledgement}</p></section>
     {signature&&<section className="agreement-signature-record">
       <h4>Recorded signature</h4>

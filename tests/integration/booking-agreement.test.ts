@@ -37,6 +37,8 @@ it("issues from the exact accepted snapshot with DB issuance time and no hold/fi
  const issued=await issue(s),q=await getQuotation(renter,s.requestId);
  expect(issued.status).toBe("AGREEMENT_PENDING");expect(issued.agreement!.body.services).toEqual(q.quote!.lines);expect(issued.agreement!.body.policies).toEqual(q.quote!.policies);expect(issued.agreement!.body.totals).toEqual(q.quote!.totals);
  expect(issued.agreement!.expiresAt).toBe(q.quote!.expiresAt);expect(Math.abs(Date.parse(issued.serverNow)-Date.parse(issued.agreement!.issuedAt))).toBeLessThan(2000);
+ const savedTerms=(await db.query("SELECT public_snapshot->'platformTerms' AS terms FROM booking_quotation WHERE id=$1",[s.acceptedQuote!.id])).rows[0].terms;
+ expect(issued.agreement!.body.platformTerms).toEqual(savedTerms);expect(savedTerms.revision).toBeGreaterThan(0);
  expect((await db.query("SELECT * FROM booking_hold WHERE request_id=$1",[s.requestId])).rows[0]).toEqual(before);
  expect(JSON.stringify(issued)).not.toMatch(/private_contact|agreementTerms|allocationBasis|shares|sha256|backend/);
  await expect(getAgreement(foreign,s.requestId)).rejects.toMatchObject({status:404});await expect(getAgreement(admin,s.requestId)).rejects.toMatchObject({status:404});

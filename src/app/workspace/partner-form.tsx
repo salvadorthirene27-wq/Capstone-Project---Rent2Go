@@ -320,6 +320,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
           {statusLabel(app.status)}
         </span>
       </div>
+      {app.platformDefaultsRevision&&<p>Starting shares came from platform settings version {app.platformDefaultsRevision}. Review and propose your agency’s exact shares before submission; later platform settings do not replace this draft.</p>}
       <div className="application-meta">
         <span>Last saved {date(app.updatedAt)}</span>
         <span>

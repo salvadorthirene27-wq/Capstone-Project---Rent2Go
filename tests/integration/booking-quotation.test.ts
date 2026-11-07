@@ -86,6 +86,8 @@ it("issues immutable exact quotations and keeps private finances and driver cont
   await expect(issue(s)).rejects.toMatchObject({ status: 409 });
   s = await issue(s, [{ lineId: line.lineId, driverId: driver.id }]);
   expect(s.status).toBe("QUOTE_PENDING");
+  const terms=(await db.query("SELECT public_snapshot->'platformTerms' AS terms,platform_terms_revision AS revision FROM booking_quotation WHERE id=$1",[s.quote!.id])).rows[0];
+  expect(terms.terms.revision).toBe(terms.revision);expect(terms.terms.text).toContain("Rent2Go");expect(terms.terms.digest).toMatch(/^[a-f0-9]{64}$/);
   const owner = await getQuotation(renter, s.requestId);
   expect(owner.driverSelections).toEqual([]);
   expect(owner.quote?.lines[0].driverName).toBe("Synthetic quotation driver");

@@ -50,6 +50,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href="/admin/operations"><ShieldCheck size={19} aria-hidden="true"/>Service health</Link>
     <Link href="/admin/privacy"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy review</Link>
     <Link href="/admin/users"><ShieldCheck size={19} aria-hidden="true"/>User access & roles</Link>
+    <Link href="/admin/settings"><ShieldCheck size={19} aria-hidden="true"/>Platform settings</Link>
     <Link href="/admin/audit"><ClipboardList size={19} aria-hidden="true"/>Audit review</Link>
    </div>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>

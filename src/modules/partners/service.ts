@@ -1,3 +1,4 @@
+import {readPolicy} from '../platform/read';
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { db, transaction } from "../../lib/db";
@@ -22,6 +23,7 @@ export type Application = {
   version: number;
   submittedRevision: number;
   payload: ApplicationInput;
+  platformDefaultsRevision?: number | null;
   updatedAt: string;
 };
 function map(row: Record<string, unknown>): Application {
@@ -32,6 +34,7 @@ function map(row: Record<string, unknown>): Application {
     version: Number(row.version),
     submittedRevision: Number(row.submitted_revision),
     payload: row.payload as ApplicationInput,
+    platformDefaultsRevision: row.platform_defaults_revision == null ? null : Number(row.platform_defaults_revision),
     updatedAt: String(row.updated_at),
   };
 }
@@ -84,9 +87,10 @@ async function notify(
 export async function createApplication(actor: Actor) {
   return transaction(async (c) => {
     const user = await storedActor(actor, c);
+    const policy = await readPolicy(c);
     const result = await c.query(
-      "INSERT INTO partner_application(id,owner_id,payload) VALUES($1,$2,$3) ON CONFLICT(owner_id) DO NOTHING RETURNING *",
-      [randomUUID(), user.id, JSON.stringify(defaultApplication)],
+      "INSERT INTO partner_application(id,owner_id,payload,platform_defaults_revision) VALUES($1,$2,$3,$4) ON CONFLICT(owner_id) DO NOTHING RETURNING *",
+      [randomUUID(), user.id, JSON.stringify({...defaultApplication,split:policy.payload.consignedDefaults}),policy.revision],
     );
     if (result.rowCount) {
       const app = map(result.rows[0]);

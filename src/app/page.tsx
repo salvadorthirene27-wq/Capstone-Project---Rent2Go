@@ -341,6 +341,8 @@ export default function Home() {
         <div className="home-footer-meta max-w-7xl mx-auto pt-8 border-t border-gray-100 flex flex-col md:flex-row justify-between items-center gap-4 text-[10px] uppercase font-bold text-gray-400 tracking-widest">
           <p>© 2026 Rent2Go Philippines.</p>
           <div className="flex gap-6">
+            <Link href="/help">Help</Link>
+            <Link href="/terms">Marketplace terms</Link>
             <Link href="/photo-credits">Photo credits</Link>
             <span>Cars, tours and agency partners</span>
           </div>
