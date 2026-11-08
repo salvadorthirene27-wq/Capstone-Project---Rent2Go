@@ -1,3 +1,4 @@
+import {assertNoLegacyGatewayMix,gatewayBookingWork} from '../gateway/booking-guard';
 import {closedRefundGate,closedCreditCapacity} from "./closed-refund";
 import {randomUUID} from "node:crypto";
 import type {PoolClient} from "pg";
@@ -30,20 +31,21 @@ async function capacity(c:PoolClient,collectionId:string){
  COALESCE((SELECT sum(p.amount_centavos) FROM booking_refund_payment p JOIN booking_refund_request r ON r.id=p.refund_id WHERE r.collection_id=k.id),0)::text AS paid
  FROM booking_payment_collection k WHERE k.id=$1`,[collectionId])).rows[0];if(!row)throw new DomainError("Collection not found.",404);return refundCapacity(Number(row.confirmed),Number(row.reserved),Number(row.paid));
 }
-async function view(c:PoolClient,ctx:Context,r:any){
+async function view(c:PoolClient,ctx:Context,r:any,savedGateway?:boolean){
+ const gateway=savedGateway??(await gatewayBookingWork(c,ctx.r.id)).hasCheckout;
  const stage=refundStage(r.decision,r.cancellation,Boolean(r.payment_id),Boolean(r.pending_attempt_id)),eligible=refundableStatus(ctx.r.status)||Boolean(r.closed_credit_id),approved=["APPROVED","DEMO_PENDING"].includes(stage);
  const attempts=(await c.query("SELECT t.id,t.method,t.reference,t.initial_outcome,t.note,t.created_at,t.file_id,z.outcome FROM booking_refund_attempt t LEFT JOIN booking_refund_resolution z ON z.attempt_id=t.id WHERE t.refund_id=$1 ORDER BY t.created_at DESC,t.id DESC LIMIT 10",[r.id])).rows;
  return {id:r.id as string,creditId:r.closed_credit_id as string|null,collectionId:r.collection_id as string,environment:r.environment as "MANUAL"|"DEMO",amountCentavos:Number(r.amount_centavos),reason:r.reason as string,digest:r.digest as string,createdAt:(r.created_at as Date).toISOString(),policies:r.policy_snapshot as {quoteId:string;quoteDigest:string;services:{title:string;cancellationPolicy:string;refundPolicy:string;damagePolicy:string}[]},stage,decisionReason:r.decision_reason as string|null,cancellationReason:r.cancellation_reason as string|null,paymentId:r.payment_id as string|null,paidAt:r.paid_at?(r.paid_at as Date).toISOString():null,pendingAttemptId:r.pending_attempt_id as string|null,
- canReview:ctx.operator&&eligible&&stage==="PENDING_REVIEW",canWithdraw:ctx.owner&&stage==="PENDING_REVIEW",canRevoke:ctx.operator&&approved,canRecordManual:ctx.operator&&eligible&&stage==="APPROVED"&&r.environment==="MANUAL",canSimulate:ctx.operator&&eligible&&stage==="APPROVED"&&r.environment==="DEMO",canResolveDemo:ctx.operator&&eligible&&stage==="DEMO_PENDING"&&r.environment==="DEMO",
+ canReview:ctx.operator&&eligible&&stage==="PENDING_REVIEW",canWithdraw:ctx.owner&&stage==="PENDING_REVIEW",canRevoke:ctx.operator&&approved,canRecordManual:!gateway&&ctx.operator&&eligible&&stage==="APPROVED"&&r.environment==="MANUAL",canSimulate:!gateway&&ctx.operator&&eligible&&stage==="APPROVED"&&r.environment==="DEMO",canResolveDemo:!gateway&&ctx.operator&&eligible&&stage==="DEMO_PENDING"&&r.environment==="DEMO",
  attempts:attempts.map(t=>({id:t.id as string,method:t.method as string,reference:t.reference as string,outcome:(t.outcome??t.initial_outcome) as string,note:t.note as string,createdAt:(t.created_at as Date).toISOString(),evidenceId:t.file_id as string|null}))};
 }
 async function projection(c:PoolClient,ctx:Context,input:unknown={}){
- const pages=refundListQuery.parse(input),id=ctx.r.id;
+ const pages=refundListQuery.parse(input),id=ctx.r.id,gateway=(await gatewayBookingWork(c,ctx.r.id)).hasCheckout;
  const sourceRows=(await c.query("SELECT id,environment,method,reference,amount_centavos,recorded_at,count(*) OVER()::int AS total FROM booking_payment_collection WHERE request_id=$1 ORDER BY recorded_at DESC,id DESC LIMIT 20 OFFSET $2",[id,(pages.sourcePage-1)*20])).rows,sources=[];
  for(const k of sourceRows)sources.push({id:k.id as string,environment:k.environment as "MANUAL"|"DEMO",method:k.method as string,reference:k.reference as string,recordedAt:(k.recorded_at as Date).toISOString(),capacity:await capacity(c,k.id)});
  const sourceCount=Number(sourceRows[0]?.total??(await c.query("SELECT count(*) n FROM booking_payment_collection WHERE request_id=$1",[id])).rows[0].n);
- const activeRows=(await c.query(`SELECT * FROM (${rowSql} WHERE r.request_id=$1) v WHERE ${openSql} ORDER BY created_at,id LIMIT 20`,[id])).rows,open=[];for(const r of activeRows)open.push(await view(c,ctx,r));
- const historyRows=(await c.query(`SELECT *,count(*) OVER()::int AS total FROM (${rowSql} WHERE r.request_id=$1) v WHERE NOT (${openSql}) ORDER BY created_at DESC,id DESC LIMIT 20 OFFSET $2`,[id,(pages.historyPage-1)*20])).rows,history=[];for(const r of historyRows)history.push(await view(c,ctx,r));
+ const activeRows=(await c.query(`SELECT * FROM (${rowSql} WHERE r.request_id=$1) v WHERE ${openSql} ORDER BY created_at,id LIMIT 20`,[id])).rows,open=[];for(const r of activeRows)open.push(await view(c,ctx,r,gateway));
+ const historyRows=(await c.query(`SELECT *,count(*) OVER()::int AS total FROM (${rowSql} WHERE r.request_id=$1) v WHERE NOT (${openSql}) ORDER BY created_at DESC,id DESC LIMIT 20 OFFSET $2`,[id,(pages.historyPage-1)*20])).rows,history=[];for(const r of historyRows)history.push(await view(c,ctx,r,gateway));
  const creditSql=`SELECT a.id,a.body->>'title' title,a.amount_centavos-COALESCE((SELECT sum(r.amount_centavos) FROM booking_closed_refund_link l JOIN booking_refund_request r ON r.id=l.refund_id LEFT JOIN booking_refund_decision d ON d.refund_id=r.id WHERE l.credit_id=a.id AND (d.decision IS NULL OR d.decision='APPROVE') AND NOT EXISTS(SELECT 1 FROM booking_refund_cancel x WHERE x.refund_id=r.id)),0) AS available,p.created_at FROM booking_closed_credit a JOIN booking_closed_credit_post p ON p.credit_id=a.id WHERE a.request_id=$1`;
  const creditRows=(await c.query(`SELECT *,count(*) OVER()::int total FROM (${creditSql}) v WHERE available>0 ORDER BY created_at DESC,id DESC LIMIT 20 OFFSET $2`,[id,(pages.creditPage-1)*20])).rows;
  const creditCount=Number(creditRows[0]?.total??(await c.query(`SELECT count(*) n FROM (${creditSql}) v WHERE available>0`,[id])).rows[0].n),credits=creditRows.map(a=>({id:a.id as string,title:a.title as string,availableCentavos:Number(a.available)})),closed=Boolean((await c.query('SELECT 1 FROM booking_financial_close WHERE request_id=$1',[id])).rowCount);
@@ -57,6 +59,7 @@ async function authorize(c:PoolClient,actor:Actor,id:string,command:RefundComman
  if(operator?!ctx.operator:!ctx.owner)throw new DomainError(operator?"Only an independent agency operator may review or execute refunds.":"Only the renter may request or withdraw a refund.",403);
  await lockBookingAuthority(c,ctx,[ctx.r.renter_id],operator);const hash=digest({command,...(fileHash?{fileHash}:{})}),old=(await c.query("SELECT digest FROM booking_refund_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3",[id,ctx.user.id,command.idempotencyKey])).rows[0];
  if(old){if(old.digest!==hash)throw new DomainError("This retry key belongs to another refund action.",409);return {ctx,hash,replayed:true as const};}
+ if(['RECORD_MANUAL_REFUND','SIMULATE_REFUND','RESOLVE_DEMO_REFUND'].includes(command.action))await assertNoLegacyGatewayMix(c,id);
  await closedRefundGate(c,id,command);
  if(ctx.r.version!==command.version)throw new DomainError("This request changed. Reload refunds before continuing.",409);return {ctx,hash,replayed:false as const};
 }

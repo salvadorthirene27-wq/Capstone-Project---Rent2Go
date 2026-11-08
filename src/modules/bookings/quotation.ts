@@ -1,3 +1,4 @@
+import {assertGatewaySourceReplaceable} from '../gateway/booking-guard';
 import {readPlatformTerms} from '../platform/read';
 import {assertNoPendingCancellation,cancellationPending} from "./cancellation-guard";
 import { randomUUID } from "node:crypto";
@@ -235,6 +236,7 @@ export async function changeQuotation(actor: Actor, id: string, input: unknown) 
         throw new DomainError("This request changed. Reload and try again.", 409);
       if (["ISSUE_QUOTE", "WITHDRAW_QUOTE", "REJECT"].includes(command.action) && !operator)
         throw new DomainError("Only the agency may approve or withdraw a quotation; self-review is not allowed.", 403);
+      if (command.action !== "ACCEPT_QUOTE") await assertGatewaySourceReplaceable(c,id);
       if (command.action === "ISSUE_QUOTE") {
         if (!["READY_FOR_APPROVAL", "HOLD_EXPIRED"].includes(r.status))
           throw new DomainError("This request is not ready for quotation approval.", 409);

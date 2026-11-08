@@ -30,7 +30,7 @@ async function locked(c:PoolClient,id:string){
   await c.query('SELECT id FROM booking_request WHERE id=$1 FOR UPDATE',[row.request_id]);
   return row;
 }
-async function sourcePayable(c:PoolClient,row:StoredCheckout){
+export async function checkoutSourcePayable(c:PoolClient,row:StoredCheckout){
   try{
     const ctx=await financialContext(c,{id:row.renter_id,role:'RENTER'},row.request_id);
     await lockFinancialAuthority(c,ctx,false,await financialLines(c,row.quote_id));
@@ -56,7 +56,7 @@ async function claim(id:string,config:PayMongoConfig,force:boolean){return trans
   const paid=Boolean((await c.query('SELECT 1 FROM paymongo_checkout_payment WHERE checkout_id=$1',[id])).rowCount);
   if(end?.kind==='ABANDONED_BEFORE_DISPATCH'&&!link)return null;
   if(state.busy||(!force&&state.cooling)||(!force&&(end||paid))||(!link&&state.review_required))return null;
-  const payable=await sourcePayable(c,row);
+  const payable=await checkoutSourcePayable(c,row);
   if(!link&&!state.first_dispatch_at&&!payable){
     await c.query("INSERT INTO paymongo_checkout_end(checkout_id,kind)VALUES($1,'ABANDONED_BEFORE_DISPATCH') ON CONFLICT DO NOTHING",[id]);
     await c.query("UPDATE paymongo_checkout_state SET last_error='SOURCE_CLOSED' WHERE checkout_id=$1",[id]);return null;
@@ -93,7 +93,7 @@ async function observe(row:StoredCheckout,link:Link,snapshot:PayMongoCheckout,co
       if(old.payment_id!==p.id||Number(old.amount_centavos)!==p.amountCentavos||Number(old.fee_centavos)!==p.feeCentavos||Number(old.net_centavos)!==p.netCentavos||old.method!==p.method)throw new ProviderMismatch();
     }else{
       const ended=Boolean((await c.query('SELECT 1 FROM paymongo_checkout_end WHERE checkout_id=$1',[row.id])).rowCount);
-      const reconcile=ended||!await sourcePayable(c,row);
+      const reconcile=ended||!await checkoutSourcePayable(c,row);
       await c.query(`INSERT INTO paymongo_checkout_payment(id,checkout_id,provider_id,mode,merchant_fingerprint,payment_id,amount_centavos,fee_centavos,net_centavos,method,requires_reconciliation)
         VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[randomUUID(),row.id,link.provider_id,row.mode,row.merchant_fingerprint,p.id,p.amountCentavos,p.feeCentavos,p.netCentavos,p.method,reconcile]);
     }
@@ -118,7 +118,7 @@ export async function processCheckout(id:string,options:{transport?:typeof fetch
     }
     let snapshot=await client.retrieve(link.provider_id);matchCheckout(job.row,link,snapshot,config);
     await observe(job.row,link,snapshot,config);
-    const payable=await transaction(async c=>{await locked(c,id);return sourcePayable(c,job.row);});
+    const payable=await transaction(async c=>{await locked(c,id);return checkoutSourcePayable(c,job.row);});
     if(!snapshot.paid&&snapshot.status==='active'&&!payable){
       try{
         snapshot=await client.expire(link.provider_id,job.expiryKey);
@@ -148,13 +148,14 @@ export async function bookingCheckoutStatus(actor:Actor,requestId:string){return
   if(!row)return {checkout:null};
   const link=(await c.query<Link>('SELECT provider_id,checkout_url FROM paymongo_checkout_link WHERE checkout_id=$1',[row.id])).rows[0];
   const payment=(await c.query('SELECT id,amount_centavos,fee_centavos,requires_reconciliation,verified_at FROM paymongo_checkout_payment WHERE checkout_id=$1',[row.id])).rows[0];
+  const posting=(await c.query('SELECT b.outcome,b.collection_id,k.requires_reconciliation FROM paymongo_booking_posting b LEFT JOIN booking_payment_collection k ON k.id=b.collection_id WHERE b.checkout_id=$1',[row.id])).rows[0];
   const end=(await c.query('SELECT kind FROM paymongo_checkout_end WHERE checkout_id=$1',[row.id])).rows[0];
   const state=(await c.query('SELECT review_required,last_error,lease_until>clock_timestamp() busy FROM paymongo_checkout_state WHERE checkout_id=$1',[row.id])).rows[0];
   let configured=false;
   try{savedCheckoutPayload(row,payMongoConfig());configured=true;}catch{}
-  const canResume=Boolean(ctx.owner&&configured&&link&&!payment&&!end&&!state?.review_required&&await sourcePayable(c,row));
+  const canResume=Boolean(ctx.owner&&configured&&link&&!payment&&!end&&!state?.review_required&&await checkoutSourcePayable(c,row));
   return {checkout:{id:row.id,mode:row.mode,amountCentavos:Number(row.amount_centavos),
-    status:payment?(payment.requires_reconciliation||state?.review_required?'PAID_RECONCILIATION':'PAID_PENDING_POSTING'):state?.review_required?'REVIEW_REQUIRED':end?'EXPIRED':state?.busy?'PREPARING':state?.last_error==='EXPIRY_PENDING'?'CLOSING':link?'AWAITING_PAYMENT':'PREPARED',
+    status:payment?(payment.requires_reconciliation||state?.review_required||posting?.requires_reconciliation||(posting&&posting.outcome!=='COLLECTED')?'PAID_RECONCILIATION':posting?'PAID':'PAID_PENDING_POSTING'):state?.review_required?'REVIEW_REQUIRED':end?'EXPIRED':state?.busy?'PREPARING':state?.last_error==='EXPIRY_PENDING'?'CLOSING':link?'AWAITING_PAYMENT':'PREPARED',
     checkoutUrl:canResume?hostedCheckoutUrl(link.checkout_url):null,
-    payment:payment?{id:payment.id as string,amountCentavos:Number(payment.amount_centavos),feeCentavos:ctx.operator?Number(payment.fee_centavos):null,verifiedAt:(payment.verified_at as Date).toISOString()}:null}};
+    payment:payment?{id:payment.id as string,collectionId:posting?.collection_id as string|null??null,amountCentavos:Number(payment.amount_centavos),feeCentavos:ctx.operator?Number(payment.fee_centavos):null,verifiedAt:(payment.verified_at as Date).toISOString()}:null}};
 });}

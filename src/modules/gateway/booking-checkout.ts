@@ -1,3 +1,4 @@
+import {assertGatewaySourceReplaceable} from './booking-guard';
 import {createHash,randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import {transaction} from '../../lib/db';
@@ -44,7 +45,7 @@ export async function prepareBookingCheckout(actor:Actor,id:string,value:unknown
     const lines=(await c.query("SELECT policy_snapshot->'acceptedMethods' methods FROM booking_request_line WHERE request_id=$1",[id])).rows;
     if(!lines.length||lines.some(line=>!Array.isArray(line.methods)||!line.methods.includes('PAYMONGO')))throw new DomainError('The saved agency policy does not accept PayMongo for this request.',409);
     if((await c.query('SELECT 1 FROM booking_payment_account WHERE request_id=$1 LIMIT 1',[id])).rowCount)throw new DomainError('This request already has historical payment activity. Reconcile its original channel first.',409);
-    if((await c.query('SELECT 1 FROM paymongo_checkout WHERE request_id=$1 LIMIT 1',[id])).rowCount)throw new DomainError('A checkout is already prepared for this request. Recover its original provider session before creating another.',409);
+    await assertGatewaySourceReplaceable(c,id);
     const amount=z.object({serviceCentavos:z.number().int().nonnegative(),refundableDepositCentavos:z.number().int().nonnegative(),totalCentavos:z.number().int().positive().max(Number.MAX_SAFE_INTEGER)}).parse(quote.public_snapshot.totals);
     if(!Number.isSafeInteger(amount.serviceCentavos+amount.refundableDepositCentavos)||amount.serviceCentavos+amount.refundableDepositCentavos!==amount.totalCentavos)throw new DomainError('The signed booking totals require review.',409);
     const checkout=randomUUID(),providerKey=randomUUID(),payload=checkoutPayload({reference:checkout,requestId:id,amountCentavos:amount.totalCentavos,origin:process.env.APP_ORIGIN??'',methods:config.methods,idempotencyKey:providerKey},config);

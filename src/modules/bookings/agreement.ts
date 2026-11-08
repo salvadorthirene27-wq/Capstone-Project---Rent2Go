@@ -1,3 +1,4 @@
+import {assertGatewaySourceReplaceable} from '../gateway/booking-guard';
 import {assertNoPendingCancellation,cancellationPending} from "./cancellation-guard";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
@@ -80,6 +81,7 @@ export async function changeAgreement(actor:Actor,id:string,input:unknown){
   const ctx=await context(c,actor,id,true);checkVersion(ctx,command.version);
   if(!ctx.operator)throw new DomainError("Only an independent agency operator may issue or withdraw an agreement.",403);
   if(ctx.r.status!==(command.action==="ISSUE_AGREEMENT"?"QUOTE_ACCEPTED":"AGREEMENT_PENDING"))throw new DomainError("This request is not at the required agreement stage.",409);
+  await assertGatewaySourceReplaceable(c,id);
   const q=await lockLiveQuote(c,ctx,true);
   if(command.action==="ISSUE_AGREEMENT"){
    if(command.quoteId!==q.id||command.digest!==q.digest)throw new DomainError("Review the exact accepted quotation before issuing an agreement.",409);

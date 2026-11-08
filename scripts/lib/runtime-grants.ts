@@ -8,6 +8,7 @@ export async function grantRuntimePrivileges(client:Pick<PoolClient,"query">){
  await client.query("GRANT SELECT,INSERT,UPDATE ON app_request_budget TO rent2go_app");
  await client.query(`DO $$ BEGIN
   IF to_regclass('public.paymongo_checkout') IS NOT NULL THEN GRANT SELECT,INSERT ON paymongo_checkout,paymongo_checkout_link TO rent2go_app; END IF;
+  IF to_regclass('public.paymongo_booking_posting') IS NOT NULL THEN GRANT SELECT,INSERT ON paymongo_booking_posting TO rent2go_app; END IF;
   IF to_regclass('public.paymongo_checkout_state') IS NOT NULL THEN
    GRANT SELECT,INSERT ON paymongo_checkout_state,paymongo_checkout_dispatch,paymongo_checkout_observation,paymongo_checkout_payment,paymongo_checkout_end TO rent2go_app;
    GRANT UPDATE(first_dispatch_at,lease_nonce,lease_until,next_poll_at,review_required,last_error) ON paymongo_checkout_state TO rent2go_app;

@@ -1,3 +1,4 @@
+import {assertNoLegacyGatewayMix,gatewayBookingWork} from '../gateway/booking-guard';
 import {randomUUID} from 'node:crypto';
 import {z} from 'zod';
 import type {PoolClient} from 'pg';
@@ -33,7 +34,7 @@ async function projection(c:PoolClient,ctx:FinancialContext,page=1){
  if(!closed&&s?.decision==='ACCEPT'){try{balance=(await acceptedSettlement(c,ctx,s.id,s.digest)).b.funds!.additionalBalanceCentavos;}catch(e){if(!(e instanceof DomainError))throw e;blockedReason=e.message;}}
  const open=(await c.query(`SELECT * FROM (${rowSql} WHERE t.request_id=$1) v WHERE ${pending} ORDER BY submitted_at,id LIMIT 20`,[ctx.r.id])).rows;
  const history=(await c.query(`SELECT * FROM (${rowSql} WHERE t.request_id=$1) v WHERE NOT(${pending}) ORDER BY submitted_at DESC,id DESC LIMIT 20 OFFSET $2`,[ctx.r.id,(page-1)*20])).rows;
- const count=Number((await c.query(`SELECT count(*) n FROM (${rowSql} WHERE t.request_id=$1) v WHERE NOT(${pending})`,[ctx.r.id])).rows[0].n),payable=balance!==null&&balance>0&&open.length<20;
+ const count=Number((await c.query(`SELECT count(*) n FROM (${rowSql} WHERE t.request_id=$1) v WHERE NOT(${pending})`,[ctx.r.id])).rows[0].n),payable=!(await gatewayBookingWork(c,ctx.r.id)).hasCheckout&&balance!==null&&balance>0&&open.length<20;
  return {requestId:ctx.r.id as string,requestVersion:ctx.r.version as number,isOwner:ctx.owner,isOperator:ctx.operator,settlement:s?{id:s.id as string,digest:s.digest as string,revision:s.revision as number,environment:s.environment as 'MANUAL'|'DEMO'}:null,balanceCentavos:balance,blockedReason,methods:policy.methods,instructions:policy.instructions,
   canRecordCash:ctx.operator&&payable&&s.environment==='MANUAL'&&policy.methods.includes('CASH'),canSubmitGcash:ctx.owner&&payable&&s.environment==='MANUAL'&&policy.methods.includes('GCASH'),canSimulate:ctx.owner&&payable&&s.environment==='DEMO'&&policy.methods.some(m=>m.startsWith('DEMO_'))&&!open.some(t=>t.environment==='DEMO'),open:open.map(t=>attemptView(ctx,t)),history:history.map(t=>attemptView(ctx,t)),page,pageCount:Math.max(1,Math.ceil(count/20))};
 }
@@ -45,7 +46,7 @@ async function authorize(c:PoolClient,actor:Actor,id:string,command:any,fileHash
  const q=(await c.query('SELECT id FROM booking_quotation WHERE request_id=$1 ORDER BY revision DESC LIMIT 1',[id])).rows[0];await lockFinancialAuthority(c,ctx,operator,q?await financialLines(c,q.id):[]);
  const hash=digest({channel:'SETTLEMENT',command,...(fileHash?{fileHash}:{})}),old=(await c.query('SELECT digest FROM booking_payment_command WHERE request_id=$1 AND actor_id=$2 AND idempotency_key=$3',[id,ctx.user.id,command.idempotencyKey])).rows[0];
  if(old){if(old.digest!==hash)throw new DomainError('This retry key belongs to a different payment action.',409);return {ctx,hash,replayed:true};}
- await assertFinancialOpen(c,id);if(ctx.r.version!==command.version)throw new DomainError('This booking changed. Refresh balance payments before continuing.',409);
+ await assertNoLegacyGatewayMix(c,id);await assertFinancialOpen(c,id);if(ctx.r.version!==command.version)throw new DomainError('This booking changed. Refresh balance payments before continuing.',409);
  return {ctx,hash,replayed:false};
 }
 async function collection(c:PoolClient,ctx:FinancialContext,t:any,stale=false){

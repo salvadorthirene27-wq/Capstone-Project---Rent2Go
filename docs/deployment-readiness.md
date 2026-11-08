@@ -1,4 +1,4 @@
-# Functionality and deployment readiness â€” 8 November 2026
+# Functionality and deployment readiness — 8 November 2026
 
 **The expanded system is not yet ready for public production deployment.** The earlier local-capstone baseline has recorded acceptance evidence. The subsequently requested PayMongo central-collection workflow is still being integrated; successful API authentication is not completion of that workflow.
 
@@ -6,7 +6,7 @@
 | --- | --- |
 | Existing capstone workflows | Local evidence covers multi-agency onboarding, vehicles/tours, booking/document/quote/agreement stages, service fulfillment, reviewed finances, reports, notifications, account/privacy controls and logical recovery. This does not establish payment-provider production readiness. |
 | PayMongo connection | Test API creation, retrieval and explicit expiry passed. No actual provider-paid transaction or real-money transaction has been claimed. Live merchant activation and enabled payment methods have not been verified. |
-| Checkout lifecycle | Exact preparation and durable dispatch/reconciliation passed their isolated-database checks. Payment posting, late-fund handling and cross-module cancellation/expiry/replacement gates must be completed before enabling a customer checkout action. |
+| Checkout lifecycle | Exact preparation and durable dispatch/reconciliation passed their isolated-database checks. Internal verified-receipt posting and cancellation/replacement/legacy-channel guards have been added. The supervised payment worker, reviewed exception resolution, central finances and customer checkout flow must be completed before activation. |
 | Central finances | The approved agency-fee/deposit/entitlement rules have domain coverage. Actual custody, provider refunds, additional balances, agency disbursement records and the matching report/remittance projections still need to be connected. Centrally retained commission must not become a second agency remittance obligation. |
 | End-to-end payment validation | A complete customer payment, failed/retried/cancelled flow, exact provider-confirmed booking state, refund and disbursement walkthrough is still required. Native fixtures and mocked provider responses cannot replace that check. |
 | Hosted environment | No deployment target or public production origin has been configured/verified. Hosting must support the dynamic Next.js server, PostgreSQL and private storage access, and supervised hold/payment workers or a verified scheduling alternative. A laptop terminal is not a hosted worker service. |

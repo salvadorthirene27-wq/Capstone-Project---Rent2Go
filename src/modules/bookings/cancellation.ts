@@ -1,3 +1,4 @@
+import {assertGatewayResolved} from '../gateway/booking-guard';
 import {randomUUID} from "node:crypto";
 import type {PoolClient} from "pg";
 import {transaction} from "../../lib/db";
@@ -63,6 +64,7 @@ export async function changeCancellation(actor:Actor,id:string,input:unknown){
    if(operator&&(!canCancelStatus(ctx.r.status)||await started(c,id)))throw new DomainError("Cancellation review is unavailable after service delivery or closure.",409);
    const decision=command.action==="WITHDRAW_CANCELLATION"?"WITHDRAW":command.decision;
    if(decision==="APPROVE"){
+    await assertGatewayResolved(c,id);
     await releaseAllocation(c,id);const liability=await liabilities(c,id),status=liability.pendingManual||liability.collections.some(k=>k.confirmedCentavos>0)?"CANCELLED_RECONCILIATION_PENDING":"CANCELLED";
     await c.query("UPDATE booking_request SET status=$2 WHERE id=$1",[id,status]);ctx.r.status=status;
    }

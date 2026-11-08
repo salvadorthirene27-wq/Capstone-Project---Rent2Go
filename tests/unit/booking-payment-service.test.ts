@@ -6,6 +6,7 @@ vi.mock("../../src/modules/bookings/quotation",()=>({lockBookingAuthority:vi.fn(
 import { getPayments } from "../../src/modules/bookings/payment";
 const id="e79318ab-a56e-4cc8-a8b0-a3e4676d7b36";
 beforeEach(()=>{vi.resetAllMocks();m.transaction.mockImplementation(fn=>fn({query:m.query}));m.actor.mockResolvedValue({id:"renter",role:"RENTER"});m.query.mockImplementation(async(sql:string)=>{
+ if(sql.includes("to_regclass"))return {rows:[{prepared:null,posting:null}],rowCount:1};
  if(sql.startsWith("SELECT id,agency_id,renter_id,status,version"))return {rows:[{id,agency_id:id,renter_id:"renter",status:"REQUIREMENTS_PENDING",version:1}],rowCount:1};
  if(sql.includes("is_test_fixture FROM app_actor"))return {rows:[{is_test_fixture:false}],rowCount:1};
  if(sql.includes("clock_timestamp() AS now"))return {rows:[{now:new Date("2030-01-01T00:00:00Z")}],rowCount:1};
@@ -19,6 +20,7 @@ it("pre-agreement GET is a read-only repeatable snapshot with no invented balanc
 });
 it("enables resolution only for the renter's pending demo on the current signed allocation",async()=>{
  m.query.mockImplementation(async(sql:string)=>{
+  if(sql.includes("to_regclass"))return {rows:[{prepared:null,posting:null}],rowCount:1};
   if(sql.startsWith("SELECT id,agency_id,renter_id,status,version"))return {rows:[{id,agency_id:id,renter_id:"renter",status:"AGREEMENT_SIGNED",version:1}],rowCount:1};
   if(sql.startsWith("SELECT q.id"))return {rows:[{id:"current-quote",digest:"quote-digest",totals:{serviceCentavos:100,refundableDepositCentavos:200,totalCentavos:300}}],rowCount:1};
   if(sql.startsWith("SELECT h.id"))return {rows:[{id:"hold",expires_at:new Date("2031-01-01Z"),released_at:null,live:true,committed:false}],rowCount:1};

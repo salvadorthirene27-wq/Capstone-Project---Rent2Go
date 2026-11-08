@@ -4,7 +4,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { date, money } from "@/modules/partners/presentation";
 
-type Method = "CASH" | "GCASH" | "DEMO_CARD" | "DEMO_GCASH" | "DEMO_PAYPAL";
+type Method = "PAYMONGO" | "CASH" | "GCASH" | "DEMO_CARD" | "DEMO_GCASH" | "DEMO_PAYPAL";
 type Environment = "MANUAL" | "DEMO";
 type DemoOutcome = "APPROVED" | "DECLINED" | "PENDING" | "CANCELLED";
 type Attempt = {
@@ -13,7 +13,7 @@ type Attempt = {
   submittedAt: string; reason: string | null; evidenceId: string | null; collectionId: string | null; canResolve: boolean;
 };
 type PaymentState = {
-  serverNow: string; holdExpiresAt: string | null; requestId: string; requestVersion: number; status: string;
+  channel?: "PAYMONGO" | "AGENCY"; serverNow: string; holdExpiresAt: string | null; requestId: string; requestVersion: number; status: string;
   isOwner: boolean; isOperator: boolean; canSubmitGcash: boolean; canRecordCash: boolean; canSimulate: boolean;
   canReview: boolean; canResolveDemo: boolean; allocationCommitted: boolean; holdActive: boolean;
   agreement: { id: string; digest: string; quoteId: string } | null; environment: Environment | null; methods: Method[];
@@ -23,7 +23,7 @@ type PaymentState = {
   collections: { id: string; method: Method; environment: Environment; amountCentavos: number; reference: string; recordedAt: string }[];
   requiresReconciliation: boolean;
 };
-const methods: Record<Method, string> = { CASH: "Received cash", GCASH: "GCash · manual receipt review", DEMO_CARD: "Card · simulated", DEMO_GCASH: "GCash · simulated", DEMO_PAYPAL: "PayPal · simulated" };
+const methods: Record<Method, string> = { PAYMONGO: "PayMongo \u00b7 held by Rent2Go", CASH: "Received cash", GCASH: "GCash · manual receipt review", DEMO_CARD: "Card · simulated", DEMO_GCASH: "GCash · simulated", DEMO_PAYPAL: "PayPal · simulated" };
 const outcomes: Record<Attempt["outcome"], string> = { SUBMITTED: "Awaiting agency review", PENDING: "Pending simulation", CONFIRMED: "Confirmed", REJECTED: "Rejected", DECLINED: "Declined", CANCELLED: "Cancelled" };
 function centavos(value: string) {
   if (!/^\d+(?:\.\d{1,2})?$/.test(value)) return null;
@@ -151,11 +151,11 @@ export function BookingPayments({ requestId }: { requestId: string }) {
       else setError(cause instanceof Error ? cause.message : "Unable to record this payment action. Try again.");
     } finally { inFlight.current = false; setBusy(false); }
   }
-  const receiptLink = (id: string, mode: Environment) => <Link href={`/booking-payments/${encodeURIComponent(id)}`}>{mode === "DEMO" ? "View simulated payment record" : "View payment receipt"}</Link>;
+  const receiptLink = (id: string, mode: Environment, method?: Method) => <Link href={`/booking-payments/${encodeURIComponent(id)}`}>{mode === "DEMO" ? method === "PAYMONGO" ? "View PayMongo test payment record" : "View simulated payment record" : "View payment receipt"}</Link>;
   return <section className="context-section booking-payments" aria-labelledby="payments-heading" aria-busy={busy}>
     {data&&["FULFILLMENT_RECONCILIATION_PENDING","CANCELLED_RECONCILIATION_PENDING","PAYMENT_RECONCILIATION_REQUIRED","CANCELLED","COMPLETED","HOLD_EXPIRED"].includes(data.status)&&<p className="notice">These are the original quotation payment records. Quoted balances are historical references; use <a href="#settlement-heading">Settlement</a> for current retained charges, additional balances and refunds.</p>}
     <div className="payment-section-heading"><h2 id="payments-heading">Booking payments</h2><button type="button" className="button secondary" disabled={busy} onClick={reload}>Reload payments</button></div>
-    <p>Record payment against the signed agreement. GCash evidence needs agency review; cash is recorded by the receiving agency.</p>
+    <p>{data?.channel === "PAYMONGO" ? "Online payment results are verified with PayMongo. Rent2Go holds the funds; deposits and agency disbursements remain separate." : "Record payment against the signed agreement. GCash evidence needs agency review; cash is recorded by the receiving agency."}</p>
     {error && <p role="alert" className="error-message">{error}</p>}
     {message && <p role="status">{message}</p>}
     {!data && !error && <p role="status">Loading payments…</p>}
@@ -165,7 +165,7 @@ export function BookingPayments({ requestId }: { requestId: string }) {
           <div><dt>Quoted services</dt><dd>{money(data.totals.serviceCentavos)}</dd></div>
           <div><dt>Refundable deposits</dt><dd>{money(data.totals.refundableDepositCentavos)}</dd></div>
           <div><dt>Total due before service</dt><dd>{money(data.totals.totalCentavos)}</dd></div>
-          <div><dt>{data.environment === "DEMO" ? "Recorded simulated amount" : "Confirmed payments"}</dt><dd>{money(data.totals.confirmedCentavos)}</dd></div>
+          <div><dt>{data.environment === "DEMO" ? data.channel === "PAYMONGO" ? "PayMongo test payments" : "Recorded simulated amount" : "Confirmed payments"}</dt><dd>{money(data.totals.confirmedCentavos)}</dd></div>
           <div><dt>{data&&["FULFILLMENT_RECONCILIATION_PENDING","CANCELLED_RECONCILIATION_PENDING","PAYMENT_RECONCILIATION_REQUIRED","CANCELLED","COMPLETED","HOLD_EXPIRED"].includes(data.status)?"Original quote balance, for reference":"Outstanding balance"}</dt><dd>{money(data.totals.balanceCentavos)}</dd></div>
           {data.totals.creditCentavos > 0 && <div><dt>Unapplied credit</dt><dd>{money(data.totals.creditCentavos)}</dd></div>}
         </dl>
@@ -174,7 +174,7 @@ export function BookingPayments({ requestId }: { requestId: string }) {
       </>}
       {data.requiresReconciliation && <p className="notice"><strong>Reconciliation required.</strong> Funds recorded after the allocation expired cannot authorize service release. The agency must reconcile this payment.</p>}
       {data.allocationCommitted ? <p className="notice">Inventory allocation is committed. A partial payment retains the allocation but does not authorize service release.</p> : data.agreement && (!data.holdActive || expired) && <p className="notice">The temporary allocation has expired. Reload payments to check the current booking. Submitted evidence remains available for agency review.</p>}
-      {data.agreement && <fieldset className="payment-environment" disabled={blocked}>
+      {data.agreement && data.channel !== "PAYMONGO" && <fieldset className="payment-environment" disabled={blocked}>
         <legend>Payment environment</legend>
         <label><input type="radio" name={`payment-environment-${requestId}`} checked={environment === "MANUAL"} disabled={data.environment === "DEMO"} onChange={() => { setEnvironment("MANUAL"); clearInputs(); }} />Manual GCash or cash</label>
         <label><input type="radio" name={`payment-environment-${requestId}`} checked={environment === "DEMO"} disabled={data.environment === "MANUAL" || !data.methods.some(method => method.startsWith("DEMO_"))} onChange={() => { setEnvironment("DEMO"); clearInputs(); }} />Simulated payment · no charge</label>
@@ -210,11 +210,11 @@ export function BookingPayments({ requestId }: { requestId: string }) {
       </div>}
       <div className="payment-history"><h3>Payment history</h3><p>Submitted evidence and pending simulations do not count as confirmed payment. Earlier quotation records remain historical.</p>
         {!data.attempts.length && !data.collections.length ? <p>No payment attempts have been recorded.</p> : <ul>{data.attempts.map(attempt => <li key={attempt.id}>
-          {attempt.environment === "DEMO" && <strong className="payment-demo-label">Simulated payment · no charge</strong>}
+          {attempt.environment === "DEMO" && <strong className="payment-demo-label">{data.channel === "PAYMONGO" ? "PayMongo test payment \u00b7 no charge" : "Simulated payment \u00b7 no charge"}</strong>}
           <div className="payment-history-heading"><strong>{methods[attempt.method]}</strong><span>{outcomes[attempt.outcome]}</span></div>
           <p>{money(attempt.amountCentavos)} · Reference: {attempt.reference} · {date(attempt.submittedAt)}</p>
           {attempt.reason && <p>Review reason: <span>{attempt.reason}</span></p>}
-          <div className="payment-links">{attempt.evidenceId && <a href={`/api/booking-payment-files/${encodeURIComponent(attempt.evidenceId)}`}>View private evidence</a>}{attempt.collectionId && receiptLink(attempt.collectionId, attempt.environment)}</div>
+          <div className="payment-links">{attempt.evidenceId && <a href={`/api/booking-payment-files/${encodeURIComponent(attempt.evidenceId)}`}>View private evidence</a>}{attempt.collectionId && receiptLink(attempt.collectionId, attempt.environment, attempt.method)}</div>
           {data.canReview && data.isOperator && !data.isOwner && attempt.method === "GCASH" && attempt.environment === "MANUAL" && attempt.outcome === "SUBMITTED" && <fieldset disabled={blocked} className="payment-review"><legend>Review GCash reference {attempt.reference}</legend>
             <label>Review reason for {attempt.reference}<textarea value={reasons[attempt.id] || ""} onChange={event => setReasons(current => ({ ...current, [attempt.id]: event.target.value }))} maxLength={2000} required /></label>
             <div className="actions"><button type="button" className="button" disabled={blocked || !reasons[attempt.id]?.trim()} onClick={() => submit("REVIEW_GCASH", attempt, "CONFIRM")}>Confirm GCash receipt</button><button type="button" className="button secondary" disabled={blocked || !reasons[attempt.id]?.trim()} onClick={() => submit("REVIEW_GCASH", attempt, "REJECT")}>Reject GCash receipt</button></div>
@@ -224,8 +224,8 @@ export function BookingPayments({ requestId }: { requestId: string }) {
             <button type="button" className="button" disabled={blocked} onClick={() => submit("RESOLVE_DEMO", attempt)}>Resolve simulated payment</button>
           </fieldset>}
         </li>)}{data.collections.filter(collection => !data.attempts.some(attempt => attempt.collectionId === collection.id)).map(collection => <li key={collection.id}>
-          {collection.environment === "DEMO" && <strong className="payment-demo-label">Simulated payment · no charge</strong>}
-          <div className="payment-history-heading"><strong>{methods[collection.method]}</strong><span>Confirmed</span></div><p>{money(collection.amountCentavos)} · Reference: {collection.reference} · {date(collection.recordedAt)}</p>{receiptLink(collection.id, collection.environment)}
+          {collection.environment === "DEMO" && <strong className="payment-demo-label">{data.channel === "PAYMONGO" ? "PayMongo test payment \u00b7 no charge" : "Simulated payment \u00b7 no charge"}</strong>}
+          <div className="payment-history-heading"><strong>{methods[collection.method]}</strong><span>Confirmed</span></div><p>{money(collection.amountCentavos)} · Reference: {collection.reference} · {date(collection.recordedAt)}</p>{receiptLink(collection.id, collection.environment, collection.method)}
         </li>)}</ul>}
       </div>
     </>}

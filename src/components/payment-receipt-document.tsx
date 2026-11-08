@@ -8,12 +8,13 @@ export type PaymentReceipt={
 };
 export function PaymentReceiptDocument({receipt:r}:{receipt:PaymentReceipt}){
  return <article className="agreement-document payment-receipt-document">
-  <p className="notice"><strong>{r.environment==="DEMO"?"Simulated payment · no charge":"Agency collection record"}</strong></p>
+  <p className="notice"><strong>{r.method==="PAYMONGO"?(r.environment==="DEMO"?"PayMongo test payment \u00b7 no charge":"PayMongo payment \u00b7 held by Rent2Go"):r.environment==="DEMO"?"Simulated payment \u00b7 no charge":"Agency collection record"}</strong></p>
   <header>
    <p><strong>{r.agencyName}</strong><br/>Renter: {r.renterName}</p>
    <p>Recorded {date(r.recordedAt)} (Philippine time)<br/>Recorded by: {r.receiverName}</p>
   </header>
   {r.settlement&&<p><strong>Additional-balance collection · settlement version {r.settlement.revision}</strong><br/>Accepted service and charge obligation: {money(r.settlement.obligationCentavos)} · accepted extra charges: {money(r.settlement.extraCentavos)}</p>}
+  {r.method==="PAYMONGO"&&<p>Rent2Go holds this payment centrally. This record does not prove an agency disbursement. Refundable deposits remain separate from service revenue.</p>}
   <h2>This collection</h2>
   <dl className="agreement-totals">
    <div><dt>Amount recorded</dt><dd>{money(r.amountCentavos)}</dd></div>

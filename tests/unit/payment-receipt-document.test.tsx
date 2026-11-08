@@ -12,3 +12,12 @@ it("labels manual confirmation as an agency record without implying provider set
  const html=renderToStaticMarkup(<PaymentReceiptDocument receipt={{...receipt,environment:"MANUAL",method:"GCASH"}}/>);
  expect(html).toContain("Agency collection record");expect(html).not.toContain("Simulated payment · no charge");expect(html).toContain("This collection does not by itself confirm the full balance");expect(html).toContain("Refundable deposits remain separate");
 });
+it("distinguishes central PayMongo custody from an agency receipt and retains the provider test identity",()=>{
+ const test=renderToStaticMarkup(<PaymentReceiptDocument receipt={{...receipt,method:"PAYMONGO"}}/>);
+ expect(test).toContain("PayMongo test payment · no charge");
+ expect(test).toContain("does not prove an agency disbursement");
+ expect(test).not.toContain("Agency collection record");
+ const live=renderToStaticMarkup(<PaymentReceiptDocument receipt={{...receipt,environment:"MANUAL",method:"PAYMONGO"}}/>);
+ expect(live).toContain("PayMongo payment · held by Rent2Go");
+ expect(live).not.toContain("Simulated payment");
+});

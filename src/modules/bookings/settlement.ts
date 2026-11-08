@@ -1,3 +1,4 @@
+import {gatewayBookingWork} from '../gateway/booking-guard';
 import {randomUUID} from 'node:crypto';
 import type {PoolClient} from 'pg';
 import {transaction} from '../../lib/db';
@@ -15,7 +16,7 @@ import {fundApplication,revenueAllocations,roundingRule,settlementConsent} from 
 export async function financialOpenWork(c:PoolClient,id:string){
  const payments=Number((await c.query("SELECT count(*) n FROM booking_payment_attempt a WHERE request_id=$1 AND initial_outcome IN ('SUBMITTED','PENDING') AND NOT EXISTS(SELECT 1 FROM booking_payment_decision d WHERE d.attempt_id=a.id)",[id])).rows[0].n);
  const refunds=Number((await c.query("SELECT count(*) n FROM booking_refund_request r LEFT JOIN booking_refund_decision d ON d.refund_id=r.id WHERE r.request_id=$1 AND (d.decision IS NULL OR d.decision='APPROVE') AND NOT EXISTS(SELECT 1 FROM booking_refund_cancel x WHERE x.refund_id=r.id) AND NOT EXISTS(SELECT 1 FROM booking_refund_payment p WHERE p.refund_id=r.id)",[id])).rows[0].n);
- return {payments,refunds};
+ return {payments:payments+(await gatewayBookingWork(c,id)).unresolved,refunds};
 }
 async function basis(c:PoolClient,ctx:FinancialContext){
  const a=(await c.query("SELECT a.id,a.revision,a.quote_id,a.environment,a.body,a.digest,d.decision FROM booking_assessment a LEFT JOIN booking_assessment_decision d ON d.assessment_id=a.id WHERE a.request_id=$1 ORDER BY a.revision DESC LIMIT 1",[ctx.r.id])).rows[0];

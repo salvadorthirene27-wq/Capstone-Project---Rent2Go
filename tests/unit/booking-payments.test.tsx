@@ -22,6 +22,17 @@ const pending = { ...submitted, method: "DEMO_CARD", environment: "DEMO", outcom
 const collection = { id: "collection-1", method: "GCASH", environment: "MANUAL", amountCentavos: 100050, reference: "SYNTHETIC-REF", recordedAt: base.serverNow };
 const response = (body: unknown, status = 200) => ({ ok: status < 400, status, json: async () => body });
 const image = () => new File([new Uint8Array([137, 80, 78, 71, 13, 10, 26, 10])], "synthetic-receipt.png", { type: "image/png" });
+
+it("shows central provider records without offering a manual or simulated environment switch",async()=>{
+ const gateway={...base,channel:"PAYMONGO",environment:"DEMO",canSubmitGcash:false,canRecordCash:false,canSimulate:false,canReview:false,canResolveDemo:false,methods:[],collections:[{...collection,method:"PAYMONGO",environment:"DEMO"}]};
+ vi.stubGlobal("fetch",vi.fn().mockResolvedValue(response(gateway)));
+ render(<BookingPayments requestId="request-1"/>);
+ expect(await screen.findByText(/Rent2Go holds the funds/)).toBeTruthy();
+ expect(screen.getByText("PayMongo test payment · no charge")).toBeTruthy();
+ expect(screen.getByRole("link",{name:"View PayMongo test payment record"})).toBeTruthy();
+ expect(screen.queryByRole("radio")).toBeNull();
+ expect(screen.queryByLabelText("Simulated payment method")).toBeNull();
+});
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); vi.useRealTimers(); refresh.mockClear(); });
 async function fillReceipt() {
   const user = userEvent.setup();

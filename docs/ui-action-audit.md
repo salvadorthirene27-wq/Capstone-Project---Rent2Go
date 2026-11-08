@@ -10,6 +10,8 @@ Desktop and 375-pixel phone review confirms collapsed links are actually hidden,
 
 UI/UX Pro Max's general keyboard, focus, spacing and touch-target priorities guide this change. Its two targeted searches did not provide a verified specific recommendation for this disclosure; the native disclosure choice is product judgment, not an attributed search result. No generated palette or typography replaces DESIGN.md.
 
+The gateway-bound payment history now omits the legacy manual/simulation environment switch. Central PayMongo receipt labels identify Rent2Go custody and preserve the provider test identity, while historical agency receipts keep their existing labels. This does not enable a hosted checkout control; activation still depends on the complete payment and financial path.
+
 ## Next patterns to consolidate
 
 | Pattern | Intended change | Required behavior |
