@@ -35,6 +35,8 @@ Synthetic demonstration accounts created during local verification live in ignor
 
 ## Private evidence and payments
 
+PayMongo integration is now underway: the user approved central collection through Rent2Go, separate agency disbursement records and agency-paid processing fees without changing the agreed revenue shares or renter total. The server connector has actual test API create/retrieve/expire evidence. Booking integration and replacement of the current online simulation controls are still in progress; the gateway remains disabled until that complete path is verified. See [the integration plan and remaining work](docs/workflows/paymongo-integration.md).
+
 The current deployment uses a private Neon S3-compatible bucket. `STORAGE_DRIVER=s3` uses the branch-specific `AWS_*` environment values. Explicit `STORAGE_DRIVER=local` is available for a local filesystem fallback outside public assets; an unset or invalid driver is rejected. Each file remembers its backend. Files are delivered through authenticated, audited download routes.
 
 Uploads support PDF/PNG/JPEG, signature/type checks and an 8 MB limit. Document acceptance is an administrator's review; upload validation does not establish authenticity or perform malware scanning.
