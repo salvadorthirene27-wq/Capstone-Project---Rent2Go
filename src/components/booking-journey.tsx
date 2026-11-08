@@ -24,6 +24,7 @@ export function BookingJourney({status}:{status:string}){
  const action=next[status];
  return <section className="booking-journey" aria-label="Booking steps">
   {action&&<div className="booking-next"><div><span>Next step</span><h2>{action.label}</h2><p>{action.detail}</p></div><a className="button" href={action.href}>Go to this step<ArrowRight size={17} aria-hidden="true"/></a></div>}
+  <details className="booking-section-menu"><summary>All booking sections</summary>
   <nav aria-label="Booking sections">
    <a href="#requirements-heading"><FileText size={17} aria-hidden="true"/>Documents</a>
    <a href="#quotation-heading">Quotation</a><a href="#agreement-heading">Agreement</a>
@@ -31,6 +32,6 @@ export function BookingJourney({status}:{status:string}){
    <a href="#fulfillment-heading"><CalendarDays size={17} aria-hidden="true"/>Service</a>
    <a href="#assessment-title"><ClipboardCheck size={17} aria-hidden="true"/>Assessment</a>
    <a href="#settlement-heading">Settlement</a><a href="#refunds-heading">Refunds</a><a href="#cancellation-heading">Cancellation</a>
-  </nav>
+  </nav></details>
  </section>;
 }
