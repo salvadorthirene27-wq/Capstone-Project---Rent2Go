@@ -102,6 +102,24 @@ export function checkoutPayload(input:NewCheckout,config:PayMongoConfig){
   }}};
 }
 
+const preparedPayloadSchema=z.object({data:z.object({attributes:z.object({
+  reference_number:z.uuid(),
+  line_items:z.tuple([z.object({name:z.literal('Rent2Go agreed booking balance'),amount:cents.positive(),currency:z.literal('PHP'),quantity:z.literal(1)}).strict()]),
+  payment_method_types:z.array(payMongoMethod).min(1).max(payMongoMethod.options.length),
+  success_url:z.string(),cancel_url:z.string(),metadata:z.object({rent2go_checkout:z.uuid()}).strict(),
+  send_email_receipt:z.literal(false),pass_on_fees:z.literal(false),
+}).strict()}).strict()}).strict();
+/** Validate the already-persisted request without substituting today's origin,
+ * enabled-method list or amounts into a retry. */
+export function preparedCheckoutPayload(value:unknown){
+  const body=preparedPayloadSchema.parse(value),a=body.data.attributes;
+  let success:URL;
+  try{success=new URL(a.success_url);}catch{throw new DomainError('Invalid saved checkout return address.',409);}
+  const match=/^\/workspace\/bookings\/([a-f0-9-]{36})$/i.exec(success.pathname);
+  if(!match||a.metadata.rent2go_checkout!==a.reference_number||new Set(a.payment_method_types).size!==a.payment_method_types.length||checkoutReturnUrl(success.origin,match[1],'success')!==a.success_url||checkoutReturnUrl(success.origin,match[1],'cancel')!==a.cancel_url)throw new DomainError('Invalid saved checkout request.',409);
+  return body;
+}
+
 async function boundedResponse(response:Response){
   const reader=response.body?.getReader();if(!reader)throw new PayMongoError();
   const chunks:Uint8Array[]=[];let size=0;
@@ -126,10 +144,12 @@ export function payMongoClient(config:PayMongoConfig,transport:typeof fetch=fetc
     const envelope=await boundedResponse(response);
     return envelope?.data;
   }
+  const createPrepared=async(body:unknown,key:string)=>parseCreatedCheckout(await request('/v2/checkout_sessions',preparedCheckoutPayload(body),retryKey.parse(key)),config.mode);
   return {
     // V2 creation returns only the id, hosted URL and mode. Persist that mapping
     // before retrieving the full record; a failed GET must not create a new order.
-    create:async(input:NewCheckout)=>parseCreatedCheckout(await request('/v2/checkout_sessions',checkoutPayload(input,config),input.idempotencyKey),config.mode),
+    create:async(input:NewCheckout)=>createPrepared(checkoutPayload(input,config),input.idempotencyKey),
+    createPrepared,
     retrieve:async(id:string)=>parseCheckout(await request(`/v1/checkout_sessions/${checkoutId.parse(id)}`),config.mode),
     expire:async(id:string,key:string)=>parseCheckout(await request(`/v1/checkout_sessions/${checkoutId.parse(id)}/expire`,{},key),config.mode),
   };

@@ -1,4 +1,4 @@
-# PayMongo integration — in progress
+# PayMongo integration â€” in progress
 
 This is an expansion after acceptance of the earlier local system. It is not yet wired into booking collections, refunds or disbursement accounting. Existing payment histories remain intact while the replacement is built; the provider flag stays disabled until the full path is verified.
 
@@ -32,7 +32,11 @@ The central-position calculator separately preserves deposits and platform commi
 
 The updated full unit/interface suite passes 451 cases. All five native preparation cases pass. The eight existing agency regressions pass in a complete sequential rerun with a 60-second per-case cloud bound; the first run passed five and hit the original 20-second limit in three longer workflow cases. No business assertion was relaxed. Actual application financial data is unchanged, and the gateway flag remains off.
 
-1. Complete dispatch of the durable preparation, provider mapping, bounded retry/reconciliation and request-scoped status access. Add the cross-module payment, cancellation, agreement replacement and expiry gates before exposing this stage. An unresolved/ambiguous preparation must never become a new payable checkout after the provider's idempotency window.
+The durable checkout lifecycle is now implemented internally. Migration043 adds leased dispatch, immutable observations, exact unique provider-paid receipts and explicit checkout endings. Creation replays the original privacy-limited payload with its original key, saves the minimal provider mapping before retrieval, and stops uncertain creation retries after 20 hours. Expiration has its own immutable idempotency key. A provider400 is retrieved again rather than treated as proof of expiration. Changed or expired source bookings retain verified late funds for reconciliation without reclaiming inventory. Status is scoped to the current renter or agency operator and hides provider fees from the renter. No public checkout action is enabled yet.
+
+Nine isolated-database lifecycle cases pass, including concurrent workers, retrieval failure recovery, exact duplicate receipts, real hold deadlines, processing-versus-expired outcomes, abandoned-source non-revival, creation-window cutoff, merchant/reference/payment reuse boundaries, foreign access and actual restricted-runtime permissions. These tests use synthetic HTTP responses; the earlier real provider probe remains an unpaid creation/retrieval/expiry check. Application migrations and the gateway flag remain unchanged.
+
+1. Complete the cross-module payment, cancellation, agreement replacement and financial-close gates before exposing this stage. An unresolved preparation or unposted provider receipt must not be replaced, silently closed or treated as an agency collection.
 2. Provider-confirmed collection posting and local status worker, with late receipts retained as liabilities without reclaiming released stock. Keep historical demo/manual records immutable.
 3. Replace new online payment controls with hosted checkout and status/return feedback. Supported methods come from configured PayMongo capabilities and approved agency policies; do not advertise PayPal as a PayMongo option.
 4. Central custody, agency fees/payables/disbursement records, provider-backed refunds/additional balances and remittance/report/notification projections. Do not double-count platform commission or infer a transfer from ledger allocation.
