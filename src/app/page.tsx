@@ -343,7 +343,6 @@ export default function Home() {
           <div className="flex gap-6">
             <Link href="/help">Help</Link>
             <Link href="/terms">Marketplace terms</Link>
-            <Link href="/photo-credits">Photo credits</Link>
             <span>Cars, tours and agency partners</span>
           </div>
         </div>

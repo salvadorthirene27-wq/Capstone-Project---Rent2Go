@@ -66,7 +66,7 @@ it("uses identical marketplace links and account controls on home and inner page
   const home = routes();
   expect(screen.getByRole("link", { name:"Home" }).getAttribute("aria-current")).toBe("page");
   expect(screen.getByRole("link", { name:"Sign up" }).getAttribute("href")).toBe("/login?mode=signup");
-  expect(screen.getByRole("link", { name:"Our roles" }).getAttribute("href")).toBe("/#roles");
+  expect(screen.queryByRole("link", { name:"Our roles" })).toBeNull();
   state.pathname = "/agencies"; view.rerender(<Header />);
   expect(routes()).toEqual(home);
   expect(screen.getByRole("link", { name:"Agencies" }).getAttribute("aria-current")).toBe("page");

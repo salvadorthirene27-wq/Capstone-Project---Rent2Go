@@ -8,7 +8,7 @@ import { ArrowLeft, LogOut, Menu, X } from "lucide-react";
 const links = [
   ["/", "Home"], ["/rentals", "Rentals"], ["/tours", "Tours"],
   ["/agencies", "Agencies"], ["/cart", "Cart"],
-  ["/partners", "For agencies"], ["/#roles", "Our roles"],
+  ["/partners", "For agencies"],
 ] as const;
 const documentRoutes = ["/booking-agreements/", "/booking-inspections/", "/booking-payments/", "/booking-refunds/", "/owner-payouts/", "/platform-records/"];
 
