@@ -1,6 +1,6 @@
 # Navigation route audit — 8 November 2026
 
-Source audit of all64 page routes below. This is a route/layout audit, not a claim that every business action has been manually exercised. Shared Header lives in the root layout. All operational account/agency/admin/owner pages use Workspace directly or the financial report wrapper. Cart, checkout and the two account/privacy routes now use that same layout. Active privacy users receive normal navigation after a fresh identity check; restricted users retain only their account-request and marketplace navigation. Server authorization remains authoritative.
+Source audit updated to65 page routes on9 November2026, including the read-only Super Admin payment queue. This is a route/layout audit, not a claim that every business action has been manually exercised. Shared Header lives in the root layout. All operational account/agency/admin/owner pages use Workspace directly or the financial report wrapper. Cart, checkout and the two account/privacy routes now use that same layout. Active privacy users receive normal navigation after a fresh identity check; restricted users retain only their account-request and marketplace navigation. Server authorization remains authoritative.
 
 Public discovery/help/terms pages intentionally use marketplace navigation without a role sidebar. Sign-in and saved printable documents intentionally use compact brand/back navigation. Print styles suppress site chrome. The former credits URL redirects home. No new booking confirmation, payment or callback behavior is introduced.
 
@@ -13,6 +13,7 @@ The installed UI/UX Pro Max search verified predictable back navigation and visi
 | `/admin/applications/[id]` | Shared workspace |
 | `/admin/audit` | Shared workspace |
 | `/admin/operations` | Shared workspace |
+| `/admin/payments` | Shared workspace; active nonfixture Super Admin only |
 | `/admin` | Shared workspace |
 | `/admin/privacy/[id]` | Shared workspace |
 | `/admin/privacy` | Shared workspace |

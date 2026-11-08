@@ -42,7 +42,7 @@ Verification: all12 native posting cases pass, including concurrent retries, rea
 
 The booking guards now refuse legacy payment/additional-balance/refund execution on gateway-bound requests, even with the provider flag off. Cancellation may be requested while payment is pending, but approval waits for confirmed provider expiry/abandonment or a posted verified receipt. Replacement source documents and new checkouts remain blocked by unresolved or received funds; a new quotation can have a preparation after an earlier unpaid checkout definitively ended. Financial-close pending-work checks include unresolved gateway receipts and later provider mismatches. Schema detection preserves the accepted application baseline while gateway migrations remain isolated. Public checkout activation, central accounting and provider refunds are still pending.
 
-1. Connect the verified lifecycle and posting consumers to the supervised status worker and signed-notification path before exposing a customer action. Review-required and post-close/channel-conflict liabilities still require their separate reviewed resolution workflow.
+1. The supervised worker and signed-notification path are implemented. Complete the separate reviewed disposition workflow for review-required, unmatched and post-close/channel-conflict liabilities before customer activation. An immutable read-only worklist is not a financial resolution.
 2. Complete central custody/fee/payable/disbursement records and their downstream owner/remittance/report projections. Keep historical demo/manual records immutable; a central collection must not create a second commission remittance or imply that an agency has received its payable.
 3. Replace new online payment controls with hosted checkout and status/return feedback. Supported methods come from configured PayMongo capabilities and approved agency policies; do not advertise PayPal as a PayMongo option.
 4. Central custody, agency fees/payables/disbursement records, provider-backed refunds/additional balances and remittance/report/notification projections. Do not double-count platform commission or infer a transfer from ledger allocation.
@@ -53,3 +53,8 @@ References: [Hosted Checkout](https://docs.paymongo.com/docs/payment-channels-ho
 ## Polling worker follow-up — 9 November 2026
 
 The supervised polling and receipt-posting worker is implemented and verified independently; see [worker workflow](paymongo-worker.md). Migration046 remains isolated-test-only. Signed event ingestion, reviewed exception handling and the remaining financial/customer activation work above are still open. The new worker does not enable payments on the application database.
+
+
+## Signed-notification checkpoint — 9 November 2026
+
+The durable inbox, authenticated ingress, worker consumer, financial guards and read-only Super Admin review queue are implemented. See [notification workflow and exact evidence](paymongo-notifications.md). All499 unit/interface cases and37 native notification/lifecycle/posting/worker cases pass. The application remains gateway-disabled, primary gateway migrations are deferred and no provider webhook registration is claimed.

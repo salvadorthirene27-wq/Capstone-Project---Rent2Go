@@ -1,3 +1,7 @@
+# Current PayMongo expansion remains in progress — 9 November 2026
+
+Signed notification ingestion, worker processing and a read-only reconciliation queue are implemented and verified. These are not financial-disposition or disbursement completion. Online payment activation remains disabled until central custody, provider refunds/additional balances and customer checkout are connected and accepted. The earlier100% statement below applies only to the earlier accepted baseline, before this gateway expansion. See [current evidence](workflows/paymongo-notifications.md).
+
 # Readiness estimate — 8 November 2026
 
 New scope: PayMongo integration is now in progress following the user's approval of central collection and agency-paid processing fees. The provider connector and actual test API connection are verified; booking checkout, custody accounting, refunds and disbursement integration remain to be completed. The acceptance below describes the earlier approved baseline, not completion of this newly added gateway scope. See [the integration plan](workflows/paymongo-integration.md).

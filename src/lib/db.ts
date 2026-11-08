@@ -31,7 +31,9 @@ export async function transaction<T>(
     await client.query("COMMIT");
     return value;
   } catch (e) {
-    await client.query("ROLLBACK");
+    // A disconnected client may reject ROLLBACK too. Preserve the original
+    // failure (including ambiguous COMMIT); never replay the transaction.
+    await client.query("ROLLBACK").catch(() => {});
     throw e;
   } finally {
     client.release();

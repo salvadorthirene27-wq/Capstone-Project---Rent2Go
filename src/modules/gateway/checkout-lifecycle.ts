@@ -85,7 +85,7 @@ async function linkCreated(row:StoredCheckout,created:{id:string;mode:'test'|'li
   await c.query('INSERT INTO paymongo_checkout_link(checkout_id,mode,merchant_fingerprint,provider_id,checkout_url)VALUES($1,$2,$3,$4,$5)',[row.id,row.mode,row.merchant_fingerprint,created.id,hostedCheckoutUrl(created.checkoutUrl)]);
   return {provider_id:created.id,checkout_url:created.checkoutUrl};
 });}
-async function observe(row:StoredCheckout,link:Link,snapshot:PayMongoCheckout,config:PayMongoConfig){return transaction(async c=>{
+export async function recordCheckoutObservation(c:PoolClient,row:StoredCheckout,link:Link,snapshot:PayMongoCheckout,config:PayMongoConfig){
   await locked(c,row.id);matchCheckout(row,link,snapshot,config);
   if(snapshot.paid){
     const p=snapshot.paid,old=(await c.query('SELECT * FROM paymongo_checkout_payment WHERE checkout_id=$1',[row.id])).rows[0];
@@ -100,7 +100,9 @@ async function observe(row:StoredCheckout,link:Link,snapshot:PayMongoCheckout,co
   }
   await c.query('INSERT INTO paymongo_checkout_observation(id,checkout_id,provider_id,status,paid,projection_digest)VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(checkout_id,projection_digest) DO NOTHING',[randomUUID(),row.id,link.provider_id,snapshot.status,Boolean(snapshot.paid),digest(snapshot)]);
   if(snapshot.status==='expired')await c.query("INSERT INTO paymongo_checkout_end(checkout_id,kind)VALUES($1,'EXPIRED') ON CONFLICT DO NOTHING",[row.id]);
-});}
+
+}
+async function observe(row:StoredCheckout,link:Link,snapshot:PayMongoCheckout,config:PayMongoConfig){return transaction(c=>recordCheckoutObservation(c,row,link,snapshot,config));}
 
 /** Private worker operation. `force` is for a separately authenticated provider
  * event/operator recovery, never a customer-supplied query parameter. It does

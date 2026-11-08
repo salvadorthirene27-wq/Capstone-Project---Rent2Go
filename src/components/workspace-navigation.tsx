@@ -34,6 +34,7 @@ export function WorkspaceNavigation({role,limited=false}:{role:Actor['role'];lim
     <Link href="/admin/vehicles"><CarFront size={19} aria-hidden="true"/>Vehicle compliance</Link>
     <Link href="/admin/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>Platform reports</Link>
     <Link href="/admin/remittances"><Wallet size={19} aria-hidden="true"/>Agency remittances</Link>
+    <Link href="/admin/payments"><Wallet size={19} aria-hidden="true"/>Payment reconciliation</Link>
     <Link href="/admin/operations"><ShieldCheck size={19} aria-hidden="true"/>Service health</Link>
     <Link href="/admin/privacy"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy review</Link>
     <Link href="/admin/users"><ShieldCheck size={19} aria-hidden="true"/>User access & roles</Link>

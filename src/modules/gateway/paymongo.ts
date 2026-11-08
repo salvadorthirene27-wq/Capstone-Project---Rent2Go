@@ -172,12 +172,15 @@ export function verifyPayMongoSignature(raw:Uint8Array,header:string|null,config
 }
 
 const notification=z.object({data:z.object({id:identifier('evt'),type:z.literal('event'),attributes:z.object({type:z.string().min(1).max(100),livemode:z.boolean(),data:z.unknown()})})});
-export function parsePayMongoNotification(raw:Uint8Array,mode:PayMongoMode){
+export function payMongoNotificationEnvelope(raw:Uint8Array,mode:PayMongoMode){
   let value:unknown;
   try{value=JSON.parse(new TextDecoder('utf-8',{fatal:true}).decode(raw));}catch{throw new DomainError('Invalid payment notification.',400);}
   const result=notification.safeParse(value);
   if(!result.success||result.data.data.attributes.livemode!==(mode==='live'))throw new DomainError('Payment notification environment or format mismatch.',400);
-  const event=result.data.data;
+  return result.data.data;
+}
+export function parsePayMongoNotification(raw:Uint8Array,mode:PayMongoMode){
+  const event=payMongoNotificationEnvelope(raw,mode);
   if(event.attributes.type!=='checkout_session.payment.paid')return {id:event.id,type:event.attributes.type,checkout:null};
   const checkout=parseCheckout(event.attributes.data,mode);
   if(!checkout.paid)throw new DomainError('The payment notification has no confirmed payment.',400);

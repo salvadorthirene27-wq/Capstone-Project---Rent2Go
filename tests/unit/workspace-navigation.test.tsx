@@ -54,3 +54,7 @@ it.each(["SUPER_ADMIN","AGENCY_ADMIN","RENTER","COSIGNER"] as const)("limits a r
  expect(screen.getByRole("link",{name:"Account & privacy requests"}).getAttribute("aria-current")).toBe("page");
  expect(screen.getByRole("button",{name:"Account menu"})).toBeDefined();
 });
+
+it('selects payment reconciliation only within the Super Admin workspace',()=>{
+ state.path='/admin/payments';const view=render(<WorkspaceNavigation role="SUPER_ADMIN"/>);expect(screen.getByRole('link',{name:'Payment reconciliation'}).getAttribute('aria-current')).toBe('page');expect(screen.getByRole('link',{name:'Partner reviews'}).getAttribute('aria-current')).toBeNull();view.rerender(<WorkspaceNavigation role="RENTER"/>);expect(screen.queryByRole('link',{name:'Payment reconciliation'})).toBeNull();
+});

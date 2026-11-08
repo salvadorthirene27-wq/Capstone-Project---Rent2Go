@@ -1,3 +1,4 @@
+import {hasPendingNotification,hasNotificationReview} from './notification-work';
 import {randomUUID} from 'node:crypto';
 import {transaction} from '../../lib/db';
 import {uuid} from '../../lib/http';
@@ -18,11 +19,12 @@ export async function postCheckoutPayment(checkoutId:string){return transaction(
   if(old)return {posted:true,outcome:old.outcome as string,collectionId:old.collection_id as string|null};
   const p=(await c.query('SELECT * FROM paymongo_checkout_payment WHERE checkout_id=$1',[row.id])).rows[0];
   if(!p)return {posted:false};
+  if(await hasPendingNotification(c,row.id))return {posted:false};
   const closed=Boolean((await c.query('SELECT 1 FROM booking_financial_close WHERE request_id=$1',[row.request_id])).rowCount);
   const conflict=Boolean((await c.query('SELECT 1 FROM booking_payment_account WHERE request_id=$1 LIMIT 1',[row.request_id])).rowCount);
   let outcome=closed?'CLOSED_LIABILITY':conflict?'CHANNEL_CONFLICT':'COLLECTED',collectionId:string|null=null;
   if(outcome==='COLLECTED'){
-    const payable=await checkoutSourcePayable(c,row),review=Boolean((await c.query('SELECT 1 FROM paymongo_checkout_state WHERE checkout_id=$1 AND review_required',[row.id])).rowCount);
+    const payable=await checkoutSourcePayable(c,row),review=Boolean((await c.query('SELECT 1 FROM paymongo_checkout_state WHERE checkout_id=$1 AND review_required',[row.id])).rowCount)||await hasNotificationReview(c,row.id);
     const hold=(await c.query('SELECT id FROM booking_hold WHERE quote_id=$1 FOR UPDATE',[row.quote_id])).rows[0];
     if(!hold)throw new DomainError('The original booking allocation requires independent review.',409);
     const environment=row.mode==='test'?'DEMO':'MANUAL',account=randomUUID(),command=randomUUID(),attempt=randomUUID();collectionId=randomUUID();
