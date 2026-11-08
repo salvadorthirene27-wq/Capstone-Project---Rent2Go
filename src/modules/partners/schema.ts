@@ -48,7 +48,9 @@ export const draftApplicationSchema = z
     bufferMinutes: z.number().int().min(0).max(1440).nullable(),
     inclusions: text,
     exclusions: text,
-    acceptedMethods: z.array(z.enum(paymentOptions)).max(5),
+    // PAYMONGO is an explicit new approved policy choice, never a silent
+    // reinterpretation of a previous DEMO_* or manual GCash agreement.
+    acceptedMethods: z.array(z.enum([...paymentOptions,"PAYMONGO"])).max(6),
     gcashAccountName: short,
     gcashInstructions: text,
     platformPaymentMethod: z.enum(["DEMO_CARD", "DEMO_GCASH", "DEMO_PAYPAL"]),

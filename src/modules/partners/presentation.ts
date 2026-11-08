@@ -11,6 +11,7 @@ export const methodLabels = {
   DEMO_CARD: "Card · simulated",
   DEMO_GCASH: "GCash gateway · simulated",
   DEMO_PAYPAL: "PayPal · simulated",
+  PAYMONGO: "Online payment through PayMongo",
 };
 export const fieldLabels: Partial<Record<keyof ApplicationInput, string>> = {
   businessName: "Trading / agency name",
