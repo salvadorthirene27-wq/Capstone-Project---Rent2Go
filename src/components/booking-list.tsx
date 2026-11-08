@@ -25,9 +25,11 @@ const statusLabels: Record<string, string> = {
 export function BookingList({
   list,
   base,
+  extraQuery={},
 }: {
   list: Awaited<ReturnType<typeof listBookingRequests>>;
   base: string;
+  extraQuery?: Record<string,string>;
 }) {
   return (
     <>
@@ -53,10 +55,10 @@ export function BookingList({
       )}
       <nav className="page-navigation" aria-label="Request pages">
         {list.page > 1 && (
-          <Link href={`${base}?page=${list.page - 1}`}>Previous</Link>
+          <Link href={`${base}?${new URLSearchParams({...extraQuery,page:String(list.page-1)})}`}>Previous</Link>
         )}
         {list.page < list.pageCount && (
-          <Link href={`${base}?page=${list.page + 1}`}>Next</Link>
+          <Link href={`${base}?${new URLSearchParams({...extraQuery,page:String(list.page+1)})}`}>Next</Link>
         )}
       </nav>
     </>

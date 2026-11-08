@@ -1,3 +1,5 @@
+import {BookingContacts} from '@/components/booking-contacts';
+import {getBookingContacts} from '@/modules/bookings/contacts';
 import {BookingClosedCredits} from "@/components/closed-credits";
 import {BookingSettlement} from "@/components/booking-settlement";
 import {BookingRefunds} from "@/components/booking-refunds";
@@ -33,6 +35,7 @@ export default async function Page({
     throw e;
   });
   if (booking.agencyId !== id) notFound();
+  const contacts=booking.isOwnRequest?null:await getBookingContacts(actor,requestId);
   return (
     <Workspace actor={actor}>
       <Link className="back-link" href={`/agency/${id}/bookings`}>
@@ -45,6 +48,7 @@ export default async function Page({
         </p>
       )}
       <BookingDetail booking={booking} />
+      {contacts&&<BookingContacts key={requestId} initial={contacts}/>}
       <BookingCancellation key={`cancellation-${booking.version}`} requestId={requestId} />
       <BookingRequirements key={`requirements-${booking.version}`} requestId={requestId} />
       <BookingQuotation key={`quotation-${booking.version}`} requestId={requestId} />

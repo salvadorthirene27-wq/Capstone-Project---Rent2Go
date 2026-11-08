@@ -1,0 +1,14 @@
+.contact-log { scroll-margin-top:120px; }
+.contact-log-heading { display:flex; align-items:start; justify-content:space-between; gap:20px; }
+.contact-log-heading h2 { margin-top:0; }
+.contact-log-heading .link-button { flex-shrink:0; min-height:44px; }
+.contact-summary { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:20px; margin:20px 0; }
+.contact-summary dt { color:var(--muted); }
+.contact-summary dd { margin:6px 0 0; font-weight:600; overflow-wrap:anywhere; }
+.contact-fields { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:18px; }
+.contact-fields label { min-width:0; }
+.contact-log button { min-height:44px; }
+.contact-log label { display:block; margin-bottom:18px; }
+.contact-log input,.contact-log select,.contact-log textarea { display:block; width:100%; min-width:0; box-sizing:border-box; }
+.contact-log .assessment-record { overflow-wrap:anywhere; }
+@media(max-width:640px) { .contact-log-heading { display:block; }.contact-fields,.contact-summary { grid-template-columns:minmax(0,1fr); }.contact-log input { max-width:100%; } }

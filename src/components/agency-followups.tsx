@@ -1,0 +1,7 @@
+import Link from 'next/link';
+import type {agencyFollowUps} from '@/modules/bookings/contacts';
+import {date} from '@/modules/partners/presentation';
+export function AgencyFollowUps({data,agencyId,requestPage}:{data:Awaited<ReturnType<typeof agencyFollowUps>>;agencyId:string;requestPage:number}){
+ const href=(page:number)=>`/agency/${agencyId}/bookings?${new URLSearchParams({page:String(requestPage),followPage:String(page)})}`;
+ return <section className="context-section" aria-labelledby="followup-schedule-heading"><h2 id="followup-schedule-heading">Scheduled follow-ups</h2><p>{data.total} scheduled · Philippine time. Contact records are internal; follow-ups do not reserve inventory.</p>{!data.items.length?<p>No follow-ups on this page. Open a request before quotation issuance to assign staff or schedule contact.</p>:<div className="directory-list">{data.items.map(r=><a key={r.id} className="context-link" href={`/agency/${agencyId}/bookings/${r.id}#contact-followup`}><span><strong>{r.renterName}</strong><small>{r.assignedName??'Unassigned staff'} · Request {r.id.slice(0,8)}</small></span><span>{date(r.nextFollowUpAt)}{r.overdue&&<small>Overdue — follow-up required</small>}</span></a>)}</div>}{data.pageCount>1&&<nav className="pagination" aria-label="Scheduled follow-up pages">{data.page>1&&<Link href={href(data.page-1)}>Previous follow-ups</Link>}<span>Page {data.page} of {data.pageCount}</span>{data.page<data.pageCount&&<Link href={href(data.page+1)}>Next follow-ups</Link>}</nav>}</section>;
+}
