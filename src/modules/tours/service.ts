@@ -20,6 +20,7 @@ type TourRow = {
   version: number;
   revision: number;
   published_revision: number | null;
+  display_title?:string|null;
 };
 const uuid = z.uuid();
 function view(r: TourRow) {
@@ -28,6 +29,7 @@ function view(r: TourRow) {
     agencyId: r.agency_id,
     state: r.state,
     payload: r.payload,
+    displayTitle:r.display_title??r.payload.title,
     version: r.version,
     revision: r.revision,
     publishedRevision: r.published_revision,
@@ -167,7 +169,7 @@ export async function tourDetail(actor: Actor, id: string, page = 1) {
     );
     return {
       ...view(row),
-      agencyName: agency.policy.businessName,
+      agencyName: agency.name,
       revisions,
       schedules,
       files,
@@ -357,10 +359,10 @@ const publicJoin =
   "FROM tour_package t JOIN tour_revision r ON r.tour_id=t.id AND r.revision=t.published_revision JOIN agency a ON a.id=t.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor owner ON owner.id=a.owner_id";
 const visible =
   "t.state='PUBLISHED' AND a.active AND NOT owner.suspended AND NOT owner.is_test_fixture AND (ar.payload->'services') ? CASE WHEN r.mode='GROUP' THEN 'GROUP_TOUR' ELSE 'PRIVATE_TOUR' END";
-function publicPayload(payload: unknown) {
+function publicPayload(payload: unknown,displayTitle?:string|null) {
   const p = tourSchema.parse(payload);
   return {
-    title: p.title,
+    title: displayTitle??p.title,
     mode: p.mode,
     description: p.description,
     serviceArea: p.serviceArea,
@@ -389,7 +391,7 @@ export async function publicTour(
     throw new DomainError("Tour package not found.", 404);
   const r = (
     await client.query(
-      `SELECT t.id,t.agency_id,t.published_revision,r.payload,ar.payload->>'businessName' AS agency_name ${publicJoin} WHERE ${visible} AND t.id=$1`,
+      `SELECT t.id,t.agency_id,t.published_revision,r.payload,t.display_title,COALESCE(a.display_name,ar.payload->>'businessName') AS agency_name ${publicJoin} WHERE ${visible} AND t.id=$1`,
       [id],
     )
   ).rows[0];
@@ -430,7 +432,7 @@ export async function publicTour(
     agencyId: r.agency_id,
     agencyName: r.agency_name,
     revision: r.published_revision,
-    payload: publicPayload(r.payload),
+    payload: publicPayload(r.payload,r.display_title),
     priceUnit: r.payload.mode === "GROUP" ? "PER_PERSON" : "PER_PARTY",
     schedules,
     scheduleTotal,
@@ -476,7 +478,7 @@ export async function publicTours(input: unknown = {}) {
     "((r.payload->>'priceCentavos')::bigint*CASE WHEN r.mode='GROUP' THEN COALESCE($4::int,(r.payload->>'minParty')::int) ELSE 1 END)";
   const party = "COALESCE($4::int,(r.payload->>'minParty')::int)";
   const available = `EXISTS(SELECT 1 FROM tour_schedule s WHERE s.tour_id=t.id AND s.revision=t.published_revision AND s.status='SCHEDULED' AND s.cutoff_at>now() AND ($6::date IS NULL OR (s.start_at AT TIME ZONE 'Asia/Manila')::date>=$6::date) AND ($7::date IS NULL OR (s.start_at AT TIME ZONE 'Asia/Manila')::date<=$7::date) AND CASE WHEN r.mode='PRIVATE' THEN s.capacity>=${party} AND s.reserved_units=0 ELSE s.capacity-s.reserved_units>=${party} END)`;
-  const filter = `${visible} AND ((r.payload->>'title') ILIKE $1 OR (r.payload->>'serviceArea') ILIKE $1) AND ($2::uuid IS NULL OR t.agency_id=$2) AND ($3::text IS NULL OR r.mode=$3) AND ($4::int IS NULL OR ((r.payload->>'minParty')::int<=$4 AND (r.payload->>'maxParty')::int>=$4 AND ${cost}<=100000000)) AND (($4::int IS NULL AND $6::date IS NULL AND $7::date IS NULL) OR ${available}) AND ($5::int IS NULL OR (r.payload->>'priceCentavos')::int<=$5)`;
+  const filter = `${visible} AND (COALESCE(t.display_title,r.payload->>'title') ILIKE $1 OR (r.payload->>'serviceArea') ILIKE $1) AND ($2::uuid IS NULL OR t.agency_id=$2) AND ($3::text IS NULL OR r.mode=$3) AND ($4::int IS NULL OR ((r.payload->>'minParty')::int<=$4 AND (r.payload->>'maxParty')::int>=$4 AND ${cost}<=100000000)) AND (($4::int IS NULL AND $6::date IS NULL AND $7::date IS NULL) OR ${available}) AND ($5::int IS NULL OR (r.payload->>'priceCentavos')::int<=$5)`;
   const values = [
     pattern,
     q.agencyId ?? null,
@@ -496,7 +498,7 @@ export async function publicTours(input: unknown = {}) {
   );
   let order =
     q.sort === "NAME"
-      ? "lower(r.payload->>'title'),t.id"
+      ? "lower(COALESCE(t.display_title,r.payload->>'title')),t.id"
       : q.sort === "RECOMMENDED"
         ? `${cost} ASC,t.id`
         : `(r.payload->>'priceCentavos')::int ${q.sort === "PRICE_ASC" ? "ASC" : "DESC"},t.id`;
@@ -507,7 +509,7 @@ export async function publicTours(input: unknown = {}) {
   }
   const rows = (
     await db.query(
-      `SELECT t.id,t.agency_id,r.payload,ar.payload->>'businessName' AS agency_name,${cost} AS party_cost,(SELECT file_id FROM tour_revision_file WHERE tour_id=t.id AND revision=t.published_revision ORDER BY file_id LIMIT 1) AS photo_id ${publicJoin} WHERE ${filter} ORDER BY ${order} LIMIT $${rowValues.length + 1} OFFSET $${rowValues.length + 2}`,
+      `SELECT t.id,t.agency_id,r.payload,t.display_title,COALESCE(a.display_name,ar.payload->>'businessName') AS agency_name,${cost} AS party_cost,(SELECT file_id FROM tour_revision_file WHERE tour_id=t.id AND revision=t.published_revision ORDER BY file_id LIMIT 1) AS photo_id ${publicJoin} WHERE ${filter} ORDER BY ${order} LIMIT $${rowValues.length + 1} OFFSET $${rowValues.length + 2}`,
       [...rowValues, q.pageSize, (q.page - 1) * q.pageSize],
     )
   ).rows;
@@ -538,7 +540,7 @@ export async function publicTours(input: unknown = {}) {
         id: String(r.id),
         agencyId: String(r.agency_id),
         agencyName: String(r.agency_name),
-        title: String(r.payload.title),
+        title: String(r.display_title??r.payload.title),
         mode: r.payload.mode as TourInput["mode"],
         serviceArea: String(r.payload.serviceArea),
         priceCentavos: Number(r.payload.priceCentavos),

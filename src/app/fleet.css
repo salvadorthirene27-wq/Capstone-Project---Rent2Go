@@ -1,0 +1,33 @@
+.directory-list .fleet-row { grid-template-columns:minmax(240px,.95fr) minmax(0,1.25fr); align-items:start; gap:36px; padding:28px; }
+.directory-list .fleet-row > .fleet-visual { display:flex; align-items:center; justify-content:center; align-self:stretch; grid-column:auto; min-width:0; min-height:240px; border-radius:12px; overflow:hidden; background:var(--soft); }
+.fleet-visual > img { display:block; width:100%; height:auto; max-height:360px; object-fit:contain; }
+.fleet-visual:focus-visible { outline:3px solid var(--forest); outline-offset:4px; }
+.fleet-heading { display:flex; justify-content:space-between; align-items:start; gap:20px; }
+.fleet-heading > div { min-width:0; }
+.fleet-heading .page-eyebrow { margin:0 0 8px; }
+.directory-list .fleet-heading h2 { margin:0; font-size:1.5rem; overflow-wrap:anywhere; }
+.directory-list .fleet-heading .button { min-height:48px; display:inline-flex; align-items:center; justify-content:center; gap:8px; white-space:nowrap; }
+.fleet-agency { margin:12px 0; color:var(--muted); }
+.fleet-rate { display:flex; align-items:baseline; flex-wrap:wrap; gap:8px; margin:16px 0; }
+.fleet-rate > strong { color:var(--forest); font-size:1.65rem; }
+.fleet-rate > span { color:var(--muted); font-size:14px; }
+.fleet-specifications { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; margin:20px 0; padding:20px 0; border-block:1px solid var(--line); }
+.fleet-specifications > div { display:grid; grid-template-columns:20px minmax(0,1fr); column-gap:8px; align-content:start; }
+.fleet-specifications svg { grid-row:1 / 3; color:var(--forest); margin-top:2px; }
+.fleet-specifications dt { color:var(--muted); font-size:13px; }
+.fleet-specifications dd { margin:2px 0 0; font-weight:600; text-transform:capitalize; overflow-wrap:anywhere; }
+.fleet-estimate { padding:12px 16px; background:var(--soft); border-radius:12px; }
+.directory-list .fleet-estimate p { margin:4px 0; }
+#rental-booking { scroll-margin-top:120px; }
+@media(max-width:1000px) {
+ .directory-list .fleet-row { grid-template-columns:minmax(180px,.8fr) minmax(0,1.2fr); gap:24px; padding:22px; }
+ .fleet-heading { flex-wrap:wrap; gap:14px; }
+}
+@media(max-width:720px) {
+ .directory-list .fleet-row { display:grid; grid-template-columns:minmax(0,1fr); padding:18px; gap:22px; }
+ .directory-list .fleet-row > .fleet-visual { min-height:0; aspect-ratio:4 / 3; }
+ .fleet-heading { align-items:stretch; }
+ .fleet-heading > div,.directory-list .fleet-heading .button { width:100%; }
+ .directory-list .fleet-heading h2 { font-size:1.35rem; }
+ .fleet-specifications { gap:18px 12px; }
+}

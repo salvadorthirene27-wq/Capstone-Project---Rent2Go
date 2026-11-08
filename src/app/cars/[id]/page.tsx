@@ -110,7 +110,7 @@ export default async function Page({
           <h3>Excluded / additional charges</h3>
           <p className="preserve-lines">{car.pricing.exclusions}</p>
         </section>
-        <aside className="profile-contact">
+        <aside id="rental-booking" className="profile-contact">
           <h2>Plan this rental</h2>
           <CartSelection
             key={`${car.id}:${car.revision}:${query.startAt}:${query.endAt}:${query.mode}:${query.partySize}`}

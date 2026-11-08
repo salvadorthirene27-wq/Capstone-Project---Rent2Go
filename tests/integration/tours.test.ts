@@ -91,6 +91,18 @@ async function ready(mode = "GROUP") {
   ).version;
   return publishTour(operator, t.id, t.version);
 }
+it("shows a current package name without altering its published terms or draft",async()=>{
+ const t=await ready();
+ const before=await publicTour(t.id);
+ const history=await db.query("SELECT payload FROM tour_revision WHERE tour_id=$1 ORDER BY revision",[t.id]);
+ await db.query("UPDATE tour_package SET display_title='Mayon & Cagsawa Day Tour' WHERE id=$1",[t.id]);
+ const current=await publicTour(t.id);
+ expect(current.payload).toEqual({...before.payload,title:'Mayon & Cagsawa Day Tour'});
+ expect((await tourDetail(operator,t.id)).displayTitle).toBe('Mayon & Cagsawa Day Tour');
+ expect((await tourDetail(operator,t.id)).payload.title).toBe(facts.title);
+ expect((await publicTours({agencyId,search:'Cagsawa'})).items.map(r=>r.id)).toContain(t.id);
+ expect((await db.query("SELECT payload FROM tour_revision WHERE tour_id=$1 ORDER BY revision",[t.id])).rows).toEqual(history.rows);
+});
 it("restricts tour management to the actual approved agency operator", async () => {
   const t = await createTour(operator, { agencyId, payload: facts });
   await expect(tourDetail(outsider, t.id)).rejects.toMatchObject({

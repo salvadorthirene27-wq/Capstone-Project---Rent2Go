@@ -48,7 +48,7 @@ export async function VehicleQueue({
                 <tr key={o.id}>
                   <td>
                     <strong>
-                      {o.facts.make} {o.facts.model}
+                      {o.displayName}
                     </strong>
                     <small>
                       {o.registration} · {o.facts.year}

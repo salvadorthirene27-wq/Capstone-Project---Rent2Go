@@ -15,18 +15,32 @@ const documentRoutes = ["/booking-agreements/", "/booking-inspections/", "/booki
 export function Header() {
   const pathname = usePathname();
   const accountPortal=pathname.startsWith("/account-status");
-  const compact = accountPortal || pathname === "/login" || documentRoutes.some(route => pathname.startsWith(route));
+  const [portalAccess,setPortalAccess]=useState<{id:string;active:boolean}|null>(null);
   const selected = (href: string) => href === "/" ? pathname === "/" :
     !href.includes("#") && (pathname === href || pathname.startsWith(`${href}/`) ||
       (href === "/rentals" && pathname.startsWith("/cars/")) ||
       (href === "/cart" && pathname === "/checkout"));
   const { data: session, isPending } = authClient.useSession();
+  const compact = (accountPortal && (!portalAccess?.active || portalAccess.id!==session?.user?.id)) || pathname === "/login" || documentRoutes.some(route => pathname.startsWith(route));
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
   const toggle = useRef<HTMLButtonElement>(null);
   const [cartCount, setCartCount] = useState<number | null>(null);
   const userId = session?.user?.id;
+  useEffect(()=>{
+    setPortalAccess(null);
+    if(!accountPortal||!userId)return;
+    let current=true;const controller=new AbortController();
+    void (async()=>{
+      try{
+        const res=await fetch('/api/me',{cache:'no-store',signal:controller.signal});
+        const actor=res.ok?await res.json():null;
+        if(current)setPortalAccess({id:userId,active:res.ok&&actor?.id===userId});
+      }catch{if(current)setPortalAccess({id:userId,active:false});}
+    })();
+    return()=>{current=false;controller.abort();};
+  },[accountPortal,userId]);
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(() => {
     setCartCount(null);

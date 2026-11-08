@@ -13,19 +13,20 @@ type AgencyRow = {
   id: string;
   owner_id: string;
   approved_revision: number;
+  display_name?: string|null;
   payload: ApplicationInput;
 };
 const effectiveJoin =
   "FROM agency a JOIN app_actor owner ON owner.id=a.owner_id JOIN partner_revision r ON r.application_id=a.application_id AND r.revision=a.approved_revision";
 const visible =
   "a.active AND NOT owner.suspended AND NOT owner.is_test_fixture";
-const columns = "a.id,a.owner_id,a.approved_revision,r.payload";
+const columns = "a.id,a.owner_id,a.approved_revision,a.display_name,r.payload";
 
 function publicProjection(row: AgencyRow) {
   const p = draftApplicationSchema.parse(row.payload);
   return {
     id: row.id,
-    name: p.businessName,
+    name: row.display_name??p.businessName,
     serviceAreas: p.serviceAreas,
     services: p.services,
     approvedRevision: row.approved_revision,
@@ -56,12 +57,12 @@ export type PublicAgency = ReturnType<typeof publicProjection>;
 export async function myAgencies(actor: Actor) {
   const user = await storedActor(actor);
   const { rows } = await db.query<AgencyRow>(
-    `SELECT ${columns} ${effectiveJoin} LEFT JOIN agency_member m ON m.agency_id=a.id AND m.actor_id=$1 WHERE ${visible} AND (a.owner_id=$1 OR m.active) ORDER BY r.payload->>'businessName',a.id`,
+    `SELECT ${columns} ${effectiveJoin} LEFT JOIN agency_member m ON m.agency_id=a.id AND m.actor_id=$1 WHERE ${visible} AND (a.owner_id=$1 OR m.active) ORDER BY COALESCE(a.display_name,r.payload->>'businessName'),a.id`,
     [user.id],
   );
   return rows.map((r) => ({
     id: r.id,
-    name: r.payload.businessName,
+    name: r.display_name??r.payload.businessName,
     approvedRevision: r.approved_revision,
   }));
 }
@@ -79,7 +80,7 @@ export async function requireAgencyAccess(actor: Actor, agencyId: string) {
   return {
     id: row.id,
     ownerId: row.owner_id,
-    name: row.payload.businessName,
+    name: row.display_name??row.payload.businessName,
     approvedRevision: row.approved_revision,
     policy: draftApplicationSchema.parse(row.payload),
   };
@@ -95,7 +96,7 @@ export const agencySearchSchema = z
 export async function publicAgencies(input: unknown = {}) {
   const query = agencySearchSchema.parse(input),
     pattern = `%${query.search.replace(/[\\%_]/g, "\\$&")}%`;
-  const filter = `${visible} AND ((r.payload->>'businessName') ILIKE $1 OR (r.payload->>'serviceAreas') ILIKE $1) AND ($2::text IS NULL OR (r.payload->'services') ? $2::text)`;
+  const filter = `${visible} AND (COALESCE(a.display_name,r.payload->>'businessName') ILIKE $1 OR (r.payload->>'serviceAreas') ILIKE $1) AND ($2::text IS NULL OR (r.payload->'services') ? $2::text)`;
   const params = [pattern, query.service ?? null];
   const total = (
     await db.query<{ total: number }>(
@@ -105,7 +106,7 @@ export async function publicAgencies(input: unknown = {}) {
   ).rows[0].total;
   const rows = (
     await db.query<AgencyRow>(
-      `SELECT ${columns} ${effectiveJoin} WHERE ${filter} ORDER BY lower(r.payload->>'businessName'),a.id LIMIT $3 OFFSET $4`,
+      `SELECT ${columns} ${effectiveJoin} WHERE ${filter} ORDER BY lower(COALESCE(a.display_name,r.payload->>'businessName')),a.id LIMIT $3 OFFSET $4`,
       [...params, query.pageSize, (query.page - 1) * query.pageSize],
     )
   ).rows;
@@ -173,6 +174,7 @@ export async function agencyOperatingContext(
   );
   return {
     active,
+    name:row.display_name??revision.payload.businessName,
     operatesAgency:
       active && (row.owner_id === actor.id || Boolean(member?.active)),
     policy: draftApplicationSchema.parse(revision.payload),

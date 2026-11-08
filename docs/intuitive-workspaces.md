@@ -24,3 +24,7 @@ Seventeen remote feature branches were renamed to the neutral `feature/` prefix 
 - Private consistent application-row exports were saved before/after photo replacement (75 tables, schema024); these do not include managed authentication or object-storage bytes and do not constitute a tested full restore.
 
 The UI UX Pro Max quick-reference recommendations informed target sizes, reduced motion, focus visibility, responsive layout and progressive disclosure. The specific disclosure search did not return a verified match, so that pattern uses the quick-reference guidance and project judgment. Next.js Link guidance was verified locally; existing transactional API routes remain the implementation contract. No database migration or financial calculation changed in this checkpoint.
+
+## Current follow-up — 8 November 2026
+
+The earlier connection/browser limitations above are superseded by the verified fleet/navigation checkpoint. Account/privacy, cart and checkout now share Workspace. See [route audit](navigation-route-audit.md) and [display-name evidence](current-display-names.md). Public/print exceptions remain intentional; booking process changes in the [agent proposal](workflows/agent-assisted-booking-proposal.md) remain unimplemented pending approval.

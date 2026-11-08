@@ -25,6 +25,8 @@ type ResourceRow = {
   offer_id: string | null;
   offer_state: string | null;
   offer_revision: number | null;
+  display_make?: string | null;
+  display_model?: string | null;
   draft_facts: { make: string; model: string } | null;
   submitted_facts: { make: string; model: string } | null;
   registration_normalized: string | null;
@@ -36,7 +38,7 @@ type ResourceRow = {
   driver_version: number | null;
 };
 const resourceSelect =
-  "SELECT r.*,v.owner_actor_id,v.ownership,v.registration_normalized,o.id AS offer_id,o.state AS offer_state,o.revision AS offer_revision,o.draft_facts,vr.facts AS submitted_facts,d.name AS driver_name,d.phone AS driver_phone,d.license_number,d.license_expiry::text AS license_expiry,d.active AS driver_active,d.version AS driver_version FROM resource r LEFT JOIN physical_vehicle v ON v.id=r.vehicle_id LEFT JOIN vehicle_offer o ON o.vehicle_id=r.vehicle_id LEFT JOIN vehicle_revision vr ON vr.offer_id=o.id AND vr.revision=o.revision LEFT JOIN agency_driver d ON d.id=r.driver_id";
+  "SELECT r.*,v.owner_actor_id,v.ownership,v.registration_normalized,o.id AS offer_id,o.state AS offer_state,o.revision AS offer_revision,o.draft_facts,o.display_make,o.display_model,vr.facts AS submitted_facts,d.name AS driver_name,d.phone AS driver_phone,d.license_number,d.license_expiry::text AS license_expiry,d.active AS driver_active,d.version AS driver_version FROM resource r LEFT JOIN physical_vehicle v ON v.id=r.vehicle_id LEFT JOIN vehicle_offer o ON o.vehicle_id=r.vehicle_id LEFT JOIN vehicle_revision vr ON vr.offer_id=o.id AND vr.revision=o.revision LEFT JOIN agency_driver d ON d.id=r.driver_id";
 async function userInTransaction(c: PoolClient, actor: Actor) {
   return storedActor(actor, c);
 }
@@ -83,7 +85,7 @@ function projection(row: ResourceRow, actorId: string) {
     label:
       row.kind === "DRIVER"
         ? (row.driver_name ?? "Driver")
-        : `${facts?.make ?? "Vehicle"} ${facts?.model ?? ""}`,
+        : `${row.display_make ?? facts?.make ?? "Vehicle"} ${row.display_model ?? facts?.model ?? ""}`,
     registration: row.registration_normalized,
     vehicleOfferId: row.offer_id,
     driver:
@@ -132,7 +134,7 @@ export async function resourceDetail(actor: Actor, id: string, page = 1) {
     ).rows;
     return {
       ...projection(ctx.row, ctx.user.id),
-      agencyName: ctx.agency.policy.businessName,
+      agencyName: ctx.agency.name,
       occupations: occupations.map((o) => {
         const { created_by, ...record } = o;
         return {

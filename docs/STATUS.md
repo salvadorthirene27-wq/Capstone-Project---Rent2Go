@@ -1,3 +1,13 @@
+# Fleet, navigation and current-name checkpoint — 8 November 2026
+
+Fleet catalogue rows now pair photos with specifications, unit pricing, deposits and one Book now link to the existing rental selection form. Account/privacy, cart and checkout use the shared workspace; restricted accounts retain a limited menu. All64 page routes were audited for intentional public/workspace/print layouts. Current sample names use professional fictional labels without altering saved identities or credentials.
+
+Verified466 unit/interface cases,16 isolated marketplace/tour cases, production build and sequential type checking;23 additional current-navigation checks plus26 shared-header,19 workspace and14 service-health checks. Actual1440desktop/375phone checks passed fleet columns/stacking, loaded photos,48px booking actions, target-form navigation, privacy sidebar, return links and no overflow. Source/layout audit is not a claim that all64 pages had every business action manually exercised. Scope and evidence: [navigation audit](navigation-route-audit.md), [current names](current-display-names.md).
+
+Primary has001–041 plus independent045. Test has001–045. Twenty scoped current records were renamed with private before-image/audit and98 history/financial table fingerprints unchanged. The expiry worker had stopped after connection failures; a fresh leased instance was started and its successful batch verified. No duplicate worker, new booking/consent, payment, refund, transfer, OCR or email dispatch was performed. PayMongo remains disabled and incomplete; public production readiness is not established. The [agent-assisted booking proposal](workflows/agent-assisted-booking-proposal.md) is research only, awaiting approval for workflow changes.
+
+--- Prior checkpoints retained ---
+
 # Implementation and evidence status
 
 The approved local-demonstration software scope is complete. Final four-role desktop/phone review, public policy/tablet checks and the user-verified receipt print preview are recorded in [final acceptance](final-validation.md). Three interface fixes improve policy/help button spacing, account-count copy and Super Admin navigation priority. The final production build, sequential TypeScript, 10 focused existing cases, 45 navigation/workspace checks, 14 service-health checks, owner-ledger conservation and delivery of all seven published product photographs pass. This current acceptance supersedes then-pending items in the historical checkpoint notes below. Live PayMongo and authorized notification-email activation remain separate follow-up actions.

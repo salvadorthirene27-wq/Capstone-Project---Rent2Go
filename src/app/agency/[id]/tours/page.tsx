@@ -60,7 +60,7 @@ export default async function Page({
               {result.items.map((t) => (
                 <tr key={t.id}>
                   <td>
-                    <strong>{t.payload.title}</strong>
+                    <strong>{t.displayTitle}</strong>
                     <small>{t.payload.serviceArea}</small>
                   </td>
                   <td>

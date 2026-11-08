@@ -1,3 +1,4 @@
+import { Workspace } from "@/components/workspace";
 import Link from "next/link";
 import { pageActor } from "@/lib/page-actor";
 import { readCart } from "@/modules/cart/service";
@@ -9,7 +10,7 @@ export default async function Page() {
   const actor = await pageActor(),
     cart = await readCart(actor);
   return (
-    <main id="main-content" className="public-main agency-profile">
+    <Workspace actor={actor}><section className="checkout-page">
       <Link className="back-link" href="/cart">
         Back to your cart
       </Link>
@@ -64,6 +65,6 @@ export default async function Page() {
           <CheckoutForm cart={cart} name={actor.name ?? ""} />
         </>
       )}
-    </main>
+    </section></Workspace>
   );
 }

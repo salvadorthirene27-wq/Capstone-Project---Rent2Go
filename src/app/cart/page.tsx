@@ -1,3 +1,4 @@
+import { Workspace } from "@/components/workspace";
 import Link from "next/link";
 import { pageActor } from "@/lib/page-actor";
 import { readCart } from "@/modules/cart/service";
@@ -5,9 +6,9 @@ import { CartEditor } from "./cart-editor";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Your cart" };
 export default async function Page() {
-  const cart = await readCart(await pageActor());
+  const actor=await pageActor(),cart = await readCart(actor);
   return (
-    <main id="main-content" className="public-main agency-profile">
+    <Workspace actor={actor}><section className="cart-page">
       <nav className="page-navigation" aria-label="Continue browsing">
         <Link href="/rentals">Car rentals</Link>
         <Link href="/tours">Tours & packages</Link>
@@ -19,6 +20,6 @@ export default async function Page() {
         checked again each time you open your cart. Nothing is reserved yet.
       </p>
       <CartEditor cart={cart} />
-    </main>
+    </section></Workspace>
   );
 }

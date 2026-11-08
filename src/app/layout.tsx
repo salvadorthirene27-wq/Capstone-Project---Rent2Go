@@ -11,6 +11,7 @@ import "@fontsource/outfit/600.css";
 import "./globals.css";
 import "./ui-polish.css";
 import "./navigation.css";
+import "./fleet.css";
 import { Header } from "@/components/header";
 import { SiteFooter } from "@/components/site-footer";
 export const metadata: Metadata = {

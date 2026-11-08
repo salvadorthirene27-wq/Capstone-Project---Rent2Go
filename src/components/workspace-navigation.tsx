@@ -5,15 +5,16 @@ import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldChe
 import {WorkspaceLink as Link} from "./workspace-link";
 import type {Actor} from "@/modules/partners/workflow";
 
-export function WorkspaceNavigation({role}:{role:Actor['role']}){
+export function WorkspaceNavigation({role,limited=false}:{role:Actor['role'];limited?:boolean}){
  const path=usePathname(),agency=/^\/agency\/([a-f0-9-]{36})(?:\/|$)/i.exec(path)?.[1];
  const [open,setOpen]=useState(false),toggle=useRef<HTMLButtonElement>(null);
  useEffect(()=>setOpen(false),[path]);
  return <div className={`workspace-navigation${open?' workspace-navigation-open':''}`}
   onBlur={e=>{if(!e.currentTarget.contains(e.relatedTarget))setOpen(false);}}
   onKeyDown={e=>{if(e.key==='Escape'&&open){setOpen(false);toggle.current?.focus();}}}>
-  <button type="button" ref={toggle} className="workspace-menu-button" aria-expanded={open} aria-controls="workspace-links" onClick={()=>setOpen(!open)}>Workspace menu<ChevronDown size={18} aria-hidden="true"/></button>
+  <button type="button" ref={toggle} className="workspace-menu-button" aria-expanded={open} aria-controls="workspace-links" onClick={()=>setOpen(!open)}>{limited?'Account menu':'Workspace menu'}<ChevronDown size={18} aria-hidden="true"/></button>
   <nav id="workspace-links" className="workspace-navigation-groups" aria-label="Workspace navigation" onClick={e=>{if((e.target as Element).closest('a'))setOpen(false);}}>
+   {limited ? <><p className="eyebrow">Limited account access</p><Link href="/account-status"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy requests</Link></> : <>
    <Link href="/workspace"><Home size={19} aria-hidden="true"/>Workspace home</Link>
    <Link href="/workspace/notifications"><Bell size={19} aria-hidden="true"/>Notifications</Link>
    <Link href="/workspace/account"><ShieldCheck size={19} aria-hidden="true"/>Account & security</Link>
@@ -53,6 +54,7 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href="/workspace/application"><Building2 size={19} aria-hidden="true"/>Agency application</Link>
     <Link href="/partners"><Building2 size={19} aria-hidden="true"/>Partnership guide</Link>
    </div>
+   </>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>
   </nav>
  </div>;

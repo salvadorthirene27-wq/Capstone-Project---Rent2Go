@@ -6,8 +6,7 @@ import {
   localInput,
   type RawFilters,
 } from "@/modules/marketplace/filters";
-import { driverFeeUnitLabels } from "@/modules/pricing/units";
-import { money } from "@/modules/partners/presentation";
+import { RentalFleetCard } from "@/components/rental-fleet-card";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Find a rental" };
 const units = {
@@ -225,77 +224,7 @@ export default async function Page({
       </p>
       <div className="directory-list">
         {result.items.map((car) => (
-          <article key={car.id} className="agency-row tour-row rental-row">
-            {car.photoIds[0] ? (
-              <img
-                src={`/api/vehicle-files/${car.photoIds[0]}`}
-                width={260}
-                height={180}
-                alt={`${car.facts.make} ${car.facts.model}, supplied by ${car.agencyName}`}
-              />
-            ) : (
-              <div className="photo-unavailable">Photo unavailable</div>
-            )}
-            <div>
-              <h2>
-                <Link
-                  href={`/cars/${car.id}?${queryString({ startAt: query.startAt, endAt: query.endAt, mode: query.mode, partySize: query.partySize })}`}
-                >
-                  {car.facts.make} {car.facts.model}
-                </Link>
-              </h2>
-              <p>
-                <Link href={`/agencies/${car.agencyId}`}>{car.agencyName}</Link>{" "}
-                · {car.serviceAreas}
-              </p>
-              <p>
-                {car.facts.seats} seats including driver ·{" "}
-                {car.facts.transmission.toLowerCase()} ·{" "}
-                {car.facts.fuel.toLowerCase()}
-              </p>
-              <strong>
-                {money(car.pricing.rateCentavos)}{" "}
-                {units[car.pricing.billingUnit]}
-              </strong>
-              {car.estimate && (
-                <p>
-                  {car.estimateMode === "SELF_DRIVE"
-                    ? "Self-drive"
-                    : "With-driver"}{" "}
-                  service estimate:{" "}
-                  <strong>{money(car.estimate.serviceCentavos)}</strong>
-                  <br />
-                  Refundable deposit:{" "}
-                  {money(car.estimate.refundableDepositCentavos)} · Estimated
-                  total: {money(car.estimate.estimatedDueCentavos)}
-                </p>
-              )}
-              {!car.estimate && (
-                <p>Refundable deposit: {money(car.pricing.depositCentavos)}</p>
-              )}
-              {car.estimateMode === "WITH_DRIVER" &&
-                car.pricing.driverFeeUnit && (
-                  <p>
-                    Driver: {money(car.pricing.driverFeeCentavos)} ·{" "}
-                    {driverFeeUnitLabels[car.pricing.driverFeeUnit]}
-                  </p>
-                )}
-              <details className="policy-disclosure">
-                <summary>Why this matches</summary>
-                <ul>
-                  {car.reasons.map((reason) => (
-                    <li key={reason}>{reason}</li>
-                  ))}
-                </ul>
-              </details>
-            </div>
-            <Link
-              className="button secondary"
-              href={`/cars/${car.id}?${queryString({ startAt: query.startAt, endAt: query.endAt, mode: query.mode, partySize: query.partySize })}`}
-            >
-              View vehicle and terms
-            </Link>
-          </article>
+          <RentalFleetCard key={car.id} car={car} href={`/cars/${car.id}?${queryString({ startAt: query.startAt, endAt: query.endAt, mode: query.mode, partySize: query.partySize })}`} />
         ))}
       </div>
       {!result.items.length && (

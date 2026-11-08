@@ -3,9 +3,11 @@ import type { Actor } from "@/modules/partners/workflow";
 export function Workspace({
   actor,
   children,
+  limited = false,
 }: {
   actor: Actor;
   children: React.ReactNode;
+  limited?: boolean;
 }) {
   return (
     <div className="workspace">
@@ -17,11 +19,9 @@ export function Workspace({
             <small>{actor.role.replaceAll("_", " ").toLowerCase()}</small>
           </div>
         </div>
-        <WorkspaceNavigation role={actor.role} />
+        <WorkspaceNavigation role={actor.role} limited={limited} />
         <p className="sidebar-note">
-          Your policies. Your services.
-          <br />
-          One connected marketplace.
+          {limited ? <>Your account requests and access decisions.<br />Your existing records remain preserved.</> : <>Your policies. Your services.<br />One connected marketplace.</>}
         </p>
       </aside>
       <main id="main-content" className="workspace-main">

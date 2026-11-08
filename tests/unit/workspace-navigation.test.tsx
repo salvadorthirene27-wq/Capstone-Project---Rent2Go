@@ -46,3 +46,11 @@ it("closes on a selected link, an external focus change, and a route change",asy
  await user.click(toggle);state.path="/workspace/bookings";view.rerender(<><WorkspaceNavigation role="RENTER"/><button>Outside</button></>);
  expect(toggle.getAttribute("aria-expanded")).toBe("false");
 });
+
+it.each(["SUPER_ADMIN","AGENCY_ADMIN","RENTER","COSIGNER"] as const)("limits a restricted %s to account requests and marketplace",role=>{
+ state.path="/account-status/privacy/request";render(<WorkspaceNavigation role={role} limited/>);
+ const nav=screen.getByRole("navigation",{name:"Workspace navigation"});
+ expect(Array.from(nav.querySelectorAll("a")).map(a=>a.getAttribute("href"))).toEqual(["/account-status","/"]);
+ expect(screen.getByRole("link",{name:"Account & privacy requests"}).getAttribute("aria-current")).toBe("page");
+ expect(screen.getByRole("button",{name:"Account menu"})).toBeDefined();
+});

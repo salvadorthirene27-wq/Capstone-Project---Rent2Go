@@ -26,7 +26,7 @@ export async function searchVehicles(
   if (q.search) {
     const b = bind(escape(q.search));
     clauses.push(
-      `(concat_ws(' ',r.facts->>'make',r.facts->>'model',r.facts->>'description') ILIKE ${b})`,
+      `(concat_ws(' ',COALESCE(o.display_make,r.facts->>'make'),COALESCE(o.display_model,r.facts->>'model'),r.facts->>'description') ILIKE ${b})`,
     );
   }
   if (q.serviceArea)
@@ -77,7 +77,7 @@ export async function searchVehicles(
     rentalUnits = `CASE r.terms->>'billingUnit' WHEN 'HOUR' THEN ${hours} WHEN 'CALENDAR_DAY' THEN ${calendar} ELSE ${days} END`;
     driverUnits = `CASE WHEN (${selected})='SELF_DRIVE' THEN 0 ELSE CASE r.terms->>'driverFeeUnit' WHEN 'PER_BOOKING' THEN 1 WHEN 'PER_24_HOURS' THEN ${days} WHEN 'PER_CALENDAR_DAY' THEN ${calendar} WHEN 'PER_HOUR' THEN ${hours} WHEN 'PER_RENTAL_UNIT' THEN (${rentalUnits}) END END`;
   }
-  const cte = `WITH eligible AS(SELECT o.id,o.agency_id,r.facts,r.terms,r.revision,ar.payload->>'businessName' AS agency_name,ar.payload->>'serviceAreas' AS service_areas,(${selected}) AS effective_mode,(${rentalUnits})*(r.terms->>'rateCentavos')::bigint+(${driverUnits})*COALESCE((r.terms->>'driverFeeCentavos')::bigint,0) AS service_centavos,COALESCE((SELECT jsonb_agg(f.id ORDER BY f.created_at,f.id) FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id WHERE rf.offer_id=o.id AND rf.revision=o.approved_revision AND f.purpose='PHOTO'),'[]'::jsonb) AS photo_ids FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN resource ON resource.vehicle_id=v.id JOIN agency a ON a.id=o.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor ao ON ao.id=a.owner_id LEFT JOIN app_actor vo ON vo.id=v.owner_actor_id JOIN vehicle_revision r ON r.offer_id=o.id AND r.revision=o.approved_revision WHERE ${clauses.join(" AND ")})`;
+  const cte = `WITH eligible AS(SELECT o.id,o.agency_id,r.facts||jsonb_strip_nulls(jsonb_build_object('make',o.display_make,'model',o.display_model)) AS facts,r.terms,r.revision,COALESCE(a.display_name,ar.payload->>'businessName') AS agency_name,ar.payload->>'serviceAreas' AS service_areas,(${selected}) AS effective_mode,(${rentalUnits})*(r.terms->>'rateCentavos')::bigint+(${driverUnits})*COALESCE((r.terms->>'driverFeeCentavos')::bigint,0) AS service_centavos,COALESCE((SELECT jsonb_agg(f.id ORDER BY f.created_at,f.id) FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id WHERE rf.offer_id=o.id AND rf.revision=o.approved_revision AND f.purpose='PHOTO'),'[]'::jsonb) AS photo_ids FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN resource ON resource.vehicle_id=v.id JOIN agency a ON a.id=o.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor ao ON ao.id=a.owner_id LEFT JOIN app_actor vo ON vo.id=v.owner_actor_id JOIN vehicle_revision r ON r.offer_id=o.id AND r.revision=o.approved_revision WHERE ${clauses.join(" AND ")})`;
   const moneySafe = q.startAt
     ? "service_centavos+(terms->>'depositCentavos')::bigint<=100000000"
     : "true";

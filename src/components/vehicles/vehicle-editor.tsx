@@ -79,7 +79,7 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
       <div className="page-title">
         <div>
           <h1>
-            {initial.facts.make} {initial.facts.model}
+            {initial.displayName}
           </h1>
           <p>
             Registration {initial.registration} ·{" "}

@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 import React from "react";
 import { afterEach, it, expect, vi } from "vitest";
-import { render, screen, cleanup } from "@testing-library/react";
+import { render, screen, cleanup, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 const state = vi.hoisted(() => ({ signOut: vi.fn(), pathname: "/cars/demo-car", signedIn: true }));
 const signOut = state.signOut;
@@ -114,4 +114,20 @@ it("dismisses expanded navigation when keyboard focus moves into page content", 
 
 it('uses a compact marketplace return for the restricted account-status portal',()=>{
  state.pathname='/account-status';render(<Header/>);expect(screen.queryByRole('navigation',{name:'Main navigation'})).toBeNull();expect(screen.getByRole('link',{name:'Back to marketplace'}).getAttribute('href')).toBe('/');
+});
+
+it("restores marketplace navigation for an active account privacy portal", async()=>{
+ state.pathname="/account-status/privacy/request";
+ vi.stubGlobal("fetch",vi.fn(async(url)=>({ok:true,json:async()=>String(url)==="/api/me"?{id:"demo"}:{count:0}})));
+ render(<Header/>);
+ expect(await screen.findByRole("navigation",{name:"Main navigation"})).toBeDefined();
+ expect(screen.getByRole("link",{name:"Workspace"}).getAttribute("href")).toBe("/workspace");
+});
+it.each([{ok:false,id:"demo"},{ok:true,id:"another-account"}])("keeps denied or mismatched privacy identities compact: %j",async result=>{
+ state.pathname="/account-status";const json=vi.fn(async()=>({id:result.id}));
+ const get=vi.fn(async()=>({ok:result.ok,json}));vi.stubGlobal("fetch",get);render(<Header/>);
+ await waitFor(()=>expect(get).toHaveBeenCalledTimes(1));
+ if(result.ok)await waitFor(()=>expect(json).toHaveBeenCalledTimes(1));
+ expect(screen.queryByRole("navigation",{name:"Main navigation"})).toBeNull();
+ expect(screen.getByRole("link",{name:"Back to marketplace"})).toBeDefined();
 });

@@ -96,6 +96,24 @@ beforeAll(async () => {
   }
 }, 60000);
 afterAll(() => db.end());
+it("uses current labels without rewriting approved specifications or price history",async()=>{
+ const id=cars[0].id;
+ const snapshot=await db.query("SELECT facts FROM vehicle_revision WHERE offer_id=$1 ORDER BY revision",[id]);
+ const before=(await searchVehicles({agencyId})).items.find(c=>c.id===id)!;
+ try{
+  await db.query("UPDATE vehicle_offer SET display_make='Toyota',display_model='Vios' WHERE id=$1",[id]);
+  await db.query("UPDATE agency SET display_name='Bicol Journeys Travel & Tours' WHERE id=$1",[agencyId]);
+  const found=await searchVehicles({agencyId,search:'Vios'});
+  expect(found.items.map(c=>c.id)).toEqual([id]);
+  expect(found.items[0].facts.make).toBe('Toyota');
+  expect(found.items[0].agencyName).toBe('Bicol Journeys Travel & Tours');
+  expect(found.items[0].pricing).toEqual(before.pricing);
+  expect((await db.query("SELECT facts FROM vehicle_revision WHERE offer_id=$1 ORDER BY revision",[id])).rows).toEqual(snapshot.rows);
+ }finally{
+  await db.query("UPDATE vehicle_offer SET display_make=NULL,display_model=NULL WHERE id=$1",[id]);
+  await db.query("UPDATE agency SET display_name=NULL WHERE id=$1",[agencyId]);
+ }
+});
 it("filters the approved public projection and sorts before pagination", async () => {
   const q = { agencyId };
   const all = await searchVehicles({ ...q, sort: "PRICE_ASC", pageSize: 1 });

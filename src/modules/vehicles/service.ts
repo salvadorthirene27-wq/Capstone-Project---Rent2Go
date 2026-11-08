@@ -38,6 +38,8 @@ type OfferRow = {
   revision: number;
   approved_revision: number | null;
   draft_facts: VehicleFacts;
+  display_make?:string|null;
+  display_model?:string|null;
   draft_terms: VehicleTerms;
 };
 const offerSelect =
@@ -56,6 +58,7 @@ function view(r: OfferRow) {
     revision: r.revision,
     approvedRevision: r.approved_revision,
     facts: r.draft_facts,
+    displayName:`${r.display_make??r.draft_facts.make} ${r.display_model??r.draft_facts.model}`,
     terms: r.draft_terms,
   };
 }
@@ -215,7 +218,7 @@ export async function vehicleDetail(actor: Actor, id: string) {
           : row,
       ),
       viewMode: agencySnapshot ? "SUBMITTED_SNAPSHOT" : "OWNER_DRAFT",
-      agencyName: context.policy.businessName,
+      agencyName: context.name,
       revisions: revisions.map((r) => ({
         ...r,
         files: revisionFiles.filter((f) => f.revision === r.revision),
@@ -575,7 +578,7 @@ export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
           submitted_terms: VehicleTerms | null;
         }
       >(
-        `SELECT o.*,v.ownership,v.owner_actor_id,v.owner_agency_id,v.registration_normalized,ap.payload->>'businessName' AS agency_name,vr.facts AS submitted_facts,vr.terms AS submitted_terms ${joins} WHERE ${where} ORDER BY o.updated_at DESC,o.id LIMIT $3 OFFSET $4`,
+        `SELECT o.*,v.ownership,v.owner_actor_id,v.owner_agency_id,v.registration_normalized,COALESCE(a.display_name,ap.payload->>'businessName') AS agency_name,vr.facts AS submitted_facts,vr.terms AS submitted_terms ${joins} WHERE ${where} ORDER BY o.updated_at DESC,o.id LIMIT $3 OFFSET $4`,
         [...params, q.pageSize, (q.page - 1) * q.pageSize],
       )
     ).rows;
