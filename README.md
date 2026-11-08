@@ -1,6 +1,6 @@
 # Rent2Go
 
-A multi-agency car rental and tour marketplace for a capstone project. Rent2Go supports agency onboarding and approval, vehicle consignment and compliance, rental and group/private-tour catalogs, availability-aware search, cart and booking requests, private document review, quotations, agreements, manual and simulated payments, service fulfillment, financial assessment and settlement, owner withdrawals, separately accepted closed-booking credits and earnings recovery, platform remittances and accepted agency credits, reports, notifications, advisory OCR, and account security. See [implementation status and remaining work](docs/STATUS.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
+A multi-agency car rental and tour marketplace for a capstone project. Rent2Go supports agency onboarding and approval, vehicle consignment and compliance, rental and group/private-tour catalogs, availability-aware search, cart and booking requests, private document review, quotations, agreements, manual and simulated payments, service fulfillment, financial assessment and settlement, owner withdrawals, separately accepted closed-booking credits and earnings recovery, platform remittances and accepted agency credits, reports, notifications, advisory OCR, and account security. See [implementation status](docs/STATUS.md), [final acceptance and boundaries](docs/final-validation.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
 
 GPS/geofencing is outside this project's scope. The old repository, database and environment file are not used. No adoption figures or usability results are claimed.
 
@@ -51,7 +51,7 @@ npm run build
 npm audit --omit=dev
 ```
 
-Integration tests create synthetic records in the isolated test database and do not reset any old or unspecified database. The application uses managed Neon Auth; the password-recovery interface uses its email OTP methods, but actual email delivery must be verified separately with an authorized address. Formal usability evaluation remains human research work after approved instruments and actual testing.
+Integration tests create synthetic records in the isolated test database and do not reset any old or unspecified database. The application uses managed Neon Auth; the user has verified actual account email delivery and separate-step password recovery with an authorized address. General notification-email dispatch remains disabled until explicitly authorized. Formal usability evaluation remains human research work after approved instruments and actual testing.
 
 On Windows, the build command loads a process-scoped fallback for asynchronous directory-creation `EPERM` errors in this desktop sandbox. It retries the same operation synchronously with identical options and OS permissions; genuine permission errors remain errors. It is not loaded by the running application. No old project source is used.
 

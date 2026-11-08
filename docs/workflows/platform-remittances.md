@@ -34,3 +34,7 @@ Platform account locks serialize requests, receipts, credit grants/applications 
 Agency and platform reports provide separate statements for payment receipts, agency credit acceptances and credit applications, with Philippine-date periods and audited exact-centavo CSV exports. Current balances cover all dates and keep source dues, reservations, accepted carry and unaccepted excess separate. Owner reports exclude these records. Printable saved records preserve the original snapshot and distinguish internal records from official tax invoices or bank statements.
 
 The recipient inbox has a dedicated REMITTANCE category and protected account links. Saved notices are redacted when source access changes. Optional email queues use the same recipient/source checks; adding this category does not enable dispatch, backfill old events or authorize sending email.
+
+## Final interface verification
+
+Agency and independent platform accounts were reviewed on desktop/phone against the preserved simulated receipt and accepted-credit/application history. Saved receipt and credit-application pages remain readable with long references. The user confirmed the receipt in Chrome print preview has complete content and no navigation menus. This is a manual receipt print result; see [final validation](../final-validation.md) for scope. Original dues, owner allocations, payouts and pending withdrawal were preserved.

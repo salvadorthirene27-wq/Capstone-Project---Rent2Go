@@ -11,6 +11,6 @@ User supplied the e-commerce evaluation rubric on 4 November 2026 as a guide. Re
 | Payment management | Multiple manual/demo methods, safe evidence handling, statuses, decline/pending/retry; no simulated settlement represented as real |
 | Order tracking | Booking status/timeline, history, notifications and refreshed updates; excludes GPS/location tracking |
 | Admin/vendor management | Agency onboarding/review, vendor catalog/booking management, Super Admin governance and scoped analytics |
-| Promos/vouchers (bonus) | Additional planned feature: agency-scoped code, validity, usage/eligibility/minimum rules, server-calculated discount, persisted quote snapshot and concurrency-safe redemption |
+| Promos/vouchers (bonus) | Optional bonus outside the approved current delivery; if added, it needs agency-scoped eligibility, exact quotation snapshots and concurrency-safe redemption |
 
-Cart and voucher enhancements do not bypass manuscript approval/payment gates. Mixed-agency carts create separate agency requests and financial records. Prices before agency quote acceptance are estimates. Existing green/mint visual identity remains binding. Agency onboarding remains the current first delivery.
+Cart and voucher enhancements do not bypass manuscript approval/payment gates. Mixed-agency carts create separate agency requests and financial records. Prices before agency quote acceptance are estimates. Existing green/mint visual identity remains binding. The complete approved workflow and verification boundaries are recorded in final-validation.md; no rubric score is invented.

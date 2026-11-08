@@ -28,6 +28,17 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href={`/agency/${agency}/remittances`}><Building2 size={19} aria-hidden="true"/>Rent2Go remittances</Link>
     <Link href={`/agency/${agency}/reports`}><ChartNoAxesCombined size={19} aria-hidden="true"/>Agency reports</Link>
    </div>}
+   {role==='SUPER_ADMIN'&&<div className="workspace-nav-group"><p>Platform workspace</p>
+    <Link href="/admin" exact><ShieldCheck size={19} aria-hidden="true"/>Partner reviews</Link>
+    <Link href="/admin/vehicles"><CarFront size={19} aria-hidden="true"/>Vehicle compliance</Link>
+    <Link href="/admin/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>Platform reports</Link>
+    <Link href="/admin/remittances"><Wallet size={19} aria-hidden="true"/>Agency remittances</Link>
+    <Link href="/admin/operations"><ShieldCheck size={19} aria-hidden="true"/>Service health</Link>
+    <Link href="/admin/privacy"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy review</Link>
+    <Link href="/admin/users"><ShieldCheck size={19} aria-hidden="true"/>User access & roles</Link>
+    <Link href="/admin/settings"><ShieldCheck size={19} aria-hidden="true"/>Platform settings</Link>
+    <Link href="/admin/audit"><ClipboardList size={19} aria-hidden="true"/>Audit review</Link>
+   </div>}
    <div className="workspace-nav-group"><p>Your bookings</p>
     <Link href="/cart"><CarFront size={19} aria-hidden="true"/>My cart</Link>
     <Link href="/workspace/bookings"><ClipboardList size={19} aria-hidden="true"/>My booking requests</Link>
@@ -42,17 +53,6 @@ export function WorkspaceNavigation({role}:{role:Actor['role']}){
     <Link href="/workspace/application"><Building2 size={19} aria-hidden="true"/>Agency application</Link>
     <Link href="/partners"><Building2 size={19} aria-hidden="true"/>Partnership guide</Link>
    </div>
-   {role==='SUPER_ADMIN'&&<div className="workspace-nav-group"><p>Platform workspace</p>
-    <Link href="/admin" exact><ShieldCheck size={19} aria-hidden="true"/>Partner reviews</Link>
-    <Link href="/admin/vehicles"><CarFront size={19} aria-hidden="true"/>Vehicle compliance</Link>
-    <Link href="/admin/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>Platform reports</Link>
-    <Link href="/admin/remittances"><Wallet size={19} aria-hidden="true"/>Agency remittances</Link>
-    <Link href="/admin/operations"><ShieldCheck size={19} aria-hidden="true"/>Service health</Link>
-    <Link href="/admin/privacy"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy review</Link>
-    <Link href="/admin/users"><ShieldCheck size={19} aria-hidden="true"/>User access & roles</Link>
-    <Link href="/admin/settings"><ShieldCheck size={19} aria-hidden="true"/>Platform settings</Link>
-    <Link href="/admin/audit"><ClipboardList size={19} aria-hidden="true"/>Audit review</Link>
-   </div>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>
   </nav>
  </div>;

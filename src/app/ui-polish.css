@@ -169,3 +169,6 @@ input[aria-invalid="true"], select[aria-invalid="true"], textarea[aria-invalid="
 .platform-settings :where(input,textarea) { max-width:100%; }
 @media(max-width:700px) { .settings-shares { grid-template-columns:repeat(2,minmax(0,1fr)); } }
 @media(max-width:380px) { .settings-shares { grid-template-columns:1fr; } }
+
+/* Keep policy/help actions distinct when controls wrap on small screens. */
+:where(.platform-settings, .public-main) .actions { display:flex; flex-wrap:wrap; align-items:center; gap:12px; margin-block:16px; }
