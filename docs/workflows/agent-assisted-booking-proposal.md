@@ -1,6 +1,6 @@
 # Agent-assisted rental enquiries — proposal only
 
-Reviewed 8 November 2026. This document records research and a proposed extension; it does not change the implemented booking state machine, payment amounts, agency policies or manuscript.
+Reviewed 8 November 2026; optional contact log approved 9 November 2026. This document records research and an approved extension awaiting implementation; it does not change the implemented booking state machine, payment amounts, agency policies or manuscript.
 
 ## What the reference shows
 
@@ -28,6 +28,6 @@ Use the existing request and quotation identifiers in email/contact references. 
 
 ## Decisions before implementation
 
-The user requested research without booking-process code changes. Implementing the contact log and any additional pre-registration enquiry form requires approval. A separate enquiry before registration/identity review would expand the manuscript architecture and needs an explicit decision on retention, verification, abuse protection and conversion into the authenticated request.
+The user initially requested research without booking-process code changes and subsequently approved the optional agency contact log, including staff assignment, attempts and follow-up outcomes, while retaining portal acceptance and current payment rules. The contact log is not implemented at this checkpoint. Any additional pre-registration enquiry form still requires approval. A separate enquiry before registration/identity review would expand the manuscript architecture and needs an explicit decision on retention, verification, abuse protection and conversion into the authenticated request.
 
 Do not import the reference operator’s 50%/three-day rule automatically. Rent2Go currently requires the agreed service amount and refundable deposit to be covered before service readiness. Supporting a different confirmation threshold or reservation down payment needs a separate reviewed design for deadlines, cancellation, allocation, refunds, agreements and central custody. Do not introduce PayPal as a PayMongo-supported method.

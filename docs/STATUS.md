@@ -1,3 +1,13 @@
+# Supervised payment-status worker checkpoint — 9 November 2026
+
+The internal PayMongo status worker now connects due configured-account checkouts to receipt verification and atomic booking posting, with a separate named process lease, cooldowns, crash recovery and sanitized run history. Existing quotation-expiry APIs retain their contract. Service health separately reports payment-worker disablement/configuration/schema readiness, contact and successful batch time; it does not equate processing with payment, refund or disbursement.
+
+Verification:473 unit/interface cases,6 new native worker cases,26 existing lifecycle/posting/expiry-worker regressions, production build and sequential type checking pass. Four-role HTTP service-health checks pass on the rebuilt application. Native provider responses were synthetic; no actual payment/provider creation/refund/transfer or email was sent. Migration046 is isolated-test-only. Primary remains001–041 plus045, PayMongo is disabled, and no payment worker has been started against it. This is internal polling/supervision completion, not completion of signed notifications, the reviewed exception queue, central accounting/disbursements, provider refunds, customer checkout or deployment readiness. See [worker workflow](workflows/paymongo-worker.md).
+
+The user approved the optional agency contact log on9 November. Its staff assignments, contact attempts and follow-ups are the next independent module; it must preserve portal acceptance and current payment rules. The approved log is not implemented by this worker checkpoint. No separate pre-registration enquiry or down-payment change was approved.
+
+--- Prior checkpoints retained ---
+
 # Fleet, navigation and current-name checkpoint — 8 November 2026
 
 Fleet catalogue rows now pair photos with specifications, unit pricing, deposits and one Book now link to the existing rental selection form. Account/privacy, cart and checkout use the shared workspace; restricted accounts retain a limited menu. All64 page routes were audited for intentional public/workspace/print layouts. Current sample names use professional fictional labels without altering saved identities or credentials.

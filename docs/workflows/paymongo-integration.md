@@ -49,3 +49,7 @@ The booking guards now refuse legacy payment/additional-balance/refund execution
 5. Native race/replay/authority/fee/refund/custody checks, actual provider test checkout/payment flow, four-role HTTP and responsive/print verification; checkpoint each completed module.
 
 References: [Hosted Checkout](https://docs.paymongo.com/docs/payment-channels-hosted-checkout), [key concepts and expiry](https://docs.paymongo.com/docs/payment-channels-key-concepts), [idempotent requests](https://docs.paymongo.com/reference/idempotent-requests), [webhook signing](https://docs.paymongo.com/docs/developer-tools-webhook-setup-management), and [Checkout Session resource](https://docs.paymongo.com/reference/checkout-session-resource).
+
+## Polling worker follow-up — 9 November 2026
+
+The supervised polling and receipt-posting worker is implemented and verified independently; see [worker workflow](paymongo-worker.md). Migration046 remains isolated-test-only. Signed event ingestion, reviewed exception handling and the remaining financial/customer activation work above are still open. The new worker does not enable payments on the application database.

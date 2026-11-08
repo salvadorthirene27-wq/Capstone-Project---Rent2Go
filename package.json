@@ -13,6 +13,7 @@
     "db:check": "tsx --env-file=.env.local scripts/check-db.ts",
     "admin:bootstrap": "tsx --env-file=.env.local scripts/bootstrap.ts",
     "booking:expire-holds": "tsx --env-file=.env.local scripts/expire-booking-holds.ts --enable",
+    "payment:process": "tsx --env-file=.env.local scripts/process-paymongo.ts --enable",
     "email:verify": "tsx --env-file=.env.local scripts/verify-email.ts",
     "email:process": "tsx --env-file=.env.local scripts/process-email.ts --enable-email",
     "email:recover": "tsx --env-file=.env.local scripts/process-email.ts --recover-only",
