@@ -1,3 +1,4 @@
+import {centrallyCollectedRevenueSql} from '../gateway/custody-source';
 import {randomUUID} from 'node:crypto';
 import type {PoolClient} from 'pg';
 import {storedActor,audit} from '../partners/service';
@@ -12,7 +13,7 @@ export async function lockPlatformAccount(c:PoolClient,scope:RemittanceScope){
 }
 export async function remittanceContext(c:PoolClient,actor:Actor,input:RemittanceScope,lock=false){
  const scope=remittanceScope.parse(input);let user=await storedActor(actor,c);
- let agency=(await c.query("SELECT g.id,g.owner_id,g.active,r.payload->>'businessName' name FROM agency g JOIN partner_revision r ON r.application_id=g.application_id AND r.revision=g.approved_revision WHERE g.id=$1",[scope.agencyId])).rows[0];
+ let agency=(await c.query("SELECT g.id,g.owner_id,g.active,COALESCE(g.display_name,r.payload->>'businessName') name FROM agency g JOIN partner_revision r ON r.application_id=g.application_id AND r.revision=g.approved_revision WHERE g.id=$1",[scope.agencyId])).rows[0];
  if(!agency||(await c.query('SELECT is_test_fixture FROM app_actor WHERE id=$1',[user.id])).rows[0]?.is_test_fixture)throw new DomainError('Remittance account not found.',404);
  let member=(await c.query('SELECT active FROM agency_member WHERE agency_id=$1 AND actor_id=$2',[scope.agencyId,user.id])).rows[0];
  let operator=agency.owner_id===user.id||Boolean(member?.active),platform=user.role==='SUPER_ADMIN'&&!operator;
@@ -28,13 +29,13 @@ export async function remittanceContext(c:PoolClient,actor:Actor,input:Remittanc
   operator=agency.owner_id===user.id||Boolean(member?.active);platform=user.role==='SUPER_ADMIN'&&!operator;
   if((!operator&&!platform)||(await c.query('SELECT is_test_fixture FROM app_actor WHERE id=$1',[user.id])).rows[0]?.is_test_fixture)throw new DomainError('Current remittance authority is required.',403);
  }
- const name=(await c.query("SELECT r.payload->>'businessName' name FROM agency g JOIN partner_revision r ON r.application_id=g.application_id AND r.revision=g.approved_revision WHERE g.id=$1",[scope.agencyId])).rows[0].name;
+ const name=(await c.query("SELECT COALESCE(g.display_name,r.payload->>'businessName') name FROM agency g JOIN partner_revision r ON r.application_id=g.application_id AND r.revision=g.approved_revision WHERE g.id=$1",[scope.agencyId])).rows[0].name;
  return {scope,user,account,operator,platform,agencyName:name as string,agencyActive:Boolean(agency.active)};
 }
 export type RemittanceContext=Awaited<ReturnType<typeof remittanceContext>>;
 
 /** Fragments are fixed server SQL, never request text. */
-export const platformFactsSql=(tenant='e.agency_id=$1::uuid',environment='$2::text')=>`WITH entries AS(SELECT e.id,e.agency_id,e.environment,e.close_id,e.quote_id,e.line_id,e.source_kind,e.bps,e.amount_centavos FROM booking_revenue_entry e WHERE (${tenant}) AND e.environment=${environment} AND e.recipient='PLATFORM'),
+export const platformFactsSql=(tenant='e.agency_id=$1::uuid',environment='$2::text')=>`WITH entries AS(SELECT e.id,e.agency_id,e.environment,e.close_id,e.quote_id,e.line_id,e.source_kind,e.bps,e.amount_centavos FROM booking_revenue_entry e WHERE (${tenant}) AND e.environment=${environment} AND e.recipient='PLATFORM' AND NOT ${centrallyCollectedRevenueSql()}),
  credited AS(SELECT x.entry_id,sum(x.amount_centavos) n FROM booking_revenue_credit x JOIN entries e ON e.id=x.entry_id GROUP BY x.entry_id),
  paid AS(SELECT s.entry_id,sum(s.amount_centavos) n FROM platform_remittance_source s JOIN entries e ON e.id=s.entry_id JOIN platform_remittance_receipt p ON p.remittance_id=s.remittance_id GROUP BY s.entry_id),
  applied AS(SELECT s.entry_id,sum(s.amount_centavos) n FROM platform_credit_allocation s JOIN entries e ON e.id=s.entry_id GROUP BY s.entry_id),

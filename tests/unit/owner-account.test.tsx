@@ -18,3 +18,14 @@ it('requires independent review acknowledgment and keeps the identical approval 
 it('preserves a failed action reason and blocks stale decisions until refreshed',async()=>{
  const s={...base,isOwner:false,isOperator:true,canRequest:false,open:[item]},fetcher=vi.fn().mockResolvedValueOnce(reply(s)).mockResolvedValue(reply({error:'Owner account changed.'},409));vi.stubGlobal('fetch',fetcher);render(<OwnerAccount scope={scope}/>);const user=userEvent.setup(),button=await screen.findByRole('button',{name:'Reject request'});await user.type(screen.getByLabelText('Action reason'),'Correct the recipient details');await user.click(button);await screen.findByRole('alert');expect((screen.getByLabelText('Action reason') as HTMLTextAreaElement).value).toBe('Correct the recipient details');expect((button as HTMLButtonElement).disabled).toBe(true);expect(screen.getByText('Refresh the owner account before continuing.')).toBeTruthy();
 });
+
+it('identifies centrally held earnings separately and does not offer withdrawal controls',async()=>{
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue(reply({...base,canRequest:false,balances:{...base.balances,centrallyHeldCentavos:21000,availableCentavos:0}})));render(<OwnerAccount scope={scope}/>);
+ await screen.findByText('Held centrally for agency disbursement');expect(screen.queryByRole('button',{name:'Request withdrawal'})).toBeNull();expect(screen.getByText(/Amounts held by Rent2Go are excluded from withdrawals/)).toBeTruthy();
+});
+
+it('allows a non-success resolution when agency-held funds do not cover an old pending payout',async()=>{
+ const attempt={id:'pending-attempt',outcome:'PENDING',reference:'SAMPLE',reason:'Existing pending outcome',createdAt:'2030-01-01T00:00:00Z',evidenceId:null,canResolve:true,canResolveSuccess:false};
+ vi.stubGlobal('fetch',vi.fn().mockResolvedValue(reply({...base,isOwner:false,isOperator:true,canRequest:false,open:[{...item,stage:'APPROVED',canApprove:false,attempts:[attempt]}]})));render(<OwnerAccount scope={scope}/>);const user=userEvent.setup();
+ const button=await screen.findByRole('button',{name:'Resolve payout simulation'});await user.type(screen.getByLabelText('Action reason'),'Record a failed attempt without changing funds');expect((button as HTMLButtonElement).disabled).toBe(true);await user.selectOptions(screen.getByLabelText('Pending payout result'),'FAILED');expect((button as HTMLButtonElement).disabled).toBe(false);
+});

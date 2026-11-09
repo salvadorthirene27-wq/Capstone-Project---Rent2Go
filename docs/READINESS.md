@@ -1,3 +1,7 @@
+# Current central custody milestone — 9 November 2026
+
+Custody accounting, protected owner availability and duplicate-remittance prevention are implemented. Agency disbursement execution/source release, provider refunds, later adjustments and customer checkout remain incomplete and gateway activation stays disabled. Earlier100% statements refer to the earlier accepted baseline. See [current custody evidence and boundaries](workflows/paymongo-custody.md).
+
 # Current PayMongo expansion remains in progress — 9 November 2026
 
 Signed notification ingestion, worker processing and a read-only reconciliation queue are implemented and verified. These are not financial-disposition or disbursement completion. Online payment activation remains disabled until central custody, provider refunds/additional balances and customer checkout are connected and accepted. The earlier100% statement below applies only to the earlier accepted baseline, before this gateway expansion. See [current evidence](workflows/paymongo-notifications.md).

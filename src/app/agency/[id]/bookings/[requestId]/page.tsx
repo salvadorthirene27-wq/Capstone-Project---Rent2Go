@@ -1,4 +1,6 @@
 import {BookingContacts} from '@/components/booking-contacts';
+import {CentralCustody} from '@/components/central-custody';
+import {getCentralCustody} from '@/modules/gateway/custody';
 import {getBookingContacts} from '@/modules/bookings/contacts';
 import {BookingClosedCredits} from "@/components/closed-credits";
 import {BookingSettlement} from "@/components/booking-settlement";
@@ -36,6 +38,7 @@ export default async function Page({
   });
   if (booking.agencyId !== id) notFound();
   const contacts=booking.isOwnRequest?null:await getBookingContacts(actor,requestId);
+  const custody=booking.isOwnRequest?null:await getCentralCustody(actor,requestId);
   return (
     <Workspace actor={actor}>
       <Link className="back-link" href={`/agency/${id}/bookings`}>
@@ -58,6 +61,7 @@ export default async function Page({
       <BookingRefunds key={`refunds-${booking.version}`} requestId={requestId} />
       <BookingAssessments key={`assessments-${booking.version}`} requestId={requestId} />
       <BookingSettlement requestId={booking.id}/><BookingClosedCredits requestId={booking.id}/>
+      {custody&&<CentralCustody data={custody}/>}
     </Workspace>
   );
 }
