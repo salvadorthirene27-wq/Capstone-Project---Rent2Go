@@ -1,0 +1,13 @@
+# Public class demonstration
+
+The Render configuration provisions one **Free** Node.js web service in Singapore and reuses the existing Neon PostgreSQL, managed Auth and private S3 storage. It creates no additional database or paid worker service. Runtime credentials belong in private hosting settings, never this repository. Upload only the restricted application database connection; migration/owner and isolated-test credentials are not needed.
+
+`npm run start:hosted` uses Render's HTTPS external URL as the exact application origin and its assigned HTTP port. It supervises the website, booking-expiry worker and payment-status worker in the same instance. A stopped worker restarts after a bounded delay; PostgreSQL leases prevent two hosts from processing the same worker concurrently. Website failure stops its workers so the host can restart the whole service. Graceful shutdown allows active workers to release leases. Do not leave the workstation's workers holding those leases during hosted acceptance.
+
+Before sign-in acceptance, add the exact deployed HTTPS origin to the designated Neon Auth branch's trusted origins. Keep existing localhost origins for the local fallback. Test sign-in, sign-out, registration, code-based recovery, private file retrieval and at least one role-scoped booking screen through the public origin. Verify both workers in Super Admin service health. Do not weaken origin validation to bypass a failed hosted sign-in.
+
+PayMongo remains on **test** keys with live payments disabled. The actual refund acceptance is still blocked by PayMongo's available payout balance; publishing the site does not resolve it or make a rejected refund successful. General notification-email dispatch remains off. Managed Auth handles account verification/recovery independently; any future direct Gmail notification dispatch needs a hosted delivery path because Render Free blocks SMTP ports.
+
+Free instances sleep after 15 minutes without inbound traffic and can take about a minute to resume. Workers also pause while the instance sleeps, then reconcile against database deadlines and provider facts on wake. This is a classroom demonstration setup, not continuously available payment operations. Open the public URL before presenting. Private files remain in S3, since Render's local filesystem is ephemeral. Do not add a payment method or upgrade the compute plan just to demonstrate the app.
+
+References: [Next.js on Render](https://render.com/docs/deploy-nextjs-app), [Free service limits](https://render.com/docs/free), [hosting variables](https://render.com/docs/environment-variables).

@@ -15,6 +15,8 @@ Requires Node.js 24.14+ and npm. The app runs at `http://localhost:3100`. Intern
 5. `npm run db:migrate -- --test`
 6. `npm run dev`, or `npm run build` followed by `npm start` for a production-mode local demo.
 
+For the public class demonstration, see [hosting setup and limits](docs/hosting.md).
+
 On this workstation the new environment is already configured. Start with step 6. Do not replace its credentials with the old supplied environment file.
 
 Migration/setup tools intentionally allow only the new project/endpoint and explicitly named `rent2go` / `rent2go_test` databases. Provisioning a different project requires reviewing and updating those target guards. `DATABASE_URL` is the restricted runtime connection; `MIGRATION_DATABASE_URL` is the owner connection. Automated tests use only `TEST_DATABASE_URL`.

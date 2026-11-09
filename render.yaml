@@ -1,0 +1,62 @@
+services:
+  - type: web
+    name: rent2go-marketplace
+    runtime: node
+    plan: free
+    region: singapore
+    branch: main
+    autoDeployTrigger: off
+    buildCommand: npm ci --include=dev && npm run build
+    startCommand: npm run start:hosted
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_VERSION
+        value: 24.14.0
+      - key: NODE_ENV
+        value: production
+      - key: STORAGE_DRIVER
+        value: s3
+      - key: LOCAL_DEMO_LOOPBACK_ALIASES
+        value: 'false'
+      - key: PAYMONGO_ENABLED
+        value: 'true'
+      - key: PAYMONGO_CUSTOMER_CHECKOUT_ENABLED
+        value: 'true'
+      - key: PAYMONGO_REFUNDS_ENABLED
+        value: 'true'
+      - key: PAYMONGO_MODE
+        value: test
+      - key: PAYMONGO_LIVE_ENABLED
+        value: 'false'
+      - key: PAYMONGO_NOTIFICATION_MODE
+        value: poll
+      - key: PAYMONGO_PAYMENT_METHODS
+        value: card,gcash
+      - key: PAYMONGO_WORKER_ENABLED
+        value: 'true'
+      - key: BOOKING_HOLD_WORKER_ENABLED
+        value: 'true'
+      - key: EMAIL_SEND_ENABLED
+        value: 'false'
+      - key: NEON_PROJECT_ID
+        sync: false
+      - key: DATABASE_URL
+        sync: false
+      - key: NEON_AUTH_BASE_URL
+        sync: false
+      - key: NEON_AUTH_COOKIE_SECRET
+        generateValue: true
+      - key: AWS_ENDPOINT_URL_S3
+        sync: false
+      - key: AWS_REGION
+        sync: false
+      - key: AWS_ACCESS_KEY_ID
+        sync: false
+      - key: AWS_SECRET_ACCESS_KEY
+        sync: false
+      - key: STORAGE_BUCKET
+        sync: false
+      - key: OCR_SPACE_API_KEY
+        sync: false
+      - key: PAYMONGO_SECRET_KEY
+        sync: false
