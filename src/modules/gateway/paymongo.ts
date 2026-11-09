@@ -1,6 +1,7 @@
 import {createHmac,timingSafeEqual} from 'node:crypto';
 import {z} from 'zod';
 import {DomainError} from '../partners/workflow';
+import {parseRefundResource,providerRefundId} from './refund-resource';
 
 export type PayMongoMode='test'|'live';
 // This allowlist validates operator configuration; checkout offers the configured
@@ -140,7 +141,7 @@ export function payMongoClient(config:PayMongoConfig,transport:typeof fetch=fetc
     }catch{throw new PayMongoError();}
     // Provider responses can contain billing data, credentials or user-controlled
     // descriptions. Never include their raw body/error detail in logs or errors.
-    if(!response.ok){await response.body?.cancel();throw new PayMongoError(response.status===401?'Online payment credentials need review.':response.status===409?'This checkout is still being prepared. Retry the same request shortly.':'PayMongo could not complete this request. Refresh the payment record before retrying.',response.status);}
+    if(!response.ok){await response.body?.cancel();throw new PayMongoError(response.status===401?'Online payment credentials need review.':response.status===409?'This provider record is still being processed. Refresh it before retrying.':'PayMongo could not complete this request. Refresh the payment record before retrying.',response.status);}
     const envelope=await boundedResponse(response);
     return envelope?.data;
   }
@@ -152,6 +153,13 @@ export function payMongoClient(config:PayMongoConfig,transport:typeof fetch=fetc
     createPrepared,
     retrieve:async(id:string)=>parseCheckout(await request(`/v1/checkout_sessions/${checkoutId.parse(id)}`),config.mode),
     expire:async(id:string,key:string)=>parseCheckout(await request(`/v1/checkout_sessions/${checkoutId.parse(id)}/expire`,{},key),config.mode),
+    // Read-only verification; issuing refunds remains disabled until the durable
+    // approval, source reservation and posting workflow is connected.
+    retrieveRefund:async(id:string)=>{
+      const requested=providerRefundId.parse(id),refund=parseRefundResource(await request(`/v1/refunds/${requested}`),config.mode);
+      if(refund.id!==requested)throw new PayMongoError('PayMongo returned a different refund record.');
+      return refund;
+    },
   };
 }
 

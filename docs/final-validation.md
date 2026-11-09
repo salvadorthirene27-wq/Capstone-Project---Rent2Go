@@ -1,3 +1,13 @@
+# Refund verification and exact-source statement checkpoint — 9 November 2026
+
+The provider client now retrieves and validates exact refund resources without issuing a refund. Original payment/merchant/mode/amount/reference matching, stale/terminal observation guards and original-gross reservation budgets are implemented. Central custody now prepares a deterministic statement from original receipt, collection and closed revenue-entry sources. Agency-only fees are attributed with exact integer rounding; protected Cosigner/maintenance/platform allocations stay intact. Statements remain read-only and cannot authorize a transfer or release owner funds. See [scope, sources and remaining workflow](workflows/paymongo-refund-statements.md).
+
+566 full unit/interface cases,27 focused final checks,10 native custody cases, production build and sequential TypeScript pass. Primary four-role custody16 and operational health14 pass.98 protected source-history fingerprints and two contact plans remain unchanged. There is no new migration, actual provider refund, transfer, payment, email or primary financial mutation. Gateway activation and general email dispatch remain off.
+
+Durable agency destination/statement review, independently documented execution and receipt confirmation, exact source-based owner availability release, fee-shortfall funding, provider refund approval/dispatch/ambiguity handling/posting, later adjustments and customer checkout remain open. This checkpoint is a financial verification foundation, not100% or deployment acceptance of the payment expansion.
+
+--- Earlier checkpoints ---
+
 # Notification dropdown and renter dashboard checkpoint — 9 November 2026
 
 The bell now opens a dropdown with global mark-all-read, individual delete, read-only bulk deletion, Undo and a Deleted/restore view. Account contains email preferences. Workspace home shows cart services, current requests and history with photos, dates, status and accurately labeled estimates/quotations. Pure renters no longer see My vehicles; existing owner/agency relationships retain their tools. Cart includes its icon, sidebar spacing is tighter and current display names do not rewrite historical snapshots. See [workflow and evidence](workflows/dashboard-notifications.md).

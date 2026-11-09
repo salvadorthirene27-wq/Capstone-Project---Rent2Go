@@ -79,3 +79,10 @@ it('cannot pay or resolve an earlier approval using centrally held funds',async(
  state=await changeOwnerAccount(context.operator,scope,{action:'RESOLVE_PAYOUT',version:state.requestVersion,idempotencyKey:randomUUID(),withdrawalId:withdrawal,attemptId:attempt,outcome:'FAILED',reason:'Record failure without debiting any earnings'});expect(state.open[0].canRevoke).toBe(true);
  expect((await db.query('SELECT count(*)::int n FROM owner_account_entry WHERE account_id=$1',[account])).rows[0].n).toBe(0);
 },60000);
+
+it('prepares a deterministic exact-source statement without approving or releasing the allocation',async()=>{
+ const f=await paid();await close(f);const before=(await db.query('SELECT * FROM booking_revenue_entry WHERE request_id=$1 ORDER BY id',[f.id])).rows,s=await getCentralCustody(context.operator,f.id),again=await getCentralCustody(context.reviewer,f.id);expect(s.statement).not.toBeNull();expect(s.statement?.sourceDigest).toBe(again.statement?.sourceDigest);expect(s.statement).toMatchObject({requestId:f.id,agencyId:context.agency,canExecute:false,bankSettlementVerified:false,ownerFundsReleasedCentavos:0});expect(s.statement?.sources.map(e=>e.entryId).sort()).toEqual(before.map(e=>e.id).sort());expect(s.statement?.sources.find(e=>e.recipient==='COSIGNER')?.proposedDisbursementCentavos).toBe(7000);expect(s.statement?.sources.find(e=>e.recipient==='AGENCY')?.agencyFeeCentavos).toBe(500);expect((await db.query('SELECT * FROM booking_revenue_entry WHERE request_id=$1 ORDER BY id',[f.id])).rows).toEqual(before);
+},60000);
+it('keeps the statement nonexecutable when fees exceed the agency allocation',async()=>{
+ const f=await paid(1500);await close(f);const s=await getCentralCustody(context.operator,f.id);expect(s.statement?.position).toMatchObject({agencyFeeShortfallCentavos:500,availableForDisbursementCentavos:0});expect(s.statement?.ownerFundsReleasedCentavos).toBe(0);expect(s.canDisburse).toBe(false);
+},60000);
