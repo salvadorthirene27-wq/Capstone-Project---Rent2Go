@@ -6,7 +6,6 @@ export function centrallyCollectedRevenueSql(alias='e'){
 }
 export function heldOwnerRevenueSql(alias='e'){
  const central=centrallyCollectedRevenueSql(alias);
- // A later agency-disbursement module must consume documented allocations.
- // Until then no centrally held owner amount is spendable at the agency.
- return `CASE WHEN ${central} THEN GREATEST(${alias}.amount_centavos-COALESCE((SELECT sum(credit.amount_centavos) FROM booking_revenue_credit credit WHERE credit.entry_id=${alias}.id),0),0) ELSE 0 END`;
+ // Only independently confirmed, exact-source releases become agency-held.
+ return `CASE WHEN ${central} THEN GREATEST(${alias}.amount_centavos-COALESCE((SELECT sum(credit.amount_centavos) FROM booking_revenue_credit credit WHERE credit.entry_id=${alias}.id),0)-central_owner_released(${alias}.id),0) ELSE 0 END`;
 }

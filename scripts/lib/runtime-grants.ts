@@ -104,6 +104,18 @@ export async function grantRuntimePrivileges(client:Pick<PoolClient,"query">){
    GRANT SELECT,INSERT,UPDATE ON booking_request,booking_notification TO rent2go_app;
    GRANT SELECT,INSERT ON booking_request_line,booking_event,booking_checkout_command TO rent2go_app;
   END IF;
+  IF to_regclass('public.paymongo_refund_intent') IS NOT NULL THEN
+   GRANT SELECT,INSERT ON paymongo_refund_intent,paymongo_refund_link,paymongo_refund_observation,paymongo_refund_posting TO rent2go_app;
+   GRANT SELECT,INSERT,UPDATE ON paymongo_refund_state TO rent2go_app;
+  END IF;
+  IF to_regclass('public.paymongo_checkout_consent') IS NOT NULL THEN
+   GRANT SELECT,INSERT ON paymongo_checkout_consent TO rent2go_app;
+  END IF;
+  IF to_regclass('public.central_disbursement') IS NOT NULL THEN
+   GRANT SELECT,INSERT,UPDATE ON central_disbursement_account TO rent2go_app;
+   GRANT SELECT,INSERT ON central_disbursement,central_disbursement_event,central_disbursement_file,central_disbursement_transfer,central_disbursement_confirmation,central_disbursement_release,central_disbursement_command TO rent2go_app;
+   GRANT EXECUTE ON FUNCTION central_owner_released(uuid) TO rent2go_app;
+  END IF;
   IF to_regclass('public.notification_visibility') IS NOT NULL THEN
    GRANT SELECT,INSERT ON notification_action,notification_visibility TO rent2go_app;
    GRANT UPDATE(hidden_at,batch_id) ON notification_visibility TO rent2go_app;

@@ -1,0 +1,92 @@
+import {createHash,randomUUID} from 'node:crypto';
+import type {PoolClient} from 'pg';
+import {z} from 'zod';
+import {db,transaction} from '../../lib/db';
+import {storedActor} from '../partners/service';
+import {DomainError,type Actor} from '../partners/workflow';
+import {digest} from '../cart/pricing';
+import {normalizePaymentReference} from '../bookings/payment-schema';
+import {centralFinancialAuthority} from './disbursements';
+import {payMongoClient,payMongoConfig} from './paymongo';
+import {matchRefundResource,advanceRefundObservation,providerRefundId,type ProviderRefund} from './refund-resource';
+
+const queueCommand=z.object({action:z.literal('QUEUE'),version:z.number().int().positive(),idempotencyKey:z.uuid(),refundId:z.uuid(),digest:z.string().regex(/^[a-f0-9]{64}$/),reviewed:z.literal(true)}).strict();
+const principal='system:paymongo-refund';
+const merchant=()=>createHash('sha256').update(payMongoConfig().secretKey).digest('hex');
+async function source(c:PoolClient,refundId:string){return(await c.query(`SELECT r.*,b.renter_id,b.version,d.decision,a.action cancellation,p.id paid_id,
+ x.id checkout_id,x.mode,x.merchant_fingerprint,k.id receipt_id,k.payment_id,k.amount_centavos gross_centavos,k.requires_reconciliation
+ FROM booking_refund_request r JOIN booking_request b ON b.id=r.request_id
+ JOIN paymongo_booking_posting t ON t.collection_id=r.collection_id AND t.outcome='COLLECTED'
+ JOIN paymongo_checkout x ON x.id=t.checkout_id JOIN paymongo_checkout_payment k ON k.id=t.payment_receipt_id
+ LEFT JOIN booking_refund_decision d ON d.refund_id=r.id LEFT JOIN booking_refund_cancel a ON a.refund_id=r.id LEFT JOIN booking_refund_payment p ON p.refund_id=r.id WHERE r.id=$1`,[refundId])).rows[0];}
+async function eligible(c:PoolClient,r:any){
+ if(!r||r.decision!=='APPROVE'||r.cancellation||r.paid_id||r.requires_reconciliation||r.mode!==payMongoConfig().mode||r.merchant_fingerprint!==merchant())throw new DomainError('Review the original approved refund and its verified PayMongo collection.',409);
+ if((await c.query('SELECT 1 FROM central_disbursement_transfer WHERE request_id=$1',[r.request_id])).rowCount)throw new DomainError('This refund needs agency recovery or funding review because the original allocation was already disbursed.',409);
+}
+export async function queueProviderRefund(actor:Actor,id:string,input:unknown){
+ const command=queueCommand.parse(input),hash=digest(command);if(process.env.PAYMONGO_REFUNDS_ENABLED!=='true')throw new DomainError('Provider refund execution is not enabled.',503);
+ return transaction(async c=>{
+  const ctx=await centralFinancialAuthority(c,actor,id,true);if(!ctx.reviewer)throw new DomainError('An independent platform reviewer must authorize central refund execution.',403);
+  const prior=(await c.query('SELECT id,command_digest FROM paymongo_refund_intent WHERE request_id=$1 AND created_by=$2 AND idempotency_key=$3',[id,ctx.user.id,command.idempotencyKey])).rows[0];if(prior){if(prior.command_digest!==hash)throw new DomainError('This retry key belongs to another refund authorization.',409);return {id:prior.id as string};}
+  const r=await source(c,command.refundId);if(!r||r.request_id!==id)throw new DomainError('Refund source not found.',404);await eligible(c,r);
+  if(r.version!==command.version||r.digest!==command.digest)throw new DomainError('The refund or booking changed. Review the current approved source.',409);
+  z.number().int().min(100).max(2147483647).parse(Number(r.amount_centavos));
+  const old=(await c.query('SELECT s.status,s.review_required FROM paymongo_refund_intent i LEFT JOIN paymongo_refund_state s ON s.intent_id=i.id WHERE i.refund_id=$1 ORDER BY i.created_at DESC LIMIT 31',[r.id])).rows;
+  if(old.length>=30||old.some(x=>x.review_required||!['failed','ABANDONED'].includes(x.status)))throw new DomainError('The original refund already has an unresolved or successful provider attempt. Reconcile that attempt instead of sending another.',409);
+  const key=randomUUID();await c.query('INSERT INTO paymongo_refund_intent(id,refund_id,request_id,checkout_id,receipt_id,payment_id,mode,merchant_fingerprint,amount_centavos,refund_digest,created_by,idempotency_key,provider_key,command_digest)VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14)',[key,r.id,id,r.checkout_id,r.receipt_id,r.payment_id,r.mode,r.merchant_fingerprint,r.amount_centavos,r.digest,ctx.user.id,command.idempotencyKey,randomUUID(),hash]);await c.query('INSERT INTO paymongo_refund_state(intent_id)VALUES($1)',[key]);return {id:key};
+ });
+}
+async function locked(c:PoolClient,id:string){const i=(await c.query('SELECT * FROM paymongo_refund_intent WHERE id=$1',[z.uuid().parse(id)])).rows[0];if(!i)throw new DomainError('Provider refund attempt not found.',404);await c.query('SELECT id FROM booking_request WHERE id=$1 FOR UPDATE',[i.request_id]);return i;}
+async function claim(id:string){return transaction(async c=>{
+ const i=await locked(c,id),config=payMongoConfig();if(i.mode!==config.mode||i.merchant_fingerprint!==merchant())throw new DomainError('The refund belongs to a different merchant configuration.',409);
+ const s=(await c.query("SELECT *,lease_until>clock_timestamp() busy,next_poll_at>clock_timestamp() cooling,first_dispatch_at<clock_timestamp()-interval '20 hours' aged FROM paymongo_refund_state WHERE intent_id=$1 FOR UPDATE",[id])).rows[0],link=(await c.query('SELECT provider_id FROM paymongo_refund_link WHERE intent_id=$1',[id])).rows[0];
+ if(s.busy||s.cooling||s.review_required||['failed','ABANDONED'].includes(s.status)||(s.status==='succeeded'&&(await c.query('SELECT 1 FROM paymongo_refund_posting WHERE intent_id=$1',[id])).rowCount))return null;
+ if(!link){
+  try{const ctx=await centralFinancialAuthority(c,{id:i.created_by,role:'SUPER_ADMIN'},i.request_id,true);if(!ctx.reviewer)throw new DomainError('Review permission changed.',409);await eligible(c,await source(c,i.refund_id));}
+  catch(e){if(!(e instanceof DomainError))throw e;await c.query('UPDATE paymongo_refund_state SET status=CASE WHEN first_dispatch_at IS NULL THEN \'ABANDONED\' ELSE status END,review_required=(first_dispatch_at IS NOT NULL),last_error=\'SOURCE_REVIEW\' WHERE intent_id=$1',[id]);return null;}
+  if(s.aged){await c.query("UPDATE paymongo_refund_state SET review_required=true,last_error='CREATION_WINDOW_CLOSED' WHERE intent_id=$1",[id]);return null;}
+ }
+ const nonce=randomUUID();await c.query("UPDATE paymongo_refund_state SET lease_nonce=$2,lease_until=clock_timestamp()+interval '45 seconds',next_poll_at=clock_timestamp()+interval '30 seconds',first_dispatch_at=CASE WHEN $3::boolean THEN COALESCE(first_dispatch_at,clock_timestamp()) ELSE first_dispatch_at END WHERE intent_id=$1",[id,nonce,!link]);return {i,link:link?.provider_id as string|undefined,nonce};
+});}
+async function observe(id:string,r:ProviderRefund){return transaction(async c=>{
+ const i=await locked(c,id),original=await source(c,i.refund_id);if(!original)throw new DomainError('Original provider refund source is unavailable.',409);
+ const checked=matchRefundResource({id:i.id,paymentId:i.payment_id,mode:i.mode,merchantFingerprint:i.merchant_fingerprint,amountCentavos:Number(i.amount_centavos),originalPaymentCentavos:Number(original.gross_centavos),providerRefundId:(await c.query('SELECT provider_id FROM paymongo_refund_link WHERE intent_id=$1',[id])).rows[0]?.provider_id??null},r,payMongoConfig());
+ const previous=(await c.query('SELECT body FROM paymongo_refund_observation WHERE intent_id=$1 ORDER BY observed_at DESC,id DESC LIMIT 1',[id])).rows[0]?.body??null,advanced=advanceRefundObservation(previous,checked);if(advanced.stale)return;
+ await c.query('INSERT INTO paymongo_refund_observation(id,intent_id,status,body,digest)VALUES($1,$2,$3,$4,$5)ON CONFLICT(intent_id,digest)DO NOTHING',[randomUUID(),id,checked.status,checked,digest(checked)]);await c.query('UPDATE paymongo_refund_state SET status=$2 WHERE intent_id=$1',[id,checked.status]);
+ if(checked.status!=='succeeded'||(await c.query('SELECT 1 FROM paymongo_refund_posting WHERE intent_id=$1',[id])).rowCount)return;
+ if((await c.query('SELECT 1 FROM booking_refund_payment WHERE refund_id=$1',[i.refund_id])).rowCount)throw new DomainError('This refund already has another execution record.',409);
+ const commandId=randomUUID(),attempt=randomUUID(),payment=randomUUID(),environment=i.mode==='test'?'DEMO':'MANUAL';
+ await c.query("INSERT INTO booking_refund_command(id,request_id,actor_id,idempotency_key,digest,action)VALUES($1,$2,$3,$4,$5,'PROVIDER_CONFIRMED')",[commandId,i.request_id,principal,id,digest(checked)]);
+ await c.query("INSERT INTO booking_refund_attempt(id,refund_id,request_id,environment,actor_id,command_id,method,reference,normalized_reference,initial_outcome,note)VALUES($1,$2,$3,$4,$5,$6,'PAYMONGO',$7,$8,'CONFIRMED','Provider-verified refund to original payment method')",[attempt,i.refund_id,i.request_id,environment,principal,commandId,checked.id,normalizePaymentReference(checked.id)]);
+ await c.query('INSERT INTO booking_refund_payment(id,refund_id,attempt_id,request_id,environment,amount_centavos,recorded_by)VALUES($1,$2,$3,$4,$5,$6,$7)',[payment,i.refund_id,attempt,i.request_id,environment,i.amount_centavos,principal]);await c.query('INSERT INTO paymongo_refund_posting(intent_id,payment_id)VALUES($1,$2)',[id,payment]);
+ await c.query('UPDATE booking_request SET version=version+1 WHERE id=$1',[i.request_id]);await c.query("INSERT INTO booking_notification(id,request_id,recipient_id,message)SELECT gen_random_uuid(),id,renter_id,'PayMongo confirmed the approved refund to the original payment method. Bank or wallet reflection times may differ.' FROM booking_request WHERE id=$1",[i.request_id]);
+});}
+export async function processProviderRefund(id:string,options:{transport?:typeof fetch}={}){
+ if(process.env.PAYMONGO_REFUNDS_ENABLED!=='true')return {processed:false};const job=await claim(id);if(!job)return {processed:false};const client=payMongoClient(payMongoConfig(),options.transport);let review=false,error:string|null=null;
+ try{let mapped=job.link;if(!mapped){const created=await client.createRefund({id:job.i.id,paymentId:job.i.payment_id,amountCentavos:Number(job.i.amount_centavos),key:job.i.provider_key});mapped=created.id;await transaction(async c=>{await locked(c,id);await c.query('INSERT INTO paymongo_refund_link(intent_id,provider_id,mode,merchant_fingerprint)VALUES($1,$2,$3,$4)ON CONFLICT(intent_id)DO NOTHING',[id,mapped,job.i.mode,job.i.merchant_fingerprint]);});}
+  await observe(id,await client.retrieveRefund(mapped));
+ }catch(e){review=(e instanceof DomainError&&e.status===409)||(e as {code?:string}).code==='23505';error=review?'PROVIDER_MISMATCH':'PROVIDER_UNAVAILABLE';}
+ finally{await db.query("UPDATE paymongo_refund_state SET lease_nonce=NULL,lease_until=NULL,next_poll_at=clock_timestamp()+interval '30 seconds',review_required=review_required OR $3,last_error=$4 WHERE intent_id=$1 AND lease_nonce=$2",[id,job.nonce,review,error]);}
+ return {processed:true,requiresReview:review,pending:Boolean(error)};
+}
+export async function processProviderRefundBatch(limit=5,options:{transport?:typeof fetch}={}){
+ if(process.env.PAYMONGO_REFUNDS_ENABLED!=='true')return 0;const config=payMongoConfig(),jobs=(await db.query("SELECT i.id FROM paymongo_refund_intent i JOIN paymongo_refund_state s ON s.intent_id=i.id LEFT JOIN paymongo_refund_posting p ON p.intent_id=i.id WHERE i.mode=$1 AND i.merchant_fingerprint=$2 AND NOT s.review_required AND s.status NOT IN ('failed','ABANDONED') AND p.intent_id IS NULL AND (s.lease_until IS NULL OR s.lease_until<=clock_timestamp()) AND (s.next_poll_at IS NULL OR s.next_poll_at<=clock_timestamp()) ORDER BY i.created_at LIMIT $3",[config.mode,merchant(),z.number().int().min(1).max(20).parse(limit)])).rows;
+ let failed=false;for(const job of jobs){const result=await processProviderRefund(job.id,options);if(result.pending)failed=true;}if(failed){const error=new Error('Provider refund work needs reconciliation or another verified retrieval.');error.name='PayMongoRefundBatchError';throw error;}return jobs.length;
+}
+export async function reconcileProviderRefund(actor:Actor,id:string,intentId:string,providerId:string,options:{transport?:typeof fetch}={}){
+ z.uuid().parse(intentId);providerRefundId.parse(providerId);await transaction(async c=>{const ctx=await centralFinancialAuthority(c,actor,id,true);if(!ctx.reviewer)throw new DomainError('Independent platform review is required.',403);const i=await locked(c,intentId);if(i.request_id!==id)throw new DomainError('Provider refund not found.',404);});
+ const resource=await payMongoClient(payMongoConfig(),options.transport).retrieveRefund(providerId);
+ await transaction(async c=>{const ctx=await centralFinancialAuthority(c,actor,id,true);if(!ctx.reviewer)throw new DomainError('Independent platform review is required.',403);const i=await locked(c,intentId),r=await source(c,i.refund_id);matchRefundResource({id:i.id,paymentId:i.payment_id,mode:i.mode,merchantFingerprint:i.merchant_fingerprint,amountCentavos:Number(i.amount_centavos),originalPaymentCentavos:Number(r.gross_centavos),providerRefundId:null},resource,payMongoConfig());const existing=(await c.query('SELECT provider_id FROM paymongo_refund_link WHERE intent_id=$1',[intentId])).rows[0];if(existing&&existing.provider_id!==resource.id)throw new DomainError('Reconcile the original mapped provider refund.',409);await c.query('INSERT INTO paymongo_refund_link(intent_id,provider_id,mode,merchant_fingerprint)VALUES($1,$2,$3,$4)ON CONFLICT(intent_id) DO NOTHING',[intentId,resource.id,i.mode,i.merchant_fingerprint]);await c.query('UPDATE paymongo_refund_state SET review_required=false,last_error=NULL WHERE intent_id=$1',[intentId]);});
+ try{await observe(intentId,resource);}catch(e){await db.query("UPDATE paymongo_refund_state SET review_required=true,last_error='PROVIDER_MISMATCH' WHERE intent_id=$1",[intentId]);throw e;}
+}
+export async function providerRefundDirectory(actor:Actor,input:unknown={}){const q=z.object({page:z.coerce.number().int().min(1).max(10000).default(1)}).strict().parse(input);return transaction(async c=>{
+ await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');const u=await storedActor(actor,c);if(u.role!=='SUPER_ADMIN'||(await c.query('SELECT is_test_fixture FROM app_actor WHERE id=$1',[u.id])).rows[0]?.is_test_fixture)throw new DomainError('Platform refund review is required.',403);
+ if(!(await c.query("SELECT to_regclass('paymongo_refund_intent') present")).rows[0].present)return {items:[],enabled:false,page:q.page,hasNext:false};
+ const records=(await c.query(`SELECT r.id,r.request_id,r.digest,r.reason,r.policy_snapshot,d.reason review_reason,r.amount_centavos,b.version,k.amount_centavos collection_centavos,COALESCE(g.display_name,b.agency_name) agency_name,k.environment,
+ i.id intent_id,s.status,s.review_required,l.provider_id,p.id payment_id,EXISTS(SELECT 1 FROM central_disbursement_transfer t WHERE t.request_id=r.request_id) already_disbursed
+ FROM booking_refund_request r JOIN booking_request b ON b.id=r.request_id JOIN agency g ON g.id=r.agency_id JOIN booking_payment_collection k ON k.id=r.collection_id AND k.method='PAYMONGO' JOIN booking_refund_decision d ON d.refund_id=r.id AND d.decision='APPROVE'
+ LEFT JOIN LATERAL(SELECT * FROM paymongo_refund_intent WHERE refund_id=r.id ORDER BY created_at DESC LIMIT 1)i ON true LEFT JOIN paymongo_refund_state s ON s.intent_id=i.id LEFT JOIN paymongo_refund_link l ON l.intent_id=i.id LEFT JOIN booking_refund_payment p ON p.refund_id=r.id
+ WHERE NOT EXISTS(SELECT 1 FROM booking_refund_cancel x WHERE x.refund_id=r.id) AND b.renter_id<>$1 AND g.owner_id<>$1 AND NOT EXISTS(SELECT 1 FROM agency_member m WHERE m.agency_id=g.id AND m.actor_id=$1) AND NOT EXISTS(SELECT 1 FROM booking_revenue_entry e WHERE e.request_id=r.request_id AND e.beneficiary_actor_id=$1)
+ ORDER BY (p.id IS NULL) DESC,r.created_at DESC,r.id LIMIT 21 OFFSET $2`,[u.id,(q.page-1)*20])).rows;
+ return {enabled:process.env.PAYMONGO_REFUNDS_ENABLED==='true',page:q.page,hasNext:records.length>20,items:records.slice(0,20).map(r=>({id:r.id as string,requestId:r.request_id as string,version:r.version as number,digest:r.digest as string,reason:r.reason as string,reviewReason:r.review_reason as string,collectionCentavos:Number(r.collection_centavos),policies:r.policy_snapshot as {services:{title:string;refundPolicy:string;cancellationPolicy:string;damagePolicy:string}[]},amountCentavos:Number(r.amount_centavos),agencyName:r.agency_name as string,environment:r.environment as string,status:r.payment_id?'succeeded':r.review_required?'REVIEW_REQUIRED':r.status??'APPROVED',intentId:r.intent_id as string|null,providerId:r.provider_id as string|null,blockedReason:!r.payment_id&&r.already_disbursed?'Agency funding or recovery review is required because the original allocation was already disbursed.':!r.payment_id&&Number(r.amount_centavos)<100?'PayMongo refund execution requires at least PHP 1.00.':null,canQueue:!r.payment_id&&!r.already_disbursed&&Number(r.amount_centavos)>=100&&(!r.intent_id||(['failed','ABANDONED'].includes(r.status)&&!r.review_required))}))};
+});}

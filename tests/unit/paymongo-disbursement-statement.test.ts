@@ -3,7 +3,7 @@ import {it,expect} from 'vitest';
 import {buildDisbursementStatement,type DisbursementStatementSource} from '../../src/modules/gateway/disbursement-statement';
 function source(fee=500):DisbursementStatementSource{
  const identity={requestId:randomUUID(),agencyId:randomUUID(),quoteId:randomUUID()},closeId=randomUUID();
- return {...identity,closeId,environment:'DEMO',closedRevenueCentavos:10000,unresolvedGatewayCount:0,refundReservationsCentavos:0,verifiedRefundedCentavos:0,revenueCreditCount:0,
+ return {...identity,closeId,environment:'DEMO',closedRevenueCentavos:10000,unresolvedGatewayCount:0,refundReservationsCentavos:0,verifiedRefundedCentavos:0,refunds:[],revenueCreditCount:0,
  receipts:[{...identity,id:randomUUID(),checkoutId:randomUUID(),collectionId:randomUUID(),paymentId:'pay_statement123',mode:'test',grossCentavos:10000,feeCentavos:fee,netCentavos:10000-fee,postingOutcome:'COLLECTED',requiresReconciliation:false}],
  entries:([['COSIGNER',7000],['AGENCY',1000],['PLATFORM',1000],['MAINTENANCE',1000]] as const).map(([recipient,amountCentavos])=>({...identity,id:randomUUID(),closeId,environment:'DEMO',recipient,amountCentavos,beneficiaryActorId:recipient==='COSIGNER'?randomUUID():null}))};
 }
@@ -32,4 +32,10 @@ it('withholds statements for retained deposits, refunds, pending work or later c
 it('changes the source digest for a changed fee or destination beneficiary and rejects unsafe arithmetic',()=>{
  const v=source(),s=buildDisbursementStatement(v);const changed=structuredClone(v);changed.entries[0].beneficiaryActorId=randomUUID();expect(buildDisbursementStatement(changed).sourceDigest).not.toBe(s.sourceDigest);const fees=structuredClone(v);fees.receipts[0].feeCentavos++;fees.receipts[0].netCentavos--;expect(buildDisbursementStatement(fees).sourceDigest).not.toBe(s.sourceDigest);
  const unsafe=source();unsafe.receipts[0].grossCentavos=Number.MAX_SAFE_INTEGER+1;expect(()=>buildDisbursementStatement(unsafe)).toThrow();
+});
+
+it('conserves a verified deposit refund against its original provider payment without reversing the agency fee',()=>{
+ const v=source();v.closedRevenueCentavos=8000;v.verifiedRefundedCentavos=2000;v.refunds=[{id:'ref_original123',paymentId:v.receipts[0].paymentId,amountCentavos:2000}];for(const entry of v.entries)entry.amountCentavos=entry.amountCentavos*8/10;
+ const s=buildDisbursementStatement(v);expect(s.position).toMatchObject({agencyNetShareCentavos:300,availableForDisbursementCentavos:6700});
+ expect(()=>buildDisbursementStatement({...v,refunds:[{...v.refunds[0],paymentId:'pay_foreign123'}]})).toThrow();expect(()=>buildDisbursementStatement({...v,refunds:[{...v.refunds[0],amountCentavos:2001}]})).toThrow();expect(()=>buildDisbursementStatement({...v,refunds:[v.refunds[0],v.refunds[0]]})).toThrow();
 });

@@ -153,8 +153,14 @@ export function payMongoClient(config:PayMongoConfig,transport:typeof fetch=fetc
     createPrepared,
     retrieve:async(id:string)=>parseCheckout(await request(`/v1/checkout_sessions/${checkoutId.parse(id)}`),config.mode),
     expire:async(id:string,key:string)=>parseCheckout(await request(`/v1/checkout_sessions/${checkoutId.parse(id)}/expire`,{},key),config.mode),
-    // Read-only verification; issuing refunds remains disabled until the durable
-    // approval, source reservation and posting workflow is connected.
+    // Provider mutation callers must first persist their exact approved intent.
+    createRefund:async(input:{id:string;paymentId:string;amountCentavos:number;key:string})=>{
+      const body=z.object({id:z.uuid(),paymentId:z.string().max(160).regex(/^pay_[A-Za-z0-9]+$/),amountCentavos:z.number().int().min(100).max(2147483647),key:z.uuid()}).strict().parse(input);
+      const result=await request('/v1/refunds',{data:{attributes:{amount:body.amountCentavos,payment_id:body.paymentId,reason:'others',notes:'Rent2Go approved refund',metadata:{rent2go_refund:body.id}}}},body.key);
+      const created=z.object({id:providerRefundId,type:z.literal('refund'),attributes:z.object({livemode:z.boolean()})}).safeParse(result);
+      if(!created.success||created.data.attributes.livemode!==(config.mode==='live'))throw new PayMongoError('PayMongo returned an invalid new refund record.');
+      return {id:created.data.id,mode:config.mode};
+    },
     retrieveRefund:async(id:string)=>{
       const requested=providerRefundId.parse(id),refund=parseRefundResource(await request(`/v1/refunds/${requested}`),config.mode);
       if(refund.id!==requested)throw new PayMongoError('PayMongo returned a different refund record.');

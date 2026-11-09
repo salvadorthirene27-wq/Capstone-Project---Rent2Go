@@ -70,3 +70,5 @@
 .workspace-order-empty{border:1px dashed var(--line);border-radius:16px;padding:22px;color:var(--muted);font-size:14px;line-height:1.7}
 .workspace-cart-warning{font-size:12px;color:#7c4e0e;background:#fbf4e6;padding:8px 12px;border-radius:8px}
 @media(max-width:560px){.workspace-order-card{padding:16px}.workspace-service{align-items:flex-start;gap:10px}.workspace-service img,.workspace-service-placeholder{width:72px;height:62px}.workspace-cart-total{align-items:flex-start;flex-direction:column}.workspace-order-bottom>.button{width:100%;justify-content:center}}
+
+.central-disbursement-panel p{overflow-wrap:anywhere}.central-disbursement-panel .button-row{display:flex;gap:10px;flex-wrap:wrap}

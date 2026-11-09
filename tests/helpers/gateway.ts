@@ -1,3 +1,4 @@
+import {custodyNotice} from '../../src/modules/gateway/custody-notice';
 import {randomUUID} from 'node:crypto';
 import {db} from '../../src/lib/db';
 import {approvedAgency} from './agency';
@@ -22,6 +23,6 @@ export async function gatewayBooking(context:Awaited<ReturnType<typeof gatewayAg
  await db.query("INSERT INTO booking_quotation_decision(id,quote_id,actor_id,action,reason)VALUES($1,$2,$3,'ACCEPTED','Synthetic')",[randomUUID(),q,renter.id]);
  await db.query("INSERT INTO booking_agreement(id,request_id,quote_id,revision,digest,quote_digest,template_version,issued_by,issued_at,expires_at,body,private_contact_snapshot)VALUES($1,$2,$3,1,$4,$5,'test',$6,$7,$8,$9,'{}')",[g,id,q,digest,quoteDigest,operator.id,issued,expiry,agreementBody('Synthetic gateway agency','Private synthetic participant',snapshot)]);
  await db.query("INSERT INTO booking_agreement_signature(id,agreement_id,request_id,quote_id,agreement_digest,signer_id,signer_name,consent,signed_at,mime,size_bytes,sha256,backend)VALUES($1,$2,$3,$4,$5,$6,'Private synthetic participant',true,$7,'image/png',9,$8,'local')",[randomUUID(),g,id,q,digest,renter.id,issued,'c'.repeat(64)]);
- const preparation=await prepareBookingCheckout(renter,id,{version:1,idempotencyKey:randomUUID(),agreementId:g,digest});
+ const preparation=await prepareBookingCheckout(renter,id,{version:1,idempotencyKey:randomUUID(),agreementId:g,digest,custodyConsent:{revision:custodyNotice.revision,digest:custodyNotice.digest,accepted:true}});
  return {id,q,g,hold,checkoutId:preparation.id};
 }

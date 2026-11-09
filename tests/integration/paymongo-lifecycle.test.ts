@@ -1,3 +1,4 @@
+import {postCheckoutPayment} from '../../src/modules/gateway/booking-posting';
 import {afterAll,beforeAll,expect,it,vi} from 'vitest';
 import {Pool} from 'pg';
 import {db} from '../../src/lib/db';
@@ -99,3 +100,7 @@ it('works with restricted runtime grants and preserves immutable payment evidenc
   await expect(runtime.query("UPDATE paymongo_checkout_state SET first_dispatch_at=clock_timestamp()-interval '30 hours' WHERE checkout_id=$1",[f.checkoutId])).rejects.toMatchObject({code:'23514'});
  }finally{connect.mockRestore();await runtime.end();}
 },60000);
+
+it('customer checkout verifies the consented source and posts provider-confirmed collection without trusting a return URL',async()=>{
+ vi.stubEnv('PAYMONGO_CUSTOMER_CHECKOUT_ENABLED','true');try{const f=await fixture(),s=resource(f,true),transport=vi.fn<typeof fetch>().mockResolvedValueOnce(Response.json({data:compact(s)})).mockResolvedValueOnce(Response.json({data:s}));expect((await db.query('SELECT actor_id FROM paymongo_checkout_consent WHERE checkout_id=$1',[f.checkoutId])).rows[0].actor_id).toBe(context.renter.id);await processCheckout(f.checkoutId,{transport});await postCheckoutPayment(f.checkoutId);const owner=await bookingCheckoutStatus(context.renter,f.id),operator=await bookingCheckoutStatus(context.operator,f.id);expect(owner.checkout?.status).toBe('PAID');expect(owner.checkout?.payment?.feeCentavos).toBeNull();expect(operator.checkout?.payment?.feeCentavos).toBe(500);expect(owner.checkout?.checkoutUrl).toBeNull();expect((await db.query('SELECT count(*)::int n FROM booking_payment_collection WHERE request_id=$1',[f.id])).rows[0].n).toBe(1);}finally{vi.stubEnv('PAYMONGO_CUSTOMER_CHECKOUT_ENABLED','false');}
+},90000);

@@ -17,7 +17,9 @@ export async function gatewayBookingWork(c:PoolClient,id:string){
     FROM paymongo_checkout x LEFT JOIN paymongo_checkout_state s ON s.checkout_id=x.id LEFT JOIN paymongo_checkout_end e ON e.checkout_id=x.id
     LEFT JOIN paymongo_checkout_payment p ON p.checkout_id=x.id
     LEFT JOIN paymongo_booking_posting b ON b.checkout_id=x.id WHERE x.request_id=$1`,[id])).rows[0];
-  return {hasCheckout:r.total>0,unresolved:r.unresolved as number,hasPayment:Boolean(r.paid)};
+  let refunds=0;
+  if((await c.query("SELECT to_regclass('paymongo_refund_intent') refunds")).rows[0].refunds)refunds=Number((await c.query("SELECT count(*) n FROM paymongo_refund_intent i JOIN paymongo_refund_state s ON s.intent_id=i.id LEFT JOIN paymongo_refund_posting p ON p.intent_id=i.id WHERE i.request_id=$1 AND (s.review_required OR (s.status NOT IN ('failed','ABANDONED') AND p.intent_id IS NULL))",[id])).rows[0].n);
+  return {hasCheckout:r.total>0,unresolved:Number(r.unresolved)+refunds,hasPayment:Boolean(r.paid)};
 }
 /** Call under the parent request lock, independently of the gateway enable flag. */
 export async function assertNoLegacyGatewayMix(c:PoolClient,id:string){

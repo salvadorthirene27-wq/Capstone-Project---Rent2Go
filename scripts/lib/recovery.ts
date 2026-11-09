@@ -13,6 +13,7 @@ export function sha256(value:Uint8Array|string){return createHash('sha256').upda
 export function tableDigest(rows:string[]){return sha256(rows.slice().sort().join('\n')+(rows.length?'\n':''));}
 export function isolatedRestoreCatalog(catalog:string){let skipped=0;const text=catalog.split(/\r?\n/).map(line=>{if(/^\d+;.* DEFAULT ACL .* cloud_admin$/.test(line.trim())){skipped++;return '; Provider-owned default privilege retained in archive: '+line;}return line;}).join('\n');return {text,skipped};}
 export const fileTables={
+ central_disbursement_file:{key:"request_id::text||'/'||f.id::text",actor:'uploaded_by',backend:'backend',size:'size_bytes'},
  private_file:{key:'object_key',actor:'owner_id',backend:'storage_driver',size:'size_bytes'},
  vehicle_file:{key:'object_key',actor:'uploader_id',backend:'backend',size:'size_bytes'},
  tour_file:{key:'object_key',actor:'uploader_id',backend:'backend',size:'size_bytes'},

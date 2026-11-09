@@ -581,7 +581,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                   <fieldset>
                     <legend>Payment methods accepted from renters</legend>
                     <div className="choice-list">
-                      {paymentOptions.map((m) => (
+                      {paymentOptions.filter(m=>!m.startsWith("DEMO_")||data.acceptedMethods.includes(m)).map((m) => (
                         <label key={m}>
                           <input
                             type="checkbox"
@@ -601,8 +601,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                     </div>
                   </fieldset>
                   <p className="demo-note">
-                    Simulated payment options do not process a transaction. Never enter real
-                    card or wallet credentials.
+                    PayMongo handles online cards and supported wallets. Cash and manual GCash receipts require agency review. Previously saved payment methods remain attached to their original records.
                   </p>
                   {data.acceptedMethods.includes("GCASH") && (
                     <>
@@ -621,7 +620,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                     application.
                   </p>
                   <div className="field-grid">
-                    <label className="field">
+                    {data.acceptedMethods.length===1&&data.acceptedMethods[0]==="PAYMONGO"?<p className="notice">Rent2Go retains the agreed platform commission from centrally collected PayMongo payments. The remaining allocation is released after financial closing, platform review, transfer recording and agency receipt confirmation.</p>:<label className="field">
                       Platform settlement method
                       <select
                         value={data.platformPaymentMethod}
@@ -641,7 +640,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                             </option>
                           ))}
                       </select>
-                    </label>
+                    </label>}
                     <label className="field">
                       Settlement schedule
                       <select

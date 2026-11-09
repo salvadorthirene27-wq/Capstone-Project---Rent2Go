@@ -1,3 +1,4 @@
+import {custodyNotice} from './custody-notice';
 import {assertGatewaySourceReplaceable} from './booking-guard';
 import {createHash,randomUUID} from 'node:crypto';
 import {z} from 'zod';
@@ -10,15 +11,14 @@ import {assertFinancialOpen} from '../bookings/finance-guard';
 import {assertNoPendingCancellation} from '../bookings/cancellation-guard';
 import {checkoutPayload,payMongoConfig} from './paymongo';
 
-export const prepareCheckoutCommand=z.object({version:versionSchema,idempotencyKey:uuid,agreementId:uuid,digest:z.string().regex(/^[a-f0-9]{64}$/)}).strict();
+export const prepareCheckoutCommand=z.object({version:versionSchema,idempotencyKey:uuid,agreementId:uuid,digest:z.string().regex(/^[a-f0-9]{64}$/),custodyConsent:z.object({revision:z.literal(custodyNotice.revision),digest:z.literal(custodyNotice.digest),accepted:z.literal(true)}).strict().optional()}).strict();
 const fingerprint=(secret:string)=>createHash('sha256').update(secret).digest('hex');
 function prepared(row:any){
   return {id:row.id as string,requestId:row.request_id as string,quoteId:row.quote_id as string,agreementId:row.agreement_id as string,mode:row.mode as 'test'|'live',amountCentavos:Number(row.amount_centavos),status:'PREPARED' as const};
 }
 
-/** Internal preparation stage only. No route or UI enables this yet. Dispatch,
- * provider receipt posting, custody/refunds and lifecycle gates must be completed
- * together before replacing the currently published payment controls. */
+/** Persist the original signed payment source and accepted custody notice in
+ * one transaction. Provider dispatch is performed by the managed worker. */
 export async function prepareBookingCheckout(actor:Actor,id:string,value:unknown){
   const command=prepareCheckoutCommand.parse(value),config=payMongoConfig(),merchant=fingerprint(config.secretKey);
   const hash=digest({channel:'PAYMONGO_BOOKING',command,mode:config.mode,merchant});
@@ -51,6 +51,7 @@ export async function prepareBookingCheckout(actor:Actor,id:string,value:unknown
     const checkout=randomUUID(),providerKey=randomUUID(),payload=checkoutPayload({reference:checkout,requestId:id,amountCentavos:amount.totalCentavos,origin:process.env.APP_ORIGIN??'',methods:config.methods,idempotencyKey:providerKey},config);
     const row=(await c.query(`INSERT INTO paymongo_checkout(id,request_id,quote_id,agreement_id,agency_id,renter_id,created_by,request_version,agreement_digest,mode,merchant_fingerprint,amount_centavos,idempotency_key,command_digest,provider_idempotency_key,payload)
       VALUES($1,$2,$3,$4,$5,$6,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) RETURNING *`,[checkout,id,quote.id,agreement.id,ctx.r.agency_id,ctx.user.id,ctx.r.version,agreement.digest,config.mode,merchant,amount.totalCentavos,command.idempotencyKey,hash,providerKey,payload])).rows[0];
+    if(command.custodyConsent)await c.query('INSERT INTO paymongo_checkout_consent(checkout_id,actor_id,revision,digest,body)VALUES($1,$2,$3,$4,$5)',[row.id,ctx.user.id,custodyNotice.revision,custodyNotice.digest,custodyNotice.body]);
     return prepared(row);
   });}catch(error:any){
     if(error?.code==='23505')throw new DomainError('A checkout is already prepared. Reload the original request.',409);

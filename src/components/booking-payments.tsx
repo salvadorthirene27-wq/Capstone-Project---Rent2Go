@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import {HostedPayment} from "./hosted-payment";
 import { date, money } from "@/modules/partners/presentation";
 
 type Method = "PAYMONGO" | "CASH" | "GCASH" | "DEMO_CARD" | "DEMO_GCASH" | "DEMO_PAYPAL";
@@ -156,6 +157,7 @@ export function BookingPayments({ requestId }: { requestId: string }) {
     {data&&["FULFILLMENT_RECONCILIATION_PENDING","CANCELLED_RECONCILIATION_PENDING","PAYMENT_RECONCILIATION_REQUIRED","CANCELLED","COMPLETED","HOLD_EXPIRED"].includes(data.status)&&<p className="notice">These are the original quotation payment records. Quoted balances are historical references; use <a href="#settlement-heading">Settlement</a> for current retained charges, additional balances and refunds.</p>}
     <div className="payment-section-heading"><h2 id="payments-heading">Booking payments</h2><button type="button" className="button secondary" disabled={busy} onClick={reload}>Reload payments</button></div>
     <p>{data?.channel === "PAYMONGO" ? "Online payment results are verified with PayMongo. Rent2Go holds the funds; deposits and agency disbursements remain separate." : "Record payment against the signed agreement. GCash evidence needs agency review; cash is recorded by the receiving agency."}</p>
+    {data&&(data.methods.includes("PAYMONGO")||data.channel==="PAYMONGO")&&<HostedPayment requestId={requestId} source={data}/>}
     {error && <p role="alert" className="error-message">{error}</p>}
     {message && <p role="status">{message}</p>}
     {!data && !error && <p role="status">Loading payments…</p>}

@@ -1,4 +1,5 @@
 import {afterAll,beforeAll,expect,it,vi} from 'vitest';
+import {custodyNotice} from '../../src/modules/gateway/custody-notice';
 import {randomUUID} from 'node:crypto';
 import {Pool} from 'pg';
 import {db} from '../../src/lib/db';
@@ -64,3 +65,7 @@ it('uses the restricted runtime with insert-only provider preparation grants',as
   await expect(runtime.query('UPDATE paymongo_checkout SET amount_centavos=9999 WHERE id=$1',[p.id])).rejects.toMatchObject({code:'42501'});
  }finally{connect.mockRestore();await runtime.end();}
 },30000);
+
+it('saves the exact versioned custody consent atomically with its original signed checkout and keeps it immutable',async()=>{
+ const f=await fixture(),command={...f.command,custodyConsent:{revision:custodyNotice.revision,digest:custodyNotice.digest,accepted:true}},prepared=await prepareBookingCheckout(renter,f.id,command);await prepareBookingCheckout(renter,f.id,command);const row=(await db.query('SELECT * FROM paymongo_checkout_consent WHERE checkout_id=$1',[prepared.id])).rows[0];expect(row).toMatchObject({actor_id:renter.id,revision:custodyNotice.revision,digest:custodyNotice.digest,body:custodyNotice.body});expect((await db.query('SELECT count(*)::int n FROM paymongo_checkout_consent WHERE checkout_id=$1',[prepared.id])).rows[0].n).toBe(1);await expect(db.query("UPDATE paymongo_checkout_consent SET body='Different notice' WHERE checkout_id=$1",[prepared.id])).rejects.toThrow(/immutable/);
+},60000);

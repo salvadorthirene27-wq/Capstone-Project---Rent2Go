@@ -58,3 +58,10 @@ it('redacts provider errors and never issues a second request after an ambiguous
  const fetcher=vi.fn<typeof fetch>().mockRejectedValue(Error('PRIVATE UPSTREAM TOKEN'));await expect(payMongoClient(config,fetcher).retrieveRefund('ref_original123')).rejects.toThrow('Online payments are temporarily unavailable. Try again shortly.');expect(fetcher).toHaveBeenCalledOnce();
  const denied=vi.fn<typeof fetch>().mockResolvedValue(Response.json({errors:[{detail:'PRIVATE UPSTREAM TOKEN'}]},{status:401}));let message='';try{await payMongoClient(config,denied).retrieveRefund('ref_original123');}catch(error){message=(error as Error).message;}expect(message).toContain('credentials need review');expect(message).not.toContain('PRIVATE');
 });
+
+it('creates only the exact approved refund using a stable retry key and persists its minimal identity before retrieval',async()=>{
+ const key=randomUUID(),transport=vi.fn<typeof fetch>().mockResolvedValue(Response.json({data:{id:'ref_created123',type:'refund',attributes:{livemode:false}}}));
+ const result=await payMongoClient(config,transport).createRefund({id:intentId,paymentId:saved.paymentId,amountCentavos:2500,key});
+ expect(result).toEqual({id:'ref_created123',mode:'test'});expect(transport).toHaveBeenCalledOnce();const [url,init]=transport.mock.calls[0];expect(url).toBe('https://api.paymongo.com/v1/refunds');expect(init?.method).toBe('POST');expect((init?.headers as any)['Idempotency-Key']).toBe(key);expect(JSON.parse(String(init?.body))).toEqual({data:{attributes:{amount:2500,payment_id:saved.paymentId,reason:'others',notes:'Rent2Go approved refund',metadata:{rent2go_refund:intentId}}}});
+ for(const change of [{amountCentavos:99},{amountCentavos:2500.1},{paymentId:'pay_../foreign'},{key:'bad'}])await expect(payMongoClient(config,transport).createRefund({...{id:intentId,paymentId:saved.paymentId,amountCentavos:2500,key},...change})).rejects.toThrow();expect(transport).toHaveBeenCalledOnce();
+});

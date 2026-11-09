@@ -1,3 +1,4 @@
+import {processProviderRefundBatch} from './provider-refunds';
 import {processNotificationBatch} from './notifications';
 import {createHash} from 'node:crypto';
 import {db} from '../../lib/db';
@@ -17,7 +18,8 @@ export async function runCheckoutBatch(limit=5,options:{transport?:typeof fetch}
  const schema=(await db.query("SELECT to_regclass('paymongo_booking_posting') posting,to_regclass('paymongo_checkout_state') lifecycle")).rows[0];
  if(!schema.posting||!schema.lifecycle)throw Error('Payment worker schema is unavailable.');
  let processed=0,failed=false;
- try{processed=await processNotificationBatch(limit);}catch{failed=true;}
+ try{processed+=await processProviderRefundBatch(limit,options);}catch{failed=true;}
+ try{processed+=await processNotificationBatch(limit);}catch{failed=true;}
  const rows=(await db.query<{id:string}>(`SELECT p.id FROM paymongo_checkout p
  LEFT JOIN paymongo_checkout_state s ON s.checkout_id=p.id
  LEFT JOIN paymongo_checkout_payment receipt ON receipt.checkout_id=p.id

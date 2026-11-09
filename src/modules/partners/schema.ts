@@ -9,6 +9,7 @@ export const serviceOptions = [
   "PRIVATE_TOUR",
 ] as const;
 export const paymentOptions = [
+  "PAYMONGO",
   "CASH",
   "GCASH",
   "DEMO_CARD",
@@ -50,7 +51,7 @@ export const draftApplicationSchema = z
     exclusions: text,
     // PAYMONGO is an explicit new approved policy choice, never a silent
     // reinterpretation of a previous DEMO_* or manual GCash agreement.
-    acceptedMethods: z.array(z.enum([...paymentOptions,"PAYMONGO"])).max(6),
+    acceptedMethods: z.array(z.enum(paymentOptions)).max(6),
     gcashAccountName: short,
     gcashInstructions: text,
     platformPaymentMethod: z.enum(["DEMO_CARD", "DEMO_GCASH", "DEMO_PAYPAL"]),

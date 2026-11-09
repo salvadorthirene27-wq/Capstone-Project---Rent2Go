@@ -32,6 +32,7 @@ async function locked(c:PoolClient,id:string){
 }
 export async function checkoutSourcePayable(c:PoolClient,row:StoredCheckout){
   try{
+    if(process.env.PAYMONGO_CUSTOMER_CHECKOUT_ENABLED==='true'&&!(await c.query('SELECT 1 FROM paymongo_checkout_consent WHERE checkout_id=$1 AND actor_id=$2',[row.id,row.renter_id])).rowCount)return false;
     const ctx=await financialContext(c,{id:row.renter_id,role:'RENTER'},row.request_id);
     await lockFinancialAuthority(c,ctx,false,await financialLines(c,row.quote_id));
     if(!['AGREEMENT_SIGNED','PAYMENT_PARTIAL'].includes(ctx.r.status)||await cancellationPending(c,row.request_id))return false;
@@ -156,7 +157,7 @@ export async function bookingCheckoutStatus(actor:Actor,requestId:string){return
   let configured=false;
   try{savedCheckoutPayload(row,payMongoConfig());configured=true;}catch{}
   const canResume=Boolean(ctx.owner&&configured&&link&&!payment&&!end&&!state?.review_required&&await checkoutSourcePayable(c,row));
-  return {checkout:{id:row.id,mode:row.mode,amountCentavos:Number(row.amount_centavos),
+  return {checkout:{id:row.id,quoteId:row.quote_id,agreementId:row.agreement_id,mode:row.mode,amountCentavos:Number(row.amount_centavos),
     status:payment?(payment.requires_reconciliation||state?.review_required||posting?.requires_reconciliation||(posting&&posting.outcome!=='COLLECTED')?'PAID_RECONCILIATION':posting?'PAID':'PAID_PENDING_POSTING'):state?.review_required?'REVIEW_REQUIRED':end?'EXPIRED':state?.busy?'PREPARING':state?.last_error==='EXPIRY_PENDING'?'CLOSING':link?'AWAITING_PAYMENT':'PREPARED',
     checkoutUrl:canResume?hostedCheckoutUrl(link.checkout_url):null,
     payment:payment?{id:payment.id as string,collectionId:posting?.collection_id as string|null??null,amountCentavos:Number(payment.amount_centavos),feeCentavos:ctx.operator?Number(payment.fee_centavos):null,verifiedAt:(payment.verified_at as Date).toISOString()}:null}};
