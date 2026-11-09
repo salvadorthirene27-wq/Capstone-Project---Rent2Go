@@ -1,4 +1,6 @@
 import { WorkspaceNavigation } from "./workspace-navigation";
+import {Suspense} from 'react';
+import {WorkspaceSections} from './workspace-sections';
 import type { Actor } from "@/modules/partners/workflow";
 export function Workspace({
   actor,
@@ -25,6 +27,7 @@ export function Workspace({
         </p>
       </aside>
       <main id="main-content" className="workspace-main">
+        {!limited&&<Suspense fallback={null}><WorkspaceSections/></Suspense>}
         {children}
       </main>
     </div>

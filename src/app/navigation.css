@@ -44,3 +44,26 @@
 @media (prefers-reduced-motion:reduce) {
  .unified-header .navigation-links > a,.unified-header .navigation-account > a,.unified-header .navigation-account > button { transition:none; }
 }
+
+/* Notifications remain in the top bar even while mobile navigation is closed. */
+.unified-header .navigation-tools{display:flex;align-items:center;gap:10px;flex-shrink:0;margin-left:auto}
+.unified-header .notification-bell{position:relative;display:inline-flex;align-items:center;justify-content:center;width:46px;height:46px;flex-shrink:0;border:1px solid var(--control-line);border-radius:50%;background:var(--surface);color:var(--deep);text-decoration:none}
+.unified-header .notification-bell:hover,.unified-header .notification-bell[aria-current="page"]{background:var(--soft);border-color:var(--forest)}
+.unified-header .notification-bell:focus-visible{outline:3px solid var(--forest);outline-offset:3px}
+.notification-dot{position:absolute;top:7px;right:7px;width:11px;height:11px;border:2px solid var(--surface);border-radius:50%;background:#c43131}
+.workspace-section-nav{margin-bottom:28px;padding-bottom:20px;border-bottom:1px solid var(--line)}
+.workspace-section-nav .eyebrow{margin:0 0 10px}
+.workspace-section-nav nav{display:flex;gap:8px;flex-wrap:wrap}
+.workspace-section-nav nav a{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:10px 18px;border:1px solid var(--line);border-radius:999px;color:var(--deep);background:var(--surface);text-decoration:none}
+.workspace-section-nav nav a:hover{border-color:var(--forest);background:var(--soft)}
+.workspace-section-nav nav a[aria-current="page"]{background:var(--deep);color:white;border-color:var(--deep)}
+.partnership-guide{margin-bottom:28px;padding:22px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
+.partnership-guide summary{font-size:18px;font-weight:600;min-height:44px;cursor:pointer}
+.partnership-guide ol{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px 36px;padding-left:24px;margin-top:20px}
+.partnership-guide li{padding-left:4px;line-height:1.7}
+.partnership-guide li strong{display:block;color:var(--deep)}
+@media(min-width:1321px){.unified-header .navigation-tools{grid-area:1 / 1;justify-self:end;position:relative;z-index:2}.has-notification-bell .navigation-account{padding-right:60px}}
+@media(max-width:1320px){.unified-header .navigation-tools{order:2}.site-header.unified-header .navigation-tools .navigation-toggle{margin:0}.site-header.unified-header nav{order:3}}
+@media(max-width:560px){.workspace-section-nav nav{display:grid;grid-template-columns:repeat(2,minmax(0,1fr))}.workspace-section-nav nav a{padding-inline:12px}.partnership-guide{padding:18px}.partnership-guide ol{grid-template-columns:1fr}}
+
+@media print{.workspace-section-nav,.notification-bell{display:none!important}}

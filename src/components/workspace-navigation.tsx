@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {usePathname} from "next/navigation";
-import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet,ChartNoAxesCombined,Bell} from "lucide-react";
+import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet,ChartNoAxesCombined} from "lucide-react";
 import {WorkspaceLink as Link} from "./workspace-link";
 import type {Actor} from "@/modules/partners/workflow";
 
@@ -16,9 +16,7 @@ export function WorkspaceNavigation({role,limited=false}:{role:Actor['role'];lim
   <nav id="workspace-links" className="workspace-navigation-groups" aria-label="Workspace navigation" onClick={e=>{if((e.target as Element).closest('a'))setOpen(false);}}>
    {limited ? <><p className="eyebrow">Limited account access</p><Link href="/account-status"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy requests</Link></> : <>
    <Link href="/workspace"><Home size={19} aria-hidden="true"/>Workspace home</Link>
-   <Link href="/workspace/notifications"><Bell size={19} aria-hidden="true"/>Notifications</Link>
-   <Link href="/workspace/account"><ShieldCheck size={19} aria-hidden="true"/>Account & security</Link>
-   <Link href="/account-status"><ShieldCheck size={19} aria-hidden="true"/>Account & privacy requests</Link>
+   <Link href="/workspace/account" activePaths={["/account-status"]}><ShieldCheck size={19} aria-hidden="true"/>Account</Link>
    {agency&&<div className="workspace-nav-group"><p>Agency workspace</p>
     <Link href={`/agency/${agency}`} exact><LayoutDashboard size={19} aria-hidden="true"/>Agency overview</Link>
     <Link href={`/agency/${agency}/bookings`}><ClipboardList size={19} aria-hidden="true"/>Agency bookings</Link>
@@ -46,14 +44,10 @@ export function WorkspaceNavigation({role,limited=false}:{role:Actor['role'];lim
     <Link href="/workspace/bookings"><ClipboardList size={19} aria-hidden="true"/>My booking requests</Link>
    </div>
    <div className="workspace-nav-group"><p>Vehicle ownership</p>
-    <Link href="/workspace/vehicles"><CarFront size={19} aria-hidden="true"/>My personal vehicles</Link>
-    <Link href="/workspace/resources"><CalendarDays size={19} aria-hidden="true"/>My vehicle calendars</Link>
-    <Link href="/workspace/earnings"><Wallet size={19} aria-hidden="true"/>My vehicle earnings</Link>
-    <Link href="/workspace/reports"><ChartNoAxesCombined size={19} aria-hidden="true"/>My earnings reports</Link>
+    <Link href="/workspace/vehicles" activePaths={["/workspace/resources","/workspace/earnings","/workspace/reports"]}><CarFront size={19} aria-hidden="true"/>My vehicles</Link>
    </div>
-   <div className="workspace-nav-group"><p>Agency partnership</p>
-    <Link href="/workspace/application"><Building2 size={19} aria-hidden="true"/>Agency application</Link>
-    <Link href="/partners"><Building2 size={19} aria-hidden="true"/>Partnership guide</Link>
+   <div className="workspace-nav-group"><p>For agencies</p>
+    <Link href="/workspace/application"><Building2 size={19} aria-hidden="true"/>Agency partnership</Link>
    </div>
    </>}
    <Link href="/"><Home size={19} aria-hidden="true"/>Marketplace home</Link>

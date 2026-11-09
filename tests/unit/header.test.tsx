@@ -79,7 +79,7 @@ it.each(["/login", "/booking-agreements/demo", "/booking-inspections/demo", "/bo
 });
 it("refreshes the shared cart count on home and after cart changes", async () => {
   state.pathname = "/";
-  const get = vi.fn().mockResolvedValueOnce({ ok:true, json:async () => ({count:2}) }).mockResolvedValueOnce({ ok:true, json:async () => ({count:3}) });
+  let count=1;const get=vi.fn(async(url)=>({ok:true,json:async()=>String(url)==='/api/notifications/count'?{actorId:'demo',unread:0}:{count:++count}}));
   vi.stubGlobal("fetch", get); render(<Header />);
   expect((await screen.findByRole("link", {name:"Cart (2)"})).getAttribute("href")).toBe("/cart");
   window.dispatchEvent(new Event("rent2go:cart-changed"));
@@ -130,4 +130,8 @@ it.each([{ok:false,id:"demo"},{ok:true,id:"another-account"}])("keeps denied or 
  if(result.ok)await waitFor(()=>expect(json).toHaveBeenCalledTimes(1));
  expect(screen.queryByRole("navigation",{name:"Main navigation"})).toBeNull();
  expect(screen.getByRole("link",{name:"Back to marketplace"})).toBeDefined();
+});
+
+it('takes signed-in agencies directly to the combined application and guide',()=>{
+ render(<Header/>);expect(screen.getByRole('link',{name:'For agencies'}).getAttribute('href')).toBe('/workspace/application');expect(screen.getByRole('link',{name:'Notifications'}).closest('nav')).toBeNull();
 });

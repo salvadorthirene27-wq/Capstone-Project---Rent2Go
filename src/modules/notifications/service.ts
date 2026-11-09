@@ -45,6 +45,11 @@ async function projection(c:PoolClient,user:Actor,q:Query){
  return {filters:{...q,page},unread:totals.unread as number,total:totals.total as number,pageCount,preparedAt:(await c.query('SELECT clock_timestamp() stamp')).rows[0].stamp.toISOString() as string,items:rows.map(r=>({source:r.source as NotificationSource,id:r.id as string,message:r.message as string,createdAt:(r.created_at as Date).toISOString(),readAt:r.read_at?(r.read_at as Date).toISOString():null,link:r.link as string|null}))};
 }
 export type NotificationInbox=Awaited<ReturnType<typeof projection>>;
+export async function getUnreadNotificationCount(actor:Actor){return transaction(async c=>{
+ await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');const user=await userContext(c,actor);
+ const row=(await c.query(`${source} SELECT count(*) FILTER(WHERE read_at IS NULL)::int unread,clock_timestamp() prepared_at FROM inbox`,[user.id,user.role])).rows[0];
+ return {actorId:user.id,unread:row.unread as number,preparedAt:(row.prepared_at as Date).toISOString()};
+});}
 export async function getInbox(actor:Actor,input:unknown={}){const q=inboxQuery.parse(input);return transaction(async c=>{await c.query('SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY');return projection(c,await userContext(c,actor),q);});}
 export async function markNotificationsRead(actor:Actor,input:unknown){
  const command=readNotifications.parse(input);

@@ -1,5 +1,6 @@
 "use client";
 import Link from "next/link";
+import {NotificationBell} from "./notification-bell";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -25,7 +26,7 @@ export function Header() {
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
-  const toggle = useRef<HTMLButtonElement>(null);
+  const toggle = useRef<HTMLButtonElement>(null),navigation=useRef<HTMLElement>(null);
   const [cartCount, setCartCount] = useState<number | null>(null);
   const userId = session?.user?.id;
   useEffect(()=>{
@@ -42,6 +43,7 @@ export function Header() {
     return()=>{current=false;controller.abort();};
   },[accountPortal,userId]);
   useEffect(() => { setOpen(false); }, [pathname]);
+  useEffect(()=>{if(open)navigation.current?.querySelector<HTMLElement>("a")?.focus();},[open]);
   useEffect(() => {
     setCartCount(null);
     if (!userId || compact) return;
@@ -72,16 +74,14 @@ export function Header() {
     {brand}<Link href={(pathname === "/login" || accountPortal) ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{(pathname === "/login" || accountPortal) ? "Back to marketplace" : "Back to workspace"}</Link>
   </header>;
   return <>
-    <header className={`site-header unified-header${open ? " navigation-expanded" : ""}`}
+    <header className={`site-header unified-header${userId?" has-notification-bell":""}${open ? " navigation-expanded" : ""}`}
       onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
       onKeyDown={e => { if (e.key === "Escape" && open) { setOpen(false); toggle.current?.focus(); } }}>
       {brand}
-      <button type="button" ref={toggle} className="icon-button navigation-toggle" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(!open)}>
-        {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
-      </button>
-      <nav id="main-navigation" className={open ? "navigation-open" : ""} aria-label="Main navigation">
+
+      <nav ref={navigation} id="main-navigation" className={open ? "navigation-open" : ""} aria-label="Main navigation">
         <div className="navigation-links">
-          {links.map(([href, label]) => <Link key={href} href={href} aria-current={selected(href) ? "page" : undefined} onClick={() => setOpen(false)}>
+          {links.map(([href, label]) => <Link key={href} href={href==="/partners"&&userId?"/workspace/application":href} aria-current={selected(href==="/partners"&&userId?"/workspace/application":href) ? "page" : undefined} onClick={() => setOpen(false)}>
             {label}{href === "/cart" && cartCount !== null ? ` (${cartCount})` : ""}
           </Link>)}
         </div>
@@ -95,6 +95,12 @@ export function Header() {
           </>}
         </div>
       </nav>
+      <div className="navigation-tools">
+        {userId&&<NotificationBell userId={userId} onNavigate={()=>setOpen(false)}/>}
+      <button type="button" ref={toggle} className="icon-button navigation-toggle" aria-label={open ? "Close navigation" : "Open navigation"} aria-expanded={open} aria-controls="main-navigation" onClick={() => setOpen(!open)}>
+        {open ? <X size={22} aria-hidden="true" /> : <Menu size={22} aria-hidden="true" />}
+      </button>
+      </div>
     </header>
     {error && <p className="header-error" role="alert">{error}</p>}
   </>;

@@ -1,3 +1,13 @@
+# Grouped workspace and notification bell checkpoint — 9 November 2026
+
+Notifications are now a top-bar bell with a red unread dot, including while mobile menus are closed. The sidebar uses one Account, one My vehicles and one Agency partnership entry. Vehicle inventory, calendars, earnings and reports share tabs; Account contains security and privacy requests; the application includes its six-section guide. Existing saved routes, privacy history, restricted access and financial permissions are preserved. See [workflow and evidence](workflows/workspace-hubs.md).
+
+Verified536 full unit/interface cases,8 native inbox/count cases, production build and sequential type checking. Four-role grouped-workspace/count HTTP73 plus existing header26/workspace19/health14 checks pass. Actual1440desktop/375phone/320narrow-phone/768tablet review confirms a visible46px bell, red existing-unread indicator, responsive tabs, no overflow, menu keyboard focus/Escape, integrated account/application navigation and financial-record retention. Zero-count clearing and race/failure states are covered by native/component tests; no primary read receipts were changed for this check.98 original primary history/booking/financial table hashes and the two contact plans still match. No draft application, privacy request, email/code or financial action was submitted. Original tabs/session were preserved and viewport reset.
+
+No migration or grant was added. Payment processing and general email dispatch remain disabled. The user's interface requests were prioritized before agency-disbursement implementation; that financial execution/source-release work, provider refunds/adjustments, customer checkout and final gateway activation remain open. This is not100% completion or deployment acceptance of the PayMongo expansion.
+
+--- Prior checkpoints retained ---
+
 # Central custody and owner-availability checkpoint — 9 November 2026
 
 Verified PayMongo receipts now have a scoped read-only custody projection and a collapsed section on independent agency booking screens. Gross receipts, agency-borne provider fees and provider net receipts are distinct; a bank settlement or agency transfer is never inferred. Closed allocation projections preserve Cosigner, maintenance and platform amounts, deduct fees only from the agency share, and expose agency fee shortfalls without spending protected allocations. A source mismatch, pending notification, late receipt, incompatible channel or later financial adjustment withholds the spendable projection. See [custody workflow](workflows/paymongo-custody.md).

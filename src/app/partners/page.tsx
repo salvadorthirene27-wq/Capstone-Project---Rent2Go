@@ -1,3 +1,4 @@
+import {PartnershipGuide} from '@/components/partnership-guide';
 import Link from "next/link";
 import {
   ArrowRight,
@@ -59,6 +60,7 @@ export default function Partners() {
           </div>
         </aside>
       </section>
+      <PartnershipGuide/>
       <section className="public-section">
         <h2>A partnership with clear next steps.</h2>
         <ol className="partnership-steps">
@@ -82,8 +84,8 @@ export default function Partners() {
             <Store />
             <h3>Prepare your services</h3>
             <p>
-              Once approved, your agency can proceed to listing setup as that
-              module becomes available.
+              Once approved, open your agency workspace to manage your fleet,
+              calendars, staff, tours and booking requests.
             </p>
           </li>
         </ol>

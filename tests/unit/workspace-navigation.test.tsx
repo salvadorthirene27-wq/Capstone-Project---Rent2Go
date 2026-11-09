@@ -35,7 +35,7 @@ it("selects platform reports without also selecting the partner review root",()=
 it("closes the menu with Escape and restores focus to its toggle",async()=>{
  render(<WorkspaceNavigation role="COSIGNER"/>);const user=userEvent.setup(),toggle=screen.getByRole("button",{name:"Workspace menu"});
  await user.click(toggle);expect(toggle.getAttribute("aria-expanded")).toBe("true");
- screen.getByRole("link",{name:"My personal vehicles"}).focus();await user.keyboard("{Escape}");
+ screen.getByRole("link",{name:"My vehicles"}).focus();await user.keyboard("{Escape}");
  expect(toggle.getAttribute("aria-expanded")).toBe("false");expect(document.activeElement).toBe(toggle);
 });
 it("closes on a selected link, an external focus change, and a route change",async()=>{
@@ -57,4 +57,11 @@ it.each(["SUPER_ADMIN","AGENCY_ADMIN","RENTER","COSIGNER"] as const)("limits a r
 
 it('selects payment reconciliation only within the Super Admin workspace',()=>{
  state.path='/admin/payments';const view=render(<WorkspaceNavigation role="SUPER_ADMIN"/>);expect(screen.getByRole('link',{name:'Payment reconciliation'}).getAttribute('aria-current')).toBe('page');expect(screen.getByRole('link',{name:'Partner reviews'}).getAttribute('aria-current')).toBeNull();view.rerender(<WorkspaceNavigation role="RENTER"/>);expect(screen.queryByRole('link',{name:'Payment reconciliation'})).toBeNull();
+});
+
+it.each(['/workspace/vehicles/car','/workspace/resources/car','/workspace/earnings/agency','/workspace/reports'])('groups %s under one My vehicles entry',path=>{
+ state.path=path;render(<WorkspaceNavigation role="COSIGNER"/>);const nav=screen.getByRole('navigation',{name:'Workspace navigation'});expect(within(nav).getByRole('link',{name:'My vehicles'}).getAttribute('aria-current')).toBe('page');expect(nav.querySelectorAll('[aria-current="page"]')).toHaveLength(1);for(const label of ['Notifications','My vehicle calendars','My vehicle earnings','My earnings reports','Partnership guide'])expect(within(nav).queryByRole('link',{name:label})).toBeNull();
+});
+it.each(['/workspace/account','/account-status/privacy/request'])('groups %s under one Account entry',path=>{
+ state.path=path;render(<WorkspaceNavigation role="RENTER"/>);expect(screen.getByRole('link',{name:'Account'}).getAttribute('aria-current')).toBe('page');expect(screen.queryByRole('link',{name:'Account & security'})).toBeNull();expect(screen.queryByRole('link',{name:'Account & privacy requests'})).toBeNull();expect(screen.getByRole('link',{name:'Agency partnership'}).getAttribute('href')).toBe('/workspace/application');
 });

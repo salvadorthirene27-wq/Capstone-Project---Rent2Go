@@ -3,17 +3,20 @@ import { pageActor } from "@/lib/page-actor";
 import { myApplication, getApplication } from "@/modules/partners/service";
 import { PartnerForm } from "../partner-form";
 import { StartApplication } from "./start-application";
+import {PartnershipGuide} from '@/components/partnership-guide';
 export const dynamic = "force-dynamic";
 export default async function Page() {
   const actor = await pageActor(),
     app = await myApplication(actor);
   return (
     <Workspace actor={actor}>
+      {app&&<PartnershipGuide/>}
+      <section id="agency-application" aria-label="Agency application">
       {app ? (
         <PartnerForm initial={await getApplication(actor, app.id)} />
       ) : (
         <section className="context-section">
-          <h1>Your agency starts here.</h1>
+          <h1>Agency partnership</h1>
           <p>
             Create a saved application for your business details, policies,
             rates, and payment preferences. You can return to it before
@@ -22,6 +25,8 @@ export default async function Page() {
           <StartApplication />
         </section>
       )}
+      </section>
+      {!app&&<PartnershipGuide open/>}
     </Workspace>
   );
 }

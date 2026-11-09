@@ -24,7 +24,7 @@ export async function VehicleQueue({
           <p>
             {scope === "COMPLIANCE"
               ? "Accepted vehicle agreements awaiting independent compliance review will appear here."
-              : "Create a vehicle draft or return when an owner submits a car to your agency."}
+              : scope === "OWNED" ? "Offer a personal vehicle to an approved agency to begin your vehicle partnership." : "Create an agency vehicle draft or return when an owner submits a car to your agency."}
           </p>
         </section>
       ) : (

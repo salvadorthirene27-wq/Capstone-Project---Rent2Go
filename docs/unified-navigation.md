@@ -1,3 +1,9 @@
+# Current unified workspace checkpoint — 9 November 2026
+
+The top-bar notification bell and grouped Account, My vehicles and Agency partnership areas supersede the earlier separate sidebar links. Desktop/mobile browser checks are complete for these changes. See [current behavior and precise evidence](workflows/workspace-hubs.md). Earlier connection/browser limitations below are historical; the approved optional agency contact log was subsequently implemented.
+
+--- Prior records retained ---
+
 # Unified navigation — 7 November 2026
 
 The root layout renders one shared Header across the home page, marketplace, partner pages and role workspaces. Links, forest/mint pill styling, mobile disclosure, account creation/sign-in, sign-out, cart count and active section rules come from one implementation. The former independent landing navigation and its unused CSS were removed. Workspace sidebars remain contextual navigation for the signed-in role.
