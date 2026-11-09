@@ -1,0 +1,7 @@
+CREATE TABLE paymongo_payment_deduction (
+ receipt_id uuid PRIMARY KEY REFERENCES paymongo_checkout_payment(id),processing_fee_centavos bigint NOT NULL CHECK(processing_fee_centavos>=0),foreign_fee_centavos bigint NOT NULL CHECK(foreign_fee_centavos>=0),tax_credit_centavos bigint NOT NULL CHECK(tax_credit_centavos>=0),digital_vat_centavos bigint NOT NULL CHECK(digital_vat_centavos>=0),net_deduction_centavos bigint NOT NULL CHECK(net_deduction_centavos>=0),created_at timestamptz NOT NULL DEFAULT clock_timestamp(),CHECK(processing_fee_centavos+foreign_fee_centavos-tax_credit_centavos+digital_vat_centavos=net_deduction_centavos)
+);
+CREATE FUNCTION paymongo_deduction_conservation() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN IF NOT EXISTS(SELECT 1 FROM paymongo_checkout_payment p WHERE p.id=NEW.receipt_id AND p.fee_centavos=NEW.net_deduction_centavos) THEN RAISE EXCEPTION 'Provider deduction components must match the original net receipt';END IF;RETURN NEW;END $$;
+CREATE TRIGGER paymongo_deduction_conservation BEFORE INSERT ON paymongo_payment_deduction FOR EACH ROW EXECUTE FUNCTION paymongo_deduction_conservation();
+CREATE TRIGGER immutable_paymongo_payment_deduction BEFORE UPDATE OR DELETE ON paymongo_payment_deduction FOR EACH ROW EXECUTE FUNCTION app_immutable();
+DO $$ BEGIN IF EXISTS(SELECT 1 FROM pg_roles WHERE rolname='rent2go_app') THEN GRANT SELECT,INSERT ON paymongo_payment_deduction TO rent2go_app;END IF;END $$;

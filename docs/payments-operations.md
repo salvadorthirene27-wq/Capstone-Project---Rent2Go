@@ -8,7 +8,7 @@
 4. In the booking payment section, the renter reviews the central collection/deposit notice and prepares secure checkout. The payment worker creates one durable hosted checkout and retrieves its verified result.
 5. The renter continues to PayMongo. Returning to Rent2Go is not payment confirmation. Only the provider-verified payment creates the collection record and updates the booking.
 
-Rent2Go centrally holds online collections and refundable deposits. Provider fees are an agency expense. Owner, maintenance and platform percentages remain unchanged. Test keys produce test payments only; live activation has a separate explicit gate.
+Rent2Go centrally holds online collections and refundable deposits. Provider deductions are an agency expense: the recorded processing fee, foreign-card fee, inclusive withholding-tax credit and digital VAT reconcile exactly to gross less net. Inclusive tax-array amounts are not charged twice. Their immutable breakdown is retained alongside the receipt. Owner, maintenance and platform percentages remain unchanged. Test keys produce test payments only; live activation has a separate explicit gate.
 
 ## Approved refunds
 
@@ -18,7 +18,15 @@ Rent2Go centrally holds online collections and refundable deposits. Provider fee
 4. The worker sends the original amount and original payment ID with a durable retry key. Pending/processing results remain unpaid. A successful, matching provider resource creates exactly one refund payment record.
 5. An interrupted or mismatched request remains reserved for reconciliation. An existing provider refund ID can be retrieved and matched; this action does not create a new refund. The API retry window is bounded below the provider's 24-hour idempotency expiry.
 
-Refund execution after a recorded agency disbursement is currently withheld for a separate agency funding/recovery review. Fee shortfalls and later revenue credits also withhold disbursement rather than reducing protected allocations.
+After a transfer, use the existing closed-credit workflow: the agency proposes the exact credit, the renter accepts it, and each affected Cosigner accepts the future-earnings recovery terms before posting. Original payouts remain immutable. The agency fronts the required return funding through Agency funding & recovery; an independent platform reviewer verifies its receipt. Only then can the approved refund execute. The calculation forecasts every posted accepted credit and protects the remaining platform commission. Cosigner recovery stays on the separately accepted owner account.
+
+## Funding shortfalls
+
+The booking's Agency funding & recovery section shows the exact current obligation and its source. The agency submits the transfer reference, accepts its obligation, and supplies private proof for externally completed transfers. A separate platform reviewer confirms receipt or rejects the evidence. Submitted or rejected records do not count as cash. The same review supports pre-closing full-refund fee shortfalls, so refund execution and financial closing cannot deadlock. Corrected rejected evidence can reuse its original reference; the same incoming transfer can be credited only once. Source changes require a fresh review. Test records explicitly represent no real transfer.
+
+## Additional settlement balances
+
+The agency proposes the itemized assessment, required owners accept their allocations, and the renter accepts the exact settlement. A positive additional balance can then use PayMongo checkout with its own immutable settlement reference. No new quotation hold is needed after the service. Only provider-confirmed money posts to the original central account; the original receipt and service status remain unchanged. Changed, disputed, closed or already paid settlement sources cannot create a duplicate balance checkout. Financial closing requires the accepted obligation to be fully satisfied.
 
 ## Agency disbursements
 
@@ -35,4 +43,8 @@ Bank transfers are recorded separately from PayMongo collections. There is no au
 
 Run the web app and exactly one `npm run payment:process` worker. The managed lease prevents duplicate workers. Service health reports successful and failed batches. Local polling supports localhost without a public webhook. A deployed installation needs a continuously running worker or a reviewed managed equivalent; public webhook activation is a separate configuration choice.
 
-Before live activation, complete an actual hosted PayMongo test payment and refund round trip, check the provider dashboard, review fee-shortfall and post-disbursement refund recovery cases, and configure production secrets, storage, HTTPS and worker supervision. Never put credentials in this file or version control.
+Before live activation, complete an actual hosted PayMongo test payment and refund round trip, check the provider dashboard, verify the agency funding, accepted recovery and additional-balance cases, and configure production secrets, storage, HTTPS and worker supervision. Never put credentials in this file or version control.
+
+Provider references: [Hosted Checkout](https://docs.paymongo.com/docs/payment-channels-hosted-checkout), [test cards and channel testing](https://docs.paymongo.com/docs/payment-acceptance-testing), [refunds](https://docs.paymongo.com/docs/payment-acceptance-refunds). Use the provider test card flow for acceptance checks; do not scan a QR Ph code with a real banking app.
+
+A provider `available_balance_insufficient` HTTP400 rejection is retained as immutable evidence that this creation attempt did not create a refund. No refund payment is recorded and automatic retries stop. Platform reviewers must resolve PayMongo refund balance before authorizing a fresh attempt, or the agency can revoke the unpaid approval and review a separate request. Network failures and unknown results remain reserved and never receive this definitive-failure treatment. Agency bank funding does not automatically replenish the provider account.

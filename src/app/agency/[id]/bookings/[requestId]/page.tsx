@@ -1,3 +1,4 @@
+import {CentralFundingPanel} from '@/components/central-funding';
 import {CentralDisbursementPanel} from '@/components/central-disbursements';
 import {BookingContacts} from '@/components/booking-contacts';
 import {CentralCustody} from '@/components/central-custody';
@@ -62,7 +63,7 @@ export default async function Page({
       <BookingRefunds key={`refunds-${booking.version}`} requestId={requestId} />
       <BookingAssessments key={`assessments-${booking.version}`} requestId={requestId} />
       <BookingSettlement requestId={booking.id}/><BookingClosedCredits requestId={booking.id}/>
-      {custody&&<CentralCustody data={custody}/>}{custody?.available&&custody.receipts.length>0&&<details className="assessment-record"><summary>Agency disbursement requests & receipt confirmation</summary><CentralDisbursementPanel requestId={requestId}/></details>}
+      {custody&&<CentralCustody data={custody}/>}{custody?.available&&custody.receipts.length>0&&<details className="assessment-record"><summary>Agency disbursement requests & receipt confirmation</summary><CentralFundingPanel requestId={requestId}/><CentralDisbursementPanel requestId={requestId}/></details>}
     </Workspace>
   );
 }

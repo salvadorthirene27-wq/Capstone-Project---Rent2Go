@@ -39,7 +39,7 @@ async function current(c:PoolClient,id:string,lock=false){
 }
 export async function savedPolicy(c:PoolClient,ctx:Context){
  const lines=(await c.query("SELECT policy_snapshot->'acceptedMethods' AS methods,public_quote->>'policyRevision' AS revision FROM booking_request_line WHERE request_id=$1 ORDER BY id",[ctx.r.id])).rows;
- const methods=paymentMethod.options.filter(method=>lines.length>0&&lines.every(l=>Array.isArray(l.methods)&&l.methods.includes(method))),revisions=[...new Set(lines.map(l=>l.revision))];
+ const methods=([...paymentMethod.options,"PAYMONGO"] as const).filter(method=>lines.length>0&&lines.every(l=>Array.isArray(l.methods)&&l.methods.includes(method))),revisions=[...new Set(lines.map(l=>l.revision))];
  if(revisions.length!==1||!revisions[0])return {methods,instructions:{gcashAccountName:"",gcashInstructions:"",gcashQrAvailable:false},revision:null};const revision=revisions[0];
  const p=(await c.query("SELECT p.payload->>'gcashAccountName' AS name,p.payload->>'gcashInstructions' AS instructions,EXISTS(SELECT 1 FROM partner_revision_file rf JOIN private_file f ON f.id=rf.file_id WHERE rf.application_id=p.application_id AND rf.revision=p.revision AND f.purpose='GCASH_QR') AS qr FROM agency a JOIN partner_revision p ON p.application_id=a.application_id AND p.revision=$2::int WHERE a.id=$1",[ctx.r.agency_id,revision])).rows[0];
  return {methods,instructions:{gcashAccountName:methods.includes("GCASH")?p?.name??"":"",gcashInstructions:methods.includes("GCASH")?p?.instructions??"":"",gcashQrAvailable:Boolean(methods.includes("GCASH")&&p?.qr)},revision};

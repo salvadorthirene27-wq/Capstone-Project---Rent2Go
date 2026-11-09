@@ -1,3 +1,4 @@
+import {settlementCheckoutLink,balanceSource} from './balance-source';
 import {createHash,randomUUID} from 'node:crypto';
 import type {PoolClient} from 'pg';
 import {transaction} from '../../lib/db';
@@ -33,6 +34,7 @@ async function locked(c:PoolClient,id:string){
 export async function checkoutSourcePayable(c:PoolClient,row:StoredCheckout){
   try{
     if(process.env.PAYMONGO_CUSTOMER_CHECKOUT_ENABLED==='true'&&!(await c.query('SELECT 1 FROM paymongo_checkout_consent WHERE checkout_id=$1 AND actor_id=$2',[row.id,row.renter_id])).rowCount)return false;
+    const settlement=await settlementCheckoutLink(c,(row as StoredCheckout).id);if(settlement){await balanceSource(c,row,settlement);return true;}
     const ctx=await financialContext(c,{id:row.renter_id,role:'RENTER'},row.request_id);
     await lockFinancialAuthority(c,ctx,false,await financialLines(c,row.quote_id));
     if(!['AGREEMENT_SIGNED','PAYMENT_PARTIAL'].includes(ctx.r.status)||await cancellationPending(c,row.request_id))return false;
@@ -94,9 +96,10 @@ export async function recordCheckoutObservation(c:PoolClient,row:StoredCheckout,
       if(old.payment_id!==p.id||Number(old.amount_centavos)!==p.amountCentavos||Number(old.fee_centavos)!==p.feeCentavos||Number(old.net_centavos)!==p.netCentavos||old.method!==p.method)throw new ProviderMismatch();
     }else{
       const ended=Boolean((await c.query('SELECT 1 FROM paymongo_checkout_end WHERE checkout_id=$1',[row.id])).rowCount);
-      const reconcile=ended||!await checkoutSourcePayable(c,row);
+      const reconcile=ended||!await checkoutSourcePayable(c,row),receiptId=randomUUID();
       await c.query(`INSERT INTO paymongo_checkout_payment(id,checkout_id,provider_id,mode,merchant_fingerprint,payment_id,amount_centavos,fee_centavos,net_centavos,method,requires_reconciliation)
-        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[randomUUID(),row.id,link.provider_id,row.mode,row.merchant_fingerprint,p.id,p.amountCentavos,p.feeCentavos,p.netCentavos,p.method,reconcile]);
+        VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)`,[receiptId,row.id,link.provider_id,row.mode,row.merchant_fingerprint,p.id,p.amountCentavos,p.feeCentavos,p.netCentavos,p.method,reconcile]);
+      if(p.deductions)await c.query('INSERT INTO paymongo_payment_deduction(receipt_id,processing_fee_centavos,foreign_fee_centavos,tax_credit_centavos,digital_vat_centavos,net_deduction_centavos)VALUES($1,$2,$3,$4,$5,$6)',[receiptId,p.deductions.processingFeeCentavos,p.deductions.foreignFeeCentavos,p.deductions.taxCreditCentavos,p.deductions.digitalVatCentavos,p.feeCentavos]);
     }
   }
   await c.query('INSERT INTO paymongo_checkout_observation(id,checkout_id,provider_id,status,paid,projection_digest)VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(checkout_id,projection_digest) DO NOTHING',[randomUUID(),row.id,link.provider_id,snapshot.status,Boolean(snapshot.paid),digest(snapshot)]);
@@ -145,9 +148,10 @@ export async function processCheckout(id:string,options:{transport?:typeof fetch
   }
 }
 
-export async function bookingCheckoutStatus(actor:Actor,requestId:string){return transaction(async c=>{
+export async function bookingCheckoutStatus(actor:Actor,requestId:string,purpose:'BOOKING'|'SETTLEMENT'='BOOKING'){return transaction(async c=>{
   const ctx=await financialContext(c,actor,requestId,true);
-  const row=(await c.query<StoredCheckout>('SELECT * FROM paymongo_checkout WHERE request_id=$1 ORDER BY created_at DESC,id DESC LIMIT 1',[requestId])).rows[0];
+  const hasBalance=(await c.query("SELECT to_regclass('paymongo_settlement_checkout') present")).rows[0].present;
+  const row=(await c.query<StoredCheckout>(`SELECT * FROM paymongo_checkout x WHERE request_id=$1 ${hasBalance?`AND ${purpose==='BOOKING'?'NOT ':''}EXISTS(SELECT 1 FROM paymongo_settlement_checkout b WHERE b.checkout_id=x.id)`:purpose==='SETTLEMENT'?'AND false':''} ORDER BY created_at DESC,id DESC LIMIT 1`,[requestId])).rows[0];
   if(!row)return {checkout:null};
   const link=(await c.query<Link>('SELECT provider_id,checkout_url FROM paymongo_checkout_link WHERE checkout_id=$1',[row.id])).rows[0];
   const payment=(await c.query('SELECT id,amount_centavos,fee_centavos,requires_reconciliation,verified_at FROM paymongo_checkout_payment WHERE checkout_id=$1',[row.id])).rows[0];
@@ -157,7 +161,7 @@ export async function bookingCheckoutStatus(actor:Actor,requestId:string){return
   let configured=false;
   try{savedCheckoutPayload(row,payMongoConfig());configured=true;}catch{}
   const canResume=Boolean(ctx.owner&&configured&&link&&!payment&&!end&&!state?.review_required&&await checkoutSourcePayable(c,row));
-  return {checkout:{id:row.id,quoteId:row.quote_id,agreementId:row.agreement_id,mode:row.mode,amountCentavos:Number(row.amount_centavos),
+  return {checkout:{id:row.id,settlementId:(await settlementCheckoutLink(c,row.id))?.settlement_id??null,quoteId:row.quote_id,agreementId:row.agreement_id,mode:row.mode,amountCentavos:Number(row.amount_centavos),
     status:payment?(payment.requires_reconciliation||state?.review_required||posting?.requires_reconciliation||(posting&&posting.outcome!=='COLLECTED')?'PAID_RECONCILIATION':posting?'PAID':'PAID_PENDING_POSTING'):state?.review_required?'REVIEW_REQUIRED':end?'EXPIRED':state?.busy?'PREPARING':state?.last_error==='EXPIRY_PENDING'?'CLOSING':link?'AWAITING_PAYMENT':'PREPARED',
     checkoutUrl:canResume?hostedCheckoutUrl(link.checkout_url):null,
     payment:payment?{id:payment.id as string,collectionId:posting?.collection_id as string|null??null,amountCentavos:Number(payment.amount_centavos),feeCentavos:ctx.operator?Number(payment.fee_centavos):null,verifiedAt:(payment.verified_at as Date).toISOString()}:null}};

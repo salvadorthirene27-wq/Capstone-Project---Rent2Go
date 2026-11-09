@@ -19,7 +19,7 @@ const retryKey=z.uuid();
 const maxResponseBytes=512*1024;
 
 export class PayMongoError extends DomainError {
-  constructor(message='Online payments are temporarily unavailable. Try again shortly.',public readonly providerStatus?:number){super(message,503);}
+  constructor(message='Online payments are temporarily unavailable. Try again shortly.',public readonly providerStatus?:number,public readonly providerCode?:string){super(message,503);}
 }
 
 export function payMongoConfig(env:Environment=process.env):PayMongoConfig {
@@ -52,7 +52,7 @@ export function checkoutReturnUrl(origin:string,requestId:string,result:'success
 
 const paidAttributes=z.object({
   amount:cents,fee:cents,net_amount:cents,currency:z.literal('PHP'),status:z.string(),livemode:z.boolean(),
-  source:z.object({type:z.string()}),
+  source:z.object({type:z.string()}),foreign_fee:cents.nullish(),tax_amount:cents.nullish(),digital_withholding_vat_amount:cents.nullish(),
 });
 const paymentResource=z.object({id:identifier('pay'),attributes:z.object({status:z.string(),livemode:z.boolean()}).passthrough()});
 const checkoutResource=z.object({id:checkoutId,type:z.literal('checkout_session'),attributes:z.object({
@@ -61,7 +61,7 @@ const checkoutResource=z.object({id:checkoutId,type:z.literal('checkout_session'
   line_items:z.array(z.object({amount:cents,quantity:z.number().int().positive().max(10000),currency:z.literal('PHP')})).min(1).max(50),
   payments:z.array(paymentResource).max(100),
 })});
-export type PayMongoCheckout={id:string;mode:PayMongoMode;status:'active'|'expired';checkoutUrl:string;reference:string;metadata:Record<string,string>;amountCentavos:number;paid:null|{id:string;amountCentavos:number;feeCentavos:number;netCentavos:number;method:string}};
+export type PayMongoCheckout={id:string;mode:PayMongoMode;status:'active'|'expired';checkoutUrl:string;reference:string;metadata:Record<string,string>;amountCentavos:number;paid:null|{id:string;amountCentavos:number;feeCentavos:number;netCentavos:number;method:string;deductions?:{processingFeeCentavos:number;foreignFeeCentavos:number;taxCreditCentavos:number;digitalVatCentavos:number}}};
 export type PayMongoCreatedCheckout={id:string;mode:PayMongoMode;checkoutUrl:string};
 export function parseCreatedCheckout(value:unknown,mode:PayMongoMode):PayMongoCreatedCheckout {
   const result=z.object({id:checkoutId,type:z.literal('checkout_session'),attributes:z.object({livemode:z.boolean(),checkout_url:z.string()})}).safeParse(value);
@@ -81,7 +81,10 @@ export function parseCheckout(value:unknown,mode:PayMongoMode):PayMongoCheckout 
   const p=successful[0],details=p?paidAttributes.safeParse(p.attributes):null;
   if(details&&!details.success)throw new PayMongoError('PayMongo returned incomplete payment amounts.');
   const aPaid=details?.success?details.data:null;
-  const paid=p&&aPaid?{id:p.id,amountCentavos:aPaid.amount,feeCentavos:aPaid.fee,netCentavos:aPaid.net_amount,method:aPaid.source.type}:null;
+  const components=aPaid?{processingFeeCentavos:aPaid.fee,foreignFeeCentavos:aPaid.foreign_fee??0,taxCreditCentavos:aPaid.tax_amount??0,digitalVatCentavos:aPaid.digital_withholding_vat_amount??0}:null;
+  const deducted=components?BigInt(components.processingFeeCentavos)+BigInt(components.foreignFeeCentavos)-BigInt(components.taxCreditCentavos)+BigInt(components.digitalVatCentavos):0n;
+  if(deducted<0n||deducted>BigInt(Number.MAX_SAFE_INTEGER))throw new PayMongoError('Provider deductions require reconciliation.');
+  const paid=p&&aPaid?{id:p.id,amountCentavos:aPaid.amount,feeCentavos:Number(deducted),netCentavos:aPaid.net_amount,method:aPaid.source.type,...(aPaid.foreign_fee!==undefined||aPaid.tax_amount!==undefined||aPaid.digital_withholding_vat_amount!==undefined?{deductions:components!}:{})}:null;
   // No pass-on fees are permitted before the fee policy is explicitly agreed.
   if(paid&&(paid.amountCentavos!==amount||!Number.isSafeInteger(paid.feeCentavos+paid.netCentavos)||paid.feeCentavos+paid.netCentavos!==paid.amountCentavos))throw new PayMongoError('The received payment totals need reconciliation.');
   return {id,mode,status:a.status,checkoutUrl:hostedCheckoutUrl(a.checkout_url),reference:a.reference_number,metadata:a.metadata,amountCentavos:amount,paid};
@@ -141,7 +144,7 @@ export function payMongoClient(config:PayMongoConfig,transport:typeof fetch=fetc
     }catch{throw new PayMongoError();}
     // Provider responses can contain billing data, credentials or user-controlled
     // descriptions. Never include their raw body/error detail in logs or errors.
-    if(!response.ok){await response.body?.cancel();throw new PayMongoError(response.status===401?'Online payment credentials need review.':response.status===409?'This provider record is still being processed. Refresh it before retrying.':'PayMongo could not complete this request. Refresh the payment record before retrying.',response.status);}
+    if(!response.ok){let providerCode:string|undefined;try{const body=await boundedResponse(response),code=body?.errors?.[0]?.code;if(typeof code==='string'&&/^[a-z0-9_]{1,80}$/.test(code))providerCode=code;}catch{}throw new PayMongoError(response.status===401?'Online payment credentials need review.':response.status===409?'This provider record is still being processed. Refresh it before retrying.':'PayMongo could not complete this request. Refresh the payment record before retrying.',response.status,providerCode);}
     const envelope=await boundedResponse(response);
     return envelope?.data;
   }

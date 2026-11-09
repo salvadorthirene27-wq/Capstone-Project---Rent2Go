@@ -3,7 +3,7 @@ import {it,expect} from 'vitest';
 import {buildDisbursementStatement,type DisbursementStatementSource} from '../../src/modules/gateway/disbursement-statement';
 function source(fee=500):DisbursementStatementSource{
  const identity={requestId:randomUUID(),agencyId:randomUUID(),quoteId:randomUUID()},closeId=randomUUID();
- return {...identity,closeId,environment:'DEMO',closedRevenueCentavos:10000,unresolvedGatewayCount:0,refundReservationsCentavos:0,verifiedRefundedCentavos:0,refunds:[],revenueCreditCount:0,
+ return {...identity,closeId,environment:'DEMO',closedRevenueCentavos:10000,unresolvedGatewayCount:0,refundReservationsCentavos:0,verifiedRefundedCentavos:0,refunds:[],funding:[],credits:[],revenueCreditCount:0,
  receipts:[{...identity,id:randomUUID(),checkoutId:randomUUID(),collectionId:randomUUID(),paymentId:'pay_statement123',mode:'test',grossCentavos:10000,feeCentavos:fee,netCentavos:10000-fee,postingOutcome:'COLLECTED',requiresReconciliation:false}],
  entries:([['COSIGNER',7000],['AGENCY',1000],['PLATFORM',1000],['MAINTENANCE',1000]] as const).map(([recipient,amountCentavos])=>({...identity,id:randomUUID(),closeId,environment:'DEMO',recipient,amountCentavos,beneficiaryActorId:recipient==='COSIGNER'?randomUUID():null}))};
 }
@@ -38,4 +38,13 @@ it('conserves a verified deposit refund against its original provider payment wi
  const v=source();v.closedRevenueCentavos=8000;v.verifiedRefundedCentavos=2000;v.refunds=[{id:'ref_original123',paymentId:v.receipts[0].paymentId,amountCentavos:2000}];for(const entry of v.entries)entry.amountCentavos=entry.amountCentavos*8/10;
  const s=buildDisbursementStatement(v);expect(s.position).toMatchObject({agencyNetShareCentavos:300,availableForDisbursementCentavos:6700});
  expect(()=>buildDisbursementStatement({...v,refunds:[{...v.refunds[0],paymentId:'pay_foreign123'}]})).toThrow();expect(()=>buildDisbursementStatement({...v,refunds:[{...v.refunds[0],amountCentavos:2001}]})).toThrow();expect(()=>buildDisbursementStatement({...v,refunds:[v.refunds[0],v.refunds[0]]})).toThrow();
+});
+
+it('verified agency funding covers a fee shortfall without changing protected allocations and is exact-source bound',()=>{const v=source(1500);v.funding=[{id:randomUUID(),amountCentavos:500}];expect(buildDisbursementStatement(v).position.availableForDisbursementCentavos).toBe(8000);expect(()=>buildDisbursementStatement({...v,funding:[v.funding[0],v.funding[0]]})).toThrow();});
+it('accepted closed credits reduce exact original allocations only after the original gross refund conserves',()=>{const v=source();v.verifiedRefundedCentavos=2000;v.refunds=[{id:'ref_credit123',paymentId:v.receipts[0].paymentId,amountCentavos:2000}];v.credits=v.entries.map(e=>({id:randomUUID(),entryId:e.id,amountCentavos:e.amountCentavos/5}));v.revenueCreditCount=4;const result=buildDisbursementStatement(v);expect(result.position).toMatchObject({availableForDisbursementCentavos:6700,heldPlatformCommissionCentavos:800});expect(()=>buildDisbursementStatement({...v,refunds:[],verifiedRefundedCentavos:0})).toThrow();});
+
+it('reconciles a fully refunded zero-revenue close without fabricated revenue entries',()=>{
+ const v=source();v.closedRevenueCentavos=0;v.entries=[];v.verifiedRefundedCentavos=10000;v.refunds=[{id:'ref_full123',paymentId:v.receipts[0].paymentId,amountCentavos:10000}];v.funding=[{id:randomUUID(),amountCentavos:500}];
+ const s=buildDisbursementStatement(v);expect(s.sources).toEqual([]);expect(s.position).toMatchObject({centralCashCentavos:0,additionalAgencyFundingNeededCentavos:0,availableForDisbursementCentavos:0});
+ expect(()=>buildDisbursementStatement({...v,closedRevenueCentavos:1})).toThrow();expect(()=>buildDisbursementStatement({...v,verifiedRefundedCentavos:9999})).toThrow();
 });

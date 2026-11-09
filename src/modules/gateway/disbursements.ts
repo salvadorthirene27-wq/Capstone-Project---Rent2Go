@@ -44,7 +44,7 @@ async function projection(c:PoolClient,ctx:Context,page=1){
    canApprove:ctx.reviewer&&ctx.active&&d.created_by!==ctx.user.id&&latestItem&&current==='REQUESTED'&&!stale,
    canReject:ctx.reviewer&&d.created_by!==ctx.user.id&&current==='REQUESTED',canWithdraw:ctx.operator&&['REQUESTED','APPROVED'].includes(current),
    canTransfer:ctx.reviewer&&ctx.active&&latestItem&&current==='APPROVED'&&!stale&&!transferred,
-   canConfirm:ctx.operator&&latestItem&&current==='TRANSFERRED'&&d.executor!==ctx.user.id&&!stale,
+   canConfirm:ctx.operator&&latestItem&&current==='TRANSFERRED'&&d.executor!==ctx.user.id,
    transfer:d.transfer_id?{id:d.transfer_id as string,reference:d.reference as string,simulated:d.simulated as boolean,evidenceId:d.file_id as string|null,recordedAt:(d.transferred_at as Date).toISOString()}:null,
    history:events.filter(e=>e.disbursement_id===d.id).map(e=>({action:e.action as string,reason:e.reason as string,actorName:e.name as string,createdAt:(e.created_at as Date).toISOString()})),confirmedAt:d.confirmed_at?(d.confirmed_at as Date).toISOString():null};})};
 }

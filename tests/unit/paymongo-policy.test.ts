@@ -1,0 +1,4 @@
+import {expect,it,vi} from 'vitest';
+import {savedPolicy} from '../../src/modules/bookings/payment';
+it('retains PayMongo in the intersection of original accepted methods before the first checkout exists',async()=>{const c={query:vi.fn().mockResolvedValueOnce({rows:[{methods:['PAYMONGO'],revision:'1'}]}).mockResolvedValueOnce({rows:[{}]})};expect((await savedPolicy(c as any,{r:{id:'booking',agency_id:'agency'}} as any)).methods).toEqual(['PAYMONGO']);});
+it('never adds PayMongo to an older saved manual or simulated policy',async()=>{const c={query:vi.fn().mockResolvedValueOnce({rows:[{methods:['DEMO_CARD'],revision:'1'},{methods:['PAYMONGO','CASH'],revision:'1'}]}).mockResolvedValueOnce({rows:[{}]})};expect((await savedPolicy(c as any,{r:{id:'booking',agency_id:'agency'}} as any)).methods).toEqual([]);});

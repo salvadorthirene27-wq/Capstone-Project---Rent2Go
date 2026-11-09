@@ -1,6 +1,6 @@
 # Rent2Go
 
-A multi-agency car rental and tour marketplace for a capstone project. Rent2Go supports agency onboarding and approval, vehicle consignment and compliance, rental and group/private-tour catalogs, availability-aware search, cart and booking requests, private document review, quotations, agreements, manual and simulated payments, service fulfillment, financial assessment and settlement, owner withdrawals, separately accepted closed-booking credits and earnings recovery, platform remittances and accepted agency credits, reports, notifications, advisory OCR, and account security. See [implementation status](docs/STATUS.md), [final acceptance and boundaries](docs/final-validation.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
+A multi-agency car rental and tour marketplace for a capstone project. Rent2Go supports agency onboarding and approval, vehicle consignment and compliance, rental and group/private-tour catalogs, availability-aware search, cart and booking requests, private document review, quotations, agreements, PayMongo hosted checkout and preserved manual/simulated payment history, service fulfillment, financial assessment and settlement, owner withdrawals, separately accepted closed-booking credits and earnings recovery, platform remittances and accepted agency credits, reports, notifications, advisory OCR, and account security. See [implementation status](docs/STATUS.md), [final acceptance and boundaries](docs/final-validation.md), [approved design](docs/superpowers/specs/2026-11-04-rent2go-design.md), and [rubric mapping](docs/rubric-alignment.md).
 
 GPS/geofencing is outside this project's scope. The old repository, database and environment file are not used. No adoption figures or usability results are claimed.
 
@@ -35,13 +35,13 @@ Synthetic demonstration accounts created during local verification live in ignor
 
 ## Private evidence and payments
 
-PayMongo integration is now underway: the user approved central collection through Rent2Go, separate agency disbursement records and agency-paid processing fees without changing the agreed revenue shares or renter total. The server connector has actual test API create/retrieve/expire evidence. Booking integration and replacement of the current online simulation controls are still in progress; the gateway remains disabled until that complete path is verified. See [the integration plan and remaining work](docs/workflows/paymongo-integration.md).
+PayMongo hosted checkout is enabled locally with test keys. Rent2Go collects centrally, retains refundable deposits, and records separately reviewed agency disbursements. Processing deductions are an agency expense and preserve the agreed revenue shares and renter total. Additional accepted settlement balances use their own source-bound hosted checkout. Agency funding covers fee shortfalls and accepted post-transfer refund obligations through independent receipt review. See [payment operations and acceptance requirements](docs/payments-operations.md).
 
 The current deployment uses a private Neon S3-compatible bucket. `STORAGE_DRIVER=s3` uses the branch-specific `AWS_*` environment values. Explicit `STORAGE_DRIVER=local` is available for a local filesystem fallback outside public assets; an unset or invalid driver is rejected. Each file remembers its backend. Files are delivered through authenticated, audited download routes.
 
 Uploads support PDF/PNG/JPEG, signature/type checks and an 8 MB limit. Document acceptance is an administrator's review; upload validation does not establish authenticity or perform malware scanning.
 
-Current application forms collect manual cash/GCash and demo card/GCash/PayPal preferences. **They do not yet execute a gateway transaction.** Simulated payment, refund, payout and remittance records stay visibly separate from manual external-payment records. Manual proof is a claim until the applicable independent review confirms it. PayMongo integration remains deferred; no live gateway charge is claimed.
+A hosted test payment has been verified and recorded through the actual provider. The actual refund round trip remains blocked by PayMongo's insufficient available refund balance; no successful refund or live charge is claimed. Test records remain explicitly separate from real transfers. Manual evidence is a claim until independent review confirms receipt, and agency bank transfers are completed externally and documented separately. Production activation remains gated.
 
 ## Checks
 

@@ -1,3 +1,17 @@
+# Funding, accepted recovery and additional checkout checkpoint — 10 November 2026
+
+Agency funding now records exact-source submissions, private evidence and independent receipt decisions. Only approved funding changes available cash; duplicate approved references cannot be credited twice. It covers fee shortfalls before or after financial closing and accepted refund recovery after an original agency transfer. Original provider receipts, transfer records and Cosigner payouts remain unchanged. A Cosigner's future-earnings recovery continues to require their explicit acceptance. An original completed transfer can still be acknowledged after a later credit without restoring the credited earnings.
+
+Accepted positive settlement balances have separate source-bound PayMongo checkout, verified collection and posting to the original account. They preserve the service stage and original receipt. Provider deductions retain processing fees, foreign-card fees, withholding credits and digital VAT without double-counting inclusive tax. Fully refunded zero-revenue bookings reconcile without fictitious revenue entries. Definitive insufficient-balance creation rejections preserve immutable evidence, record no refund payment and stop automatic retries; uncertain outcomes retain their reservations.
+
+Validation: 588 unit/interface cases pass. Seven distinct new native database cases cover funding/recovery/transfer acknowledgement, pre-closing full refunds, provider rejection and additional-balance collection; the additional-balance case also passes under restricted runtime credentials. Sixteen original checkout preparation/lifecycle regressions pass. Synthetic provider transports in database tests are distinct from the actual provider acceptance below. Migrations 055–059 are applied to the designated primary and isolated test databases. New funding-screen visual review remains a separate acceptance item.
+
+Actual provider acceptance: the renter completed a PHP 4,800 hosted test payment. Verified deductions total PHP 231 and net receipts total PHP 4,569; the original receipt remains unchanged. Both the full refund and a PHP 100 partial request were rejected with available_balance_insufficient; zero refund payments were recorded. The test dashboard shows upcoming payout balance PHP 0 and next payout balance PHP 4,569. This is an external refund-availability blocker, not a completed refund round trip. No real money was transferred. The system must not be described as 100% complete or live-deployment ready while provider refund acceptance and final operational checks remain open.
+
+See [operations](payments-operations.md) for the complete sequence and activation boundaries. Earlier checkpoint statements below retain their historical scope.
+
+--- Earlier checkpoints ---
+
 # Refund verification and exact-source statement checkpoint — 9 November 2026
 
 The provider client now retrieves and validates exact refund resources without issuing a refund. Original payment/merchant/mode/amount/reference matching, stale/terminal observation guards and original-gross reservation budgets are implemented. Central custody now prepares a deterministic statement from original receipt, collection and closed revenue-entry sources. Agency-only fees are attributed with exact integer rounding; protected Cosigner/maintenance/platform allocations stay intact. Statements remain read-only and cannot authorize a transfer or release owner funds. See [scope, sources and remaining workflow](workflows/paymongo-refund-statements.md).

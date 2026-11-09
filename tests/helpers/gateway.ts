@@ -5,10 +5,10 @@ import {approvedAgency} from './agency';
 import {agreementBody} from '../../src/modules/bookings/agreement-schema';
 import {prepareBookingCheckout} from '../../src/modules/gateway/booking-checkout';
 import type {Actor} from '../../src/modules/partners/workflow';
-export async function gatewayAgency(){
+export async function gatewayAgency(overrides:Partial<import('../../src/modules/partners/schema').ApplicationInput>={}){
  const renter:Actor={id:randomUUID(),role:'RENTER'},operator:Actor={id:randomUUID(),role:'RENTER'},reviewer:Actor={id:randomUUID(),role:'SUPER_ADMIN'},foreign:Actor={id:randomUUID(),role:'RENTER'};
  for(const a of [renter,operator,reviewer,foreign])await db.query("INSERT INTO app_actor(id,email,name,role)VALUES($1,$2,'Synthetic gateway lifecycle participant',$3)",[a.id,`${a.id}@example.test`,a.role]);
- const agency=await approvedAgency(operator,reviewer,{acceptedMethods:['PAYMONGO']}),revision=(await db.query('SELECT approved_revision FROM agency WHERE id=$1',[agency])).rows[0].approved_revision;
+ const agency=await approvedAgency(operator,reviewer,{acceptedMethods:['PAYMONGO'],...overrides}),revision=(await db.query('SELECT approved_revision FROM agency WHERE id=$1',[agency])).rows[0].approved_revision;
  await db.query('INSERT INTO booking_cart(id,owner_id)VALUES($1,$2)',[randomUUID(),renter.id]);
  return {renter,operator,reviewer,foreign,agency,revision};
 }
