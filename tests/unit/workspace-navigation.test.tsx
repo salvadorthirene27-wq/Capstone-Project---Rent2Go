@@ -65,3 +65,7 @@ it.each(['/workspace/vehicles/car','/workspace/resources/car','/workspace/earnin
 it.each(['/workspace/account','/account-status/privacy/request'])('groups %s under one Account entry',path=>{
  state.path=path;render(<WorkspaceNavigation role="RENTER"/>);expect(screen.getByRole('link',{name:'Account'}).getAttribute('aria-current')).toBe('page');expect(screen.queryByRole('link',{name:'Account & security'})).toBeNull();expect(screen.queryByRole('link',{name:'Account & privacy requests'})).toBeNull();expect(screen.getByRole('link',{name:'Agency partnership'}).getAttribute('href')).toBe('/workspace/application');
 });
+
+it('hides vehicle tools for pure renters but supports a saved vehicle/agency relationship',()=>{
+ const view=render(<WorkspaceNavigation role="RENTER"/>);expect(screen.queryByRole('link',{name:'My vehicles'})).toBeNull();view.rerender(<WorkspaceNavigation role="RENTER" showVehicles/>);expect(screen.getByRole('link',{name:'My vehicles'})).toBeTruthy();
+});

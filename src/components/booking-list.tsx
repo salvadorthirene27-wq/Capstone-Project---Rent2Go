@@ -1,7 +1,7 @@
 import Link from "next/link";
 import type { listBookingRequests } from "@/modules/bookings/service";
 import { date } from "@/modules/partners/presentation";
-const statusLabels: Record<string, string> = {
+export const statusLabels: Record<string, string> = {
   REQUIREMENTS_PENDING: "Requirements pending",
   UNDER_REVIEW: "Under review",
   CHANGES_REQUESTED: "Changes requested",

@@ -4,7 +4,7 @@ import {NotificationBell} from "./notification-bell";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { ArrowLeft, LogOut, Menu, X } from "lucide-react";
+import { ArrowLeft, LogOut, Menu, ShoppingCart, X } from "lucide-react";
 
 const links = [
   ["/", "Home"], ["/rentals", "Rentals"], ["/tours", "Tours"],
@@ -82,7 +82,7 @@ export function Header() {
       <nav ref={navigation} id="main-navigation" className={open ? "navigation-open" : ""} aria-label="Main navigation">
         <div className="navigation-links">
           {links.map(([href, label]) => <Link key={href} href={href==="/partners"&&userId?"/workspace/application":href} aria-current={selected(href==="/partners"&&userId?"/workspace/application":href) ? "page" : undefined} onClick={() => setOpen(false)}>
-            {label}{href === "/cart" && cartCount !== null ? ` (${cartCount})` : ""}
+            {href === "/cart"&&<ShoppingCart size={17} aria-hidden="true"/>}{label}{href === "/cart" && cartCount !== null ? ` (${cartCount})` : ""}
           </Link>)}
         </div>
         <div className="navigation-account">

@@ -2,7 +2,8 @@ import { WorkspaceNavigation } from "./workspace-navigation";
 import {Suspense} from 'react';
 import {WorkspaceSections} from './workspace-sections';
 import type { Actor } from "@/modules/partners/workflow";
-export function Workspace({
+import {hasVehicleWorkspace} from '@/modules/workspace/service';
+export async function Workspace({
   actor,
   children,
   limited = false,
@@ -11,6 +12,7 @@ export function Workspace({
   children: React.ReactNode;
   limited?: boolean;
 }) {
+  const showVehicles=!limited&&await hasVehicleWorkspace(actor.id,actor.role);
   return (
     <div className="workspace">
       <aside className="sidebar">
@@ -21,7 +23,7 @@ export function Workspace({
             <small>{actor.role.replaceAll("_", " ").toLowerCase()}</small>
           </div>
         </div>
-        <WorkspaceNavigation role={actor.role} limited={limited} />
+        <WorkspaceNavigation role={actor.role} limited={limited} showVehicles={showVehicles} />
         <p className="sidebar-note">
           {limited ? <>Your account requests and access decisions.<br />Your existing records remain preserved.</> : <>Your policies. Your services.<br />One connected marketplace.</>}
         </p>

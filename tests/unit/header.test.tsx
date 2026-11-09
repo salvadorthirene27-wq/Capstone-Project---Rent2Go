@@ -133,5 +133,5 @@ it.each([{ok:false,id:"demo"},{ok:true,id:"another-account"}])("keeps denied or 
 });
 
 it('takes signed-in agencies directly to the combined application and guide',()=>{
- render(<Header/>);expect(screen.getByRole('link',{name:'For agencies'}).getAttribute('href')).toBe('/workspace/application');expect(screen.getByRole('link',{name:'Notifications'}).closest('nav')).toBeNull();
+ render(<Header/>);expect(screen.getByRole('link',{name:'For agencies'}).getAttribute('href')).toBe('/workspace/application');expect(screen.getByRole('button',{name:'Notifications'}).closest('nav')).toBeNull();
 });

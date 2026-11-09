@@ -1,0 +1,19 @@
+# Notification dropdown and order-focused workspace
+
+The top-bar bell opens a recipient-owned dropdown. Opening it does not mark anything read. All, Unread and Deleted filters support every page. Mark all as read covers all currently visible unread deliveries, including pages not loaded in the dropdown. Delete read hides only already-read deliveries; individual Delete can hide one delivery. Undo restores the recorded delete batch, and Deleted provides per-item restoration after reopening the dropdown. An old Undo cannot restore a subsequent deletion. Original delivered content, financial events and read timestamps remain preserved.
+
+Recipient commands are serialized with account access changes, Origin checked, rate limited and idempotent. Retrying an ambiguous bulk action reuses its original targets; a newly delivered notification is not swept into the retry. The service rejects foreign-recipient targets. Redaction still removes private details after source access changes. Counts exclude hidden deliveries. The panel supports Escape/focus return, outside dismissal, polling, failure feedback and 320px screens. Email preferences and delivery history live in Account; old inbox URLs redirect to the workspace with the bell open.
+
+Workspace home shows saved cart services, current booking requests and paginated booking history. It includes service photos, dates, traveler counts, actual request status and amounts labeled as requested estimates or accepted quotations. Those labels do not represent collection or financial closing. Reconciliation-pending requests stay current. Saved estimates are not reservations, and unavailable/changed selections require cart review. Current display metadata is resolved only for services belonging to the signed-in renter; historical quotation/agreement/receipt snapshots are unchanged. Photos have an accessible fallback if a former listing is unavailable.
+
+Pure renters do not see My vehicles. Actual saved ownership or agency membership keeps the vehicle workspace available even for a legacy renter role; API permissions remain independent. Agency and platform home shortcuts remain available. The sidebar tagline sits near its bottom, navigation spacing is reduced, and Cart includes its icon.
+
+## Verification
+
+544 unit/interface cases passed, followed by eight focused final bell/order cases. Twelve native database cases cover inbox identity, source privacy, restricted runtime grants, concurrent retry/read behavior, legacy read times, suspension, all-page reads, read-only bulk deletion, restoration, order pagination and current-label ownership. Production build and sequential TypeScript pass. Four-role read-only HTTP48 checks pass. Actual1440/375/320/768 interface checks cover the populated renter dashboard, current professional display labels, dropdown, deletion plus Undo, empty unread state, preferences, legacy redirects, touch size and no horizontal overflow. The current primary renter has zero unread updates; the positive red dot is covered by component/native evidence rather than a fabricated new primary delivery.
+
+Only migration049_notification_visibility.sql was applied to the primary database; deferred gateway migrations remain unapplied. The98 original protected table fingerprints and two contact plans are unchanged. One existing notification was reversibly hidden and restored in the browser; only the new visibility/action tables record that check. No primary notification was newly marked read, and no financial action or outbound communication was performed. Existing browser tabs/session were preserved and the viewport reset.
+
+## Financial continuation
+
+Reviewed agency disbursement execution and exact custody-source release, provider refunds/adjustments and customer checkout remain open. Gateway activation and general email dispatch remain off. This interface checkpoint is not deployment acceptance of the central payment expansion.

@@ -1,6 +1,6 @@
 import {afterEach,beforeEach,it,expect,vi} from 'vitest';
-const m=vi.hoisted(()=>({actor:vi.fn(),limit:vi.fn(),get:vi.fn(),read:vi.fn()}));
-vi.mock('@/lib/auth',()=>({requireActor:m.actor}));vi.mock('@/lib/rate-limit',()=>({rateLimit:m.limit}));vi.mock('@/modules/notifications/service',()=>({getInbox:m.get,markNotificationsRead:m.read}));
+const m=vi.hoisted(()=>({actor:vi.fn(),limit:vi.fn(),get:vi.fn(),read:vi.fn(),change:vi.fn()}));
+vi.mock('@/lib/auth',()=>({requireActor:m.actor}));vi.mock('@/lib/rate-limit',()=>({rateLimit:m.limit}));vi.mock('@/modules/notifications/service',()=>({getInbox:m.get,markNotificationsRead:m.read,changeNotifications:m.change}));
 import {GET,PATCH} from '../../src/app/api/notifications/route';
 import {readNotifications} from '../../src/modules/notifications/schema';
 import {DomainError} from '../../src/modules/partners/workflow';
@@ -14,4 +14,8 @@ it('returns uncached recipient-derived reads and propagates denied receipt batch
 });
 it('rejects selected-recipient forgery, duplicate keys and more than one visible page of reads',()=>{
  const item={source:'BOOKING',id};expect(readNotifications.safeParse({recipientId:'foreign',items:[item]}).success).toBe(false);expect(readNotifications.safeParse({items:[item,item]}).success).toBe(false);expect(readNotifications.safeParse({items:Array(21).fill(item)}).success).toBe(false);expect(readNotifications.safeParse({items:[item],query:{includePrivate:true}}).success).toBe(false);
+});
+
+it('routes explicit bulk commands through the recipient-owned action service',async()=>{
+ const body={action:'DELETE_READ',idempotencyKey:id};m.change.mockResolvedValue({affected:0});const result=await PATCH(new Request(url,{method:'PATCH',headers:{origin:base,'Content-Type':'application/json'},body:JSON.stringify(body)}));expect(result.status).toBe(200);expect(m.change).toHaveBeenCalledWith({id:'owner',role:'COSIGNER'},body);expect(m.read).not.toHaveBeenCalled();
 });

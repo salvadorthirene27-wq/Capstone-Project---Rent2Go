@@ -5,7 +5,7 @@ import {ChevronDown,Home,CarFront,ClipboardList,CalendarDays,Building2,ShieldChe
 import {WorkspaceLink as Link} from "./workspace-link";
 import type {Actor} from "@/modules/partners/workflow";
 
-export function WorkspaceNavigation({role,limited=false}:{role:Actor['role'];limited?:boolean}){
+export function WorkspaceNavigation({role,limited=false,showVehicles=role!=='RENTER'}:{role:Actor['role'];limited?:boolean;showVehicles?:boolean}){
  const path=usePathname(),agency=/^\/agency\/([a-f0-9-]{36})(?:\/|$)/i.exec(path)?.[1];
  const [open,setOpen]=useState(false),toggle=useRef<HTMLButtonElement>(null);
  useEffect(()=>setOpen(false),[path]);
@@ -43,9 +43,9 @@ export function WorkspaceNavigation({role,limited=false}:{role:Actor['role'];lim
     <Link href="/cart"><CarFront size={19} aria-hidden="true"/>My cart</Link>
     <Link href="/workspace/bookings"><ClipboardList size={19} aria-hidden="true"/>My booking requests</Link>
    </div>
-   <div className="workspace-nav-group"><p>Vehicle ownership</p>
+   {showVehicles&&<div className="workspace-nav-group"><p>Vehicle ownership</p>
     <Link href="/workspace/vehicles" activePaths={["/workspace/resources","/workspace/earnings","/workspace/reports"]}><CarFront size={19} aria-hidden="true"/>My vehicles</Link>
-   </div>
+   </div>}
    <div className="workspace-nav-group"><p>For agencies</p>
     <Link href="/workspace/application"><Building2 size={19} aria-hidden="true"/>Agency partnership</Link>
    </div>

@@ -1,3 +1,11 @@
+# Notification dropdown and renter dashboard checkpoint — 9 November 2026
+
+The bell now opens a dropdown with global mark-all-read, individual delete, read-only bulk deletion, Undo and a Deleted/restore view. Account contains email preferences. Workspace home shows cart services, current requests and history with photos, dates, status and accurately labeled estimates/quotations. Pure renters no longer see My vehicles; existing owner/agency relationships retain their tools. Cart includes its icon, sidebar spacing is tighter and current display names do not rewrite historical snapshots. See [workflow and evidence](workflows/dashboard-notifications.md).
+
+544 unit/interface, eight final focused cases,12 native database cases, four-role HTTP48, production build and sequential TypeScript pass. Actual desktop/phone/narrow-phone/tablet checks pass. Migration049 alone adds reversible visibility and immutable command history on primary;98 original protected table fingerprints and two contact plans remain unchanged. A single notification was deleted and restored through the UI. No primary read receipt, financial action or communication was created. Gateway and general email dispatch remain off. Disbursement execution/source release, provider refunds and customer checkout remain open.
+
+--- Earlier checkpoints ---
+
 # Grouped workspace and notification bell checkpoint — 9 November 2026
 
 Notifications are now a top-bar bell with a red unread dot, including while mobile menus are closed. The sidebar uses one Account, one My vehicles and one Agency partnership entry. Vehicle inventory, calendars, earnings and reports share tabs; Account contains security and privacy requests; the application includes its six-section guide. Existing saved routes, privacy history, restricted access and financial permissions are preserved. See [workflow and evidence](workflows/workspace-hubs.md).

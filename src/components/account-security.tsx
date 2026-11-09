@@ -1,5 +1,6 @@
 "use client";
 import Link from 'next/link';
+import {EmailUpdates} from './email-settings';
 import {useEffect,useRef,useState} from 'react';
 import {MailCheck,ShieldCheck} from 'lucide-react';
 import type {AccountIdentity} from '@/modules/account/service';
@@ -33,7 +34,7 @@ export function AccountSecurity({initial}:{initial:AccountIdentity}){
     <button type="button" className="button secondary" disabled={busy} onClick={()=>void load()}>{busy?'Please wait…':'Refresh account status'}</button>
    </section>
    <section className="context-section"><h2>Password recovery</h2><p>If you forget your password, request a reset code from the sign-in page. A completed reset signs out existing sessions so you can sign in with your new password.</p><Link className="button secondary" href="/login?mode=recover">Open password recovery</Link></section>
-   <section className="context-section"><h2>Notification preferences</h2><p>Verified accounts can choose email updates. The notification inbox stays available whether email is on or off.</p><Link className="button secondary" href="/workspace/notifications">Manage notifications</Link></section>
+   <section id="notification-preferences" className="context-section"><h2>Notification preferences</h2><p>Verified accounts can choose email updates. The notification inbox stays available whether email is on or off.</p><EmailUpdates/></section>
   </>}
  </div>;
 }

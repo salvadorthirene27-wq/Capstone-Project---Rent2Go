@@ -1,3 +1,4 @@
+import {bookingOverview,hasVehicleWorkspace,workspaceLabels} from '../../src/modules/workspace/service';
 import {beforeAll,afterAll,it,expect,vi} from 'vitest';
 import {randomUUID} from 'node:crypto';
 import {Pool} from 'pg';
@@ -5,7 +6,7 @@ import {db} from '../../src/lib/db';
 import {approvedAgency} from '../helpers/agency';
 import {settlementFixture} from '../helpers/settlement-fixture';
 import {transitionVehicleOffer} from '../../src/modules/vehicles/service';
-import {getInbox,markNotificationsRead,getUnreadNotificationCount} from '../../src/modules/notifications/service';
+import {getInbox,markNotificationsRead,getUnreadNotificationCount,changeNotifications} from '../../src/modules/notifications/service';
 import type {Actor} from '../../src/modules/partners/workflow';
 const operator:Actor={id:randomUUID(),role:'RENTER'},renter:Actor={id:randomUUID(),role:'RENTER'},owner:Actor={id:randomUUID(),role:'COSIGNER'},admin:Actor={id:randomUUID(),role:'SUPER_ADMIN'},foreign:Actor={id:randomUUID(),role:'RENTER'},member:Actor={id:randomUUID(),role:'RENTER'};
 let agency:string,requestId:string,offerId:string,applicationId:string,financeId:string,legacyId:string,foreignId:string,memberId:string;
@@ -51,4 +52,35 @@ it('returns only the signed-in recipient count, respects legacy reads and change
  const first=await getUnreadNotificationCount(person);expect(first).toMatchObject({actorId:person.id,unread:1});expect(Object.keys(first).sort()).toEqual(['actorId','preparedAt','unread']);expect(JSON.stringify(first)).not.toMatch(/PRIVATE|message|link/);expect(first.unread).toBe((await getInbox(person)).unread);
  await markNotificationsRead(person,{items:[{source:'PARTNER',id:fresh}]});expect((await getUnreadNotificationCount(person)).unread).toBe(0);await expect(markNotificationsRead(foreign,{items:[{source:'PARTNER',id:fresh}]})).rejects.toMatchObject({status:404});
  await db.query('UPDATE app_actor SET suspended=true WHERE id=$1',[person.id]);try{await expect(getUnreadNotificationCount(person)).rejects.toMatchObject({status:403});}finally{await db.query('UPDATE app_actor SET suspended=false WHERE id=$1',[person.id]);}
+},60000);
+
+it('bulk deletion preserves unread updates and immutable source history; commands replay only their original targets',async()=>{
+ const person:Actor={id:randomUUID(),role:'RENTER'},read=randomUUID(),unread=randomUUID();await db.query("INSERT INTO app_actor(id,email,name,role)VALUES($1,$2,'Notification visibility participant','RENTER')",[person.id,person.id+'@example.test']);
+ await db.query("INSERT INTO app_notification(id,recipient_id,application_id,message,read_at)VALUES($1,$2,$3,'Read update','2026-01-01T00:00:00Z'),($4,$2,$3,'Unread update',NULL)",[read,person.id,applicationId,unread]);
+ const key=randomUUID(),command={action:'DELETE_READ',idempotencyKey:key};const deleted=await changeNotifications(person,command);expect(deleted.affected).toBe(1);expect(deleted.inbox.items.map(n=>n.id)).toEqual([unread]);expect(deleted.inbox.unread).toBe(1);
+ const replay=await changeNotifications(person,command);expect(replay.undoId).toBe(deleted.undoId);expect(replay.affected).toBe(1);await expect(changeNotifications(person,{action:'MARK_ALL_READ',idempotencyKey:key})).rejects.toMatchObject({status:409});
+ expect((await db.query('SELECT count(*)::int n FROM app_notification WHERE id=ANY($1::uuid[])',[[read,unread]])).rows[0].n).toBe(2);
+ const restored=await changeNotifications(person,{action:'RESTORE_BATCH',batchId:deleted.undoId,idempotencyKey:randomUUID()});expect(restored.inbox.total).toBe(2);expect(restored.inbox.unread).toBe(1);
+ const hidden=await changeNotifications(person,{action:'DELETE_ONE',item:{source:'PARTNER',id:unread},idempotencyKey:randomUUID()});expect(hidden.inbox.unread).toBe(0);expect((await getInbox(person,{status:'DELETED'})).items.map(n=>n.id)).toEqual([unread]);expect((await getUnreadNotificationCount(person)).unread).toBe(0);
+ await expect(changeNotifications(foreign,{action:'RESTORE_BATCH',batchId:hidden.undoId,idempotencyKey:randomUUID()})).rejects.toMatchObject({status:404});await expect(changeNotifications(foreign,{action:'DELETE_ONE',item:{source:'PARTNER',id:read},idempotencyKey:randomUUID()})).rejects.toMatchObject({status:404});await expect(markNotificationsRead(person,{items:[{source:'PARTNER',id:unread}]})).rejects.toMatchObject({status:404});
+ const again=await changeNotifications(person,{action:'RESTORE_ONE',item:{source:'PARTNER',id:unread},idempotencyKey:randomUUID()});expect(again.inbox.unread).toBe(1);expect(again.inbox.items.find(n=>n.id===read)?.readAt).toBe('2026-01-01T00:00:00.000Z');
+ const runtime=new Pool({connectionString:process.env.TEST_RUNTIME_DATABASE_URL,max:1}),query=vi.spyOn(db,'connect').mockImplementation(()=>runtime.connect() as any);try{const a=await changeNotifications(person,{action:'DELETE_READ',idempotencyKey:randomUUID()});expect(a.affected).toBe(1);await changeNotifications(person,{action:'RESTORE_BATCH',batchId:a.undoId,idempotencyKey:randomUUID()});await expect(runtime.query('UPDATE notification_action SET affected=0 WHERE recipient_id=$1',[person.id])).rejects.toMatchObject({code:'42501'});await expect(runtime.query('DELETE FROM notification_visibility WHERE recipient_id=$1',[person.id])).rejects.toMatchObject({code:'42501'});}finally{query.mockRestore();await runtime.end();}
+},60000);
+it('marks all visible unread pages once and excludes a later delivery from an idempotent retry',async()=>{
+ const person:Actor={id:randomUUID(),role:'RENTER'};await db.query("INSERT INTO app_actor(id,email,name,role)VALUES($1,$2,'All-page notification participant','RENTER')",[person.id,person.id+'@example.test']);await db.query("INSERT INTO app_notification(id,recipient_id,application_id,message)SELECT gen_random_uuid(),$1,$2,'Unread batch update '||g FROM generate_series(1,45) g",[person.id,applicationId]);
+ const command={action:'MARK_ALL_READ',idempotencyKey:randomUUID()},results=await Promise.all([changeNotifications(person,command),changeNotifications(person,command)]);expect(results.map(r=>r.affected)).toEqual([45,45]);expect((await getUnreadNotificationCount(person)).unread).toBe(0);expect((await db.query('SELECT count(*)::int n FROM notification_read_receipt WHERE recipient_id=$1',[person.id])).rows[0].n).toBe(45);
+ await db.query("INSERT INTO app_notification(id,recipient_id,application_id,message)VALUES($1,$2,$3,'Later delivery')",[randomUUID(),person.id,applicationId]);await changeNotifications(person,command);expect((await getUnreadNotificationCount(person)).unread).toBe(1);
+ const deleted=await changeNotifications(person,{action:'DELETE_READ',idempotencyKey:randomUUID()});expect(deleted.affected).toBe(45);expect(deleted.inbox.unread).toBe(1);expect(deleted.inbox.total).toBe(1);
+},60000);
+
+it('shows only the renter’s ordered service snapshots and distinguishes pending reconciliation from booking history',async()=>{
+ const own=await bookingOverview(renter),foreignView=await bookingOverview(foreign);expect([...own.active.items,...own.history.items].some(r=>r.id===requestId)).toBe(true);const request=[...own.active.items,...own.history.items].find(r=>r.id===requestId)!;expect(request.lines.length).toBeGreaterThan(0);expect(JSON.stringify(request)).not.toMatch(/private_financial_snapshot|cosignerId|allocationBasis/);expect(foreignView.active.total+foreignView.history.total).toBe(0);
+ expect(await hasVehicleWorkspace(renter.id,'RENTER')).toBe(false);expect(await hasVehicleWorkspace(operator.id,'RENTER')).toBe(true);expect(await hasVehicleWorkspace(owner.id,'COSIGNER')).toBe(true);
+ const person:Actor={id:randomUUID(),role:'RENTER'};await db.query("INSERT INTO app_actor(id,email,name,role)VALUES($1,$2,'Workspace pagination participant','RENTER')",[person.id,person.id+'@example.test']);
+ for(const status of ['REQUIREMENTS_PENDING','UNDER_REVIEW','PAYMENT_RECONCILIATION_REQUIRED','CANCELLED_RECONCILIATION_PENDING','SERVICE_ACTIVE','READY_FOR_SERVICE','COMPLETED','REJECTED','HOLD_EXPIRED'])await db.query("INSERT INTO booking_request(id,agency_id,renter_id,agency_name,status,contact)VALUES($1,$2,$3,'Workspace test agency',$4,'{}')",[randomUUID(),agency,person.id,status]);
+ const first=await bookingOverview(person),second=await bookingOverview(person,{activePage:2});expect(first.active.total).toBe(6);expect(first.history.total).toBe(3);expect(first.active.items).toHaveLength(5);expect(second.active.items).toHaveLength(1);expect(new Set([...first.active.items,...second.active.items].map(r=>r.id)).size).toBe(6);expect(first.history.items.map(r=>r.status).sort()).toEqual(['COMPLETED','HOLD_EXPIRED','REJECTED']);expect((await bookingOverview(person,{historyPage:999})).history.page).toBe(1);await expect(bookingOverview(person,{renterId:renter.id})).rejects.toThrow();
+},60000);
+
+it('uses recipient-owned current display metadata without rewriting ordered snapshots or exposing another renter’s services',async()=>{
+ const book=await bookingOverview(renter),quotes=[...book.active.items,...book.history.items].flatMap(r=>r.lines.map(l=>({...l.quote,agencyId:agency}))),original=JSON.stringify(quotes);await db.query("UPDATE agency SET display_name='Coastal Mobility' WHERE id=$1",[agency]);await db.query("UPDATE vehicle_offer SET display_make='Toyota',display_model='Vios' WHERE id=$1",[offerId]);const labels=await workspaceLabels(renter,quotes);expect(labels.agencies[agency]).toBe('Coastal Mobility');expect(labels.services['RENTAL:'+offerId]).toBe('Toyota Vios');expect(JSON.stringify(quotes)).toBe(original);expect(await workspaceLabels(foreign,quotes)).toEqual({services:{},agencies:{}});
 },60000);
