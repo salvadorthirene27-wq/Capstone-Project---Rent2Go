@@ -38,7 +38,7 @@ export const draftApplicationSchema = z
     refundPolicy: text,
     damagePolicy: text,
     latePolicy: text,
-    billingUnit: z.enum(["24_HOUR", "CALENDAR_DAY", "HOUR"]),
+    billingUnit: z.enum(["12_HOUR", "24_HOUR", "CALENDAR_DAY", "HOUR"]),
     dailyRateCentavos: cents,
     depositCentavos: cents,
     driverFeeCentavos: cents,
@@ -59,6 +59,11 @@ export const draftApplicationSchema = z
     split: z
       .object({ cosigner: bps, agency: bps, platform: bps, maintenance: bps })
       .strict(),
+    nonConsignedShares: z.object({ platform: bps, maintenance: bps }).strict()
+      .refine(value => value.platform + value.maintenance <= 10000, "Platform and maintenance shares cannot exceed 100%.")
+      .optional(),
+    minimumTourHours: z.number().int().min(1).max(720).optional(),
+    renterIdsAtHandover: z.literal(2).optional(),
     consent: z.boolean(),
     extraChargePolicies:extraChargePolicyList.optional(),
   })

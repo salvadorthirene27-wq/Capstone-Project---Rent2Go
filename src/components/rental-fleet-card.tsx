@@ -5,7 +5,7 @@ import {money} from '@/modules/partners/presentation';
 import {driverFeeUnitLabels} from '@/modules/pricing/units';
 
 type Car=Awaited<ReturnType<typeof searchVehicles>>['items'][number];
-const units={'24_HOUR':'per 24 hours',CALENDAR_DAY:'per calendar day',HOUR:'per hour'};
+const units={'12_HOUR':'per 12 hours','24_HOUR':'per 24 hours',CALENDAR_DAY:'per calendar day',HOUR:'per hour'};
 export function RentalFleetCard({car,href}:{car:Car;href:string}){
  const title=`${car.facts.make} ${car.facts.model}`;
  return <article className="agency-row tour-row rental-row fleet-row">

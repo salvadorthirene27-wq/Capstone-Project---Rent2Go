@@ -51,10 +51,14 @@ async function lineState(c:PoolClient,ctx:Context,a:NonNullable<Awaited<ReturnTy
  const availablePhotos=ctx.operator?(await c.query("SELECT f.id,f.phase FROM booking_inspection_file f WHERE f.request_id=$1 AND f.quote_id=$2 AND f.line_id=$3 ORDER BY f.created_at DESC LIMIT 30",[ctx.r.id,a.q.id,line.lineId])).rows:[];
  return {id:line.lineId as string,title:line.title as string,kind:line.kind as "RENTAL"|"TOUR",startAt:line.startAt as string,endAt:line.endAt as string,partySize:line.partySize as number,driverName:line.driverName as string|null,stage,safetyHold,pre,post,inspectionHistory,availablePhotos:availablePhotos as {id:string;phase:"PRE"|"POST"}[],history:p.rows.map(r=>({action:r.action as string,details:r.details as {note?:string;attendance?:number},at:(r.created_at as Date).toISOString()})),canInspectPre:Boolean(base&&rental&&!started),canInspectPost:Boolean(base&&rental&&(stage==="RENTAL_ACTIVE"||stage==="RETURN_REVIEW"||stage==="RETURN_DISPUTED"||safetyHold)),canAcknowledgePre:Boolean(!paused&&ctx.owner&&pre&&!pre.decision&&!started),canAcknowledgePost:Boolean(!paused&&ctx.owner&&post&&!post.decision),canRelease:Boolean(base&&rental&&!started&&pre?.decision==="ACCEPT"&&pre.body.roadworthy&&pre.body.safetyChecked&&inWindow&&await requirementsValid(c,ctx.r.id,line)),canStartTour:Boolean(base&&!rental&&!started&&inWindow&&await requirementsValid(c,ctx.r.id,line)),canCompleteTour:Boolean(base&&!rental&&stage==="TOUR_ACTIVE"),overdue:stage==="RENTAL_ACTIVE"&&now.getTime()>=Date.parse(line.endAt)};
 }
-async function savedLines(c:PoolClient,id:string){return (await c.query("SELECT id,public_quote FROM booking_request_line WHERE request_id=$1",[id])).rows;}
+async function savedLines(c:PoolClient,id:string){return (await c.query("SELECT id,public_quote,policy_snapshot FROM booking_request_line WHERE request_id=$1",[id])).rows;}
 async function projection(c:PoolClient,ctx:Context){
  const a=await allocation(c,ctx),now=(await c.query<{now:Date}>("SELECT clock_timestamp() AS now")).rows[0].now,source=await savedLines(c,ctx.r.id),lines=[];
- if(a)for(const line of a.q.public_snapshot.lines)lines.push(await lineState(c,ctx,a,{...line,selection:source.find(s=>s.id===line.lineId)?.public_quote.selection},now));
+ if(a)for(const line of a.q.public_snapshot.lines){
+  const saved=source.find(s=>s.id===line.lineId);
+  lines.push({...await lineState(c,ctx,a,{...line,selection:saved?.public_quote.selection},now),
+   requiresTwoIdsAtHandover:line.kind==="RENTAL"&&saved?.policy_snapshot?.renterIdsAtHandover===2});
+ }
  return {serverNow:now.toISOString(),requestId:ctx.r.id,requestVersion:ctx.r.version,status:ctx.r.status,isOwner:ctx.owner,isOperator:ctx.operator,environment:a?.environment??null,funded:a?.funded??false,lines};
 }
 export async function getFulfillment(actor:Actor,id:string){return transaction(async c=>{await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");return projection(c,await context(c,actor,id));});}
@@ -116,6 +120,8 @@ export async function changeFulfillment(actor:Actor,id:string,input:unknown){
    await c.query("INSERT INTO booking_inspection_ack(id,inspection_id,request_id,actor_id,decision,reason)VALUES($1,$2,$3,$4,$5,$6)",[randomUUID(),r.id,id,ctx.user.id,command.decision,command.reason]);
   }else if(command.action==="RELEASE_RENTAL"){
    if(!s.canRelease||s.pre?.id!==command.inspectionId||s.pre.digest!==command.digest)throw new DomainError("Release requires the current accepted inspection, valid documents and scheduled pickup time.",409);
+   if(policy.renterIdsAtHandover===2&&!command.renterIdsVerified)
+    throw new DomainError("Verify two valid renter IDs in person before releasing the vehicle.",409);
    const resources=await resourceRows(c,ctx,a.q.id,line.lineId);
    if(resources.some(r=>!r.active))throw new DomainError("An assigned resource is inactive.",409);
    const vehicle=(await c.query("SELECT v.owner_actor_id,o.state FROM physical_vehicle v JOIN vehicle_offer o ON o.vehicle_id=v.id WHERE v.id=ANY($1::uuid[]) AND o.agency_id=$2",[resources.map(r=>r.resource_id),ctx.r.agency_id])).rows[0];
@@ -126,7 +132,7 @@ export async function changeFulfillment(actor:Actor,id:string,input:unknown){
    if((await c.query("SELECT 1 FROM agency_driver WHERE id=ANY($1::uuid[]) AND (NOT active OR license_expiry<GREATEST((($2::timestamptz-interval '1 microsecond') AT TIME ZONE 'Asia/Manila')::date,(clock_timestamp() AT TIME ZONE 'Asia/Manila')::date))",[resources.map(r=>r.resource_id),line.endAt])).rowCount)throw new DomainError("Assigned driver license is no longer valid.",409);
    if(!await requirementsValid(c,id,line))throw new DomainError("Renter requirements are no longer current.",409);
    for(const r of resources){const inserted=await c.query("INSERT INTO booking_actual_occupation(id,resource_id,request_id,quote_id,line_id,planned_end)SELECT $1,$2,$3,$4,$5,$6 WHERE clock_timestamp()>=$7 AND clock_timestamp()<$6 RETURNING id",[randomUUID(),r.resource_id,id,a.q.id,line.lineId,line.endAt,line.startAt]);if(!inserted.rowCount)throw new DomainError("The scheduled release window ended. Reload before continuing.",409);}
-   await event(c,ctx,a.q.id,line.lineId,"RELEASE_RENTAL",{inspectionId:s.pre.id,note:"Vehicle handed over; actual resource occupancy remains active until recorded return."});
+   await event(c,ctx,a.q.id,line.lineId,"RELEASE_RENTAL",{inspectionId:s.pre.id,note:"Vehicle handed over; actual resource occupancy remains active until recorded return.",...(policy.renterIdsAtHandover===2?{renterIdsVerified:2}:{})});
   }else if(command.action==="START_TOUR"){
    if(!s.canStartTour||command.attendance>line.partySize)throw new DomainError("Tour start requires scheduled time, valid requirements and attendance within the booked party.",409);
    const holds=(await c.query("SELECT s.id,s.cancelled_at FROM booking_hold_seat h JOIN tour_schedule s ON s.id=h.schedule_id WHERE h.quote_id=$1 AND h.line_id=$2 FOR UPDATE OF s",[a.q.id,line.lineId])).rows;

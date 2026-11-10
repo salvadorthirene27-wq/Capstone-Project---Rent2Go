@@ -4,10 +4,12 @@ import { myApplication, getApplication } from "@/modules/partners/service";
 import { PartnerForm } from "../partner-form";
 import { StartApplication } from "./start-application";
 import {PartnershipGuide} from '@/components/partnership-guide';
+import { redirect } from "next/navigation";
 export const dynamic = "force-dynamic";
 export default async function Page() {
-  const actor = await pageActor(),
-    app = await myApplication(actor);
+  const actor = await pageActor();
+  if (actor.role === "COSIGNER") redirect("/workspace/vehicles/new");
+  const app = await myApplication(actor);
   return (
     <Workspace actor={actor}>
       {app&&<PartnershipGuide/>}

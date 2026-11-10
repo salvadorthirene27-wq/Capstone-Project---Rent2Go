@@ -19,7 +19,7 @@ const bodyTypes = {
   OTHER: "Other",
 } as const;
 const units = {
-  "24_HOUR": "per 24 hours",
+  "12_HOUR": "per 12 hours", "24_HOUR": "per 24 hours",
   CALENDAR_DAY: "per calendar day",
   HOUR: "per hour",
 };

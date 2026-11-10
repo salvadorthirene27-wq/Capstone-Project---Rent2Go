@@ -77,7 +77,7 @@ export async function VehicleQueue({
                 <li><Settings2 size={15} aria-hidden="true"/>{offer.facts.transmission.toLowerCase()}</li>
                 <li><Fuel size={15} aria-hidden="true"/>{offer.facts.fuel.toLowerCase()}</li>
               </ul>
-              <p className="figma-listing-rate"><strong>{money(offer.terms.rateCentavos)}</strong> {{"24_HOUR":"per 24 hours",CALENDAR_DAY:"per calendar day",HOUR:"per hour"}[offer.terms.billingUnit]}</p>
+              <p className="figma-listing-rate"><strong>{money(offer.terms.rateCentavos)}</strong> {{"12_HOUR":"per 12 hours", "24_HOUR":"per 24 hours",CALENDAR_DAY:"per calendar day",HOUR:"per hour"}[offer.terms.billingUnit]}</p>
             </article>;
           })}
         </div>
@@ -126,7 +126,7 @@ export async function VehicleQueue({
                     <small>
                       {
                         {
-                          "24_HOUR": "per 24 hours",
+                          "12_HOUR": "per 12 hours", "24_HOUR": "per 24 hours",
                           CALENDAR_DAY: "per calendar day",
                           HOUR: "per hour",
                         }[o.terms.billingUnit]

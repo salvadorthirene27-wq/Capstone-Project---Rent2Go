@@ -49,7 +49,7 @@ export function CreateVehicle({
       </h1>
       <p>
         {ownership === "CONSIGNED"
-          ? "You remain the personal owner. The agency proposes operating terms and revenue shares for your acceptance before compliance review."
+          ? "You remain the owner. Start a draft, then upload your vehicle registration and driver's license. The agency proposes operating terms and revenue shares for you to review."
           : `This car belongs to ${agency?.name}. Personal cars must use the Cosigner submission workflow.`}
       </p>
       {error && (

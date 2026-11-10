@@ -118,7 +118,7 @@ export default async function Page({
           <p>
             {
               {
-                "24_HOUR": "Per 24 hours",
+                "12_HOUR": "Per 12 hours", "24_HOUR": "Per 24 hours",
                 CALENDAR_DAY: "Per calendar day",
                 HOUR: "Per hour",
               }[car.pricing.billingUnit]

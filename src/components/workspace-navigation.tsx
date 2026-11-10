@@ -48,9 +48,9 @@ export function WorkspaceNavigation({role,limited=false,showVehicles=role!=='REN
    {showVehicles&&<div className="workspace-nav-group"><p>Vehicle ownership</p>
     <Link href="/workspace/vehicles" activePaths={["/workspace/resources","/workspace/earnings","/workspace/reports"]}><CarFront size={19} aria-hidden="true"/>My vehicles</Link>
    </div>}
-   <div className="workspace-nav-group"><p>For agencies</p>
+   {role!=="COSIGNER"&&<div className="workspace-nav-group"><p>For agencies</p>
     <Link href="/workspace/application"><Building2 size={19} aria-hidden="true"/>Agency partnership</Link>
-   </div>
+   </div>}
    <div className="workspace-nav-group"><p>Other menu</p>
     <Link href="/help"><CircleHelp size={19} aria-hidden="true"/>Help center</Link>
     <Link href="/workspace/account" activePaths={["/account-status"]}><ShieldCheck size={19} aria-hidden="true"/>Account</Link>

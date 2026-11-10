@@ -175,7 +175,7 @@ export function VehicleTermsFields({
               })
             }
           >
-            <option value="24_HOUR">Per 24 hours</option>
+            <option value="12_HOUR">Per 12 hours</option><option value="24_HOUR">Per 24 hours</option>
             <option value="CALENDAR_DAY">Per calendar day</option>
             <option value="HOUR">Per hour</option>
           </select>

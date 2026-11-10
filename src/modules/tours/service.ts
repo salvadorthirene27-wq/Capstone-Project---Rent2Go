@@ -201,7 +201,7 @@ export async function publishTour(actor: Actor, id: string, version: number) {
         "Upload at least one package photo before publication.",
       );
     const revision = row.revision + 1,
-      platformBps = agency.policy.split.platform,
+      platformBps = agency.policy.nonConsignedShares?.platform ?? agency.policy.split.platform,
       digest = createHash("sha256")
         .update(
           JSON.stringify({
@@ -283,6 +283,9 @@ export async function createTourSchedule(
         );
       if (Date.parse(data.cutoffAt) <= Date.now())
         throw new DomainError("Choose a booking cutoff in the future.");
+      const duration = Date.parse(data.endAt) - Date.parse(data.startAt);
+      if (agency.policy.minimumTourHours && duration < agency.policy.minimumTourHours * 3_600_000)
+        throw new DomainError(`This agency requires tour schedules of at least ${agency.policy.minimumTourHours} hours.`);
       if (
         row.payload.mode === "GROUP"
           ? data.capacity < row.payload.maxParty

@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import {NotificationBell} from "./notification-bell";
+import {ProfileAvatar} from "./profile-avatar";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
@@ -16,7 +17,10 @@ const documentRoutes = ["/booking-agreements/", "/booking-inspections/", "/booki
 export function Header() {
   const pathname = usePathname();
   const accountPortal=pathname.startsWith("/account-status");
-  const [portalAccess,setPortalAccess]=useState<{id:string;active:boolean}|null>(null);
+  const workspace = pathname.startsWith("/workspace") || pathname.startsWith("/agency/") ||
+    pathname === "/admin" || pathname.startsWith("/admin/") ||
+    pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/closed-credits/");
+  const [portalAccess,setPortalAccess]=useState<{id:string;active:boolean;role?:string}|null>(null);
   const selected = (href: string) => href === "/" ? pathname === "/" :
     !href.includes("#") && (pathname === href || pathname.startsWith(`${href}/`) ||
       (href === "/rentals" && pathname.startsWith("/cars/")) ||
@@ -31,17 +35,18 @@ export function Header() {
   const userId = session?.user?.id;
   useEffect(()=>{
     setPortalAccess(null);
-    if(!accountPortal||!userId)return;
+    if(!userId||(!accountPortal&&!workspace))return;
     let current=true;const controller=new AbortController();
     void (async()=>{
       try{
         const res=await fetch('/api/me',{cache:'no-store',signal:controller.signal});
         const actor=res.ok?await res.json():null;
-        if(current)setPortalAccess({id:userId,active:res.ok&&actor?.id===userId});
+        if(current)setPortalAccess({id:userId,active:res.ok&&actor?.id===userId,role:actor?.id===userId?actor.role:undefined});
       }catch{if(current)setPortalAccess({id:userId,active:false});}
     })();
     return()=>{current=false;controller.abort();};
-  },[accountPortal,userId]);
+  },[pathname,userId,accountPortal,workspace]);
+  const cosigner = portalAccess?.id === userId && portalAccess?.role === "COSIGNER";
   useEffect(() => { setOpen(false); }, [pathname]);
   useEffect(()=>{if(open)navigation.current?.querySelector<HTMLElement>("a")?.focus();},[open]);
   useEffect(() => {
@@ -74,9 +79,6 @@ export function Header() {
   if (compact) return <header className="site-header unified-header compact-header">
     {brand}<Link href={accountPortal ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{accountPortal ? "Back to marketplace" : "Back to workspace"}</Link>
   </header>;
-  const workspace = pathname.startsWith("/workspace") || pathname.startsWith("/agency/") ||
-    pathname === "/admin" || pathname.startsWith("/admin/") ||
-    pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/closed-credits/");
   if (workspace && session?.user) {
     const name = session.user.name || "Your account";
     const initials = name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
@@ -95,7 +97,7 @@ export function Header() {
             e.currentTarget.querySelector("summary")?.focus();
           }
         }}>
-          <summary aria-label="Account menu"><span className="avatar">{initials}</span><span className="figma-account-name">{name}</span><ChevronDown size={17} aria-hidden="true"/></summary>
+          <summary aria-label="Account menu"><ProfileAvatar key={session.user.id} fallback={initials}/><span className="figma-account-name">{name}</span><ChevronDown size={17} aria-hidden="true"/></summary>
           <nav aria-label="Account navigation" onClick={e => {
             if ((e.target as Element).closest("a")) e.currentTarget.closest("details")?.removeAttribute("open");
           }}>
@@ -109,7 +111,7 @@ export function Header() {
             <Link href="/rentals">Browse cars</Link>
             <Link href="/tours">Browse tours</Link>
             <Link href="/agencies">Browse agencies</Link>
-            <Link href="/workspace/application">For agencies</Link>
+            {!cosigner&&<Link href="/workspace/application">For agencies</Link>}
             <Link href="/help">Help center</Link>
             <button type="button" disabled={busy} onClick={signOut}><LogOut size={16} aria-hidden="true"/>{busy ? "Signing out…" : "Sign out"}</button>
             {error && <p role="alert">{error}</p>}
@@ -126,7 +128,7 @@ export function Header() {
 
       <nav ref={navigation} id="main-navigation" className={open ? "navigation-open" : ""} aria-label="Main navigation">
         <div className="navigation-links">
-          {links.map(([href, label]) => <Link key={href} href={href==="/partners"&&userId?"/workspace/application":href} aria-current={selected(href==="/partners"&&userId?"/workspace/application":href) ? "page" : undefined} onClick={() => setOpen(false)}>
+          {links.map(([href, label]) => <Link key={href} href={href==="/partners"&&userId&&!cosigner?"/workspace/application":href} aria-current={selected(href==="/partners"&&userId&&!cosigner?"/workspace/application":href) ? "page" : undefined} onClick={() => setOpen(false)}>
             {href === "/cart"&&<ShoppingCart size={17} aria-hidden="true"/>}{label}{href === "/cart" && cartCount !== null ? ` (${cartCount})` : ""}
           </Link>)}
         </div>

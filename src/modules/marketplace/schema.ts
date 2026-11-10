@@ -20,7 +20,7 @@ export const vehicleSearchSchema = z
     bodyType: z
       .enum(["SEDAN", "HATCHBACK", "SUV", "MPV", "VAN", "PICKUP", "OTHER"])
       .optional(),
-    billingUnit: z.enum(["24_HOUR", "CALENDAR_DAY", "HOUR"]).optional(),
+    billingUnit: z.enum(["12_HOUR", "24_HOUR", "CALENDAR_DAY", "HOUR"]).optional(),
     minRateCentavos: z.coerce.number().int().min(0).max(100000000).optional(),
     maxRateCentavos: z.coerce.number().int().min(1).max(100000000).optional(),
     budgetCentavos: z.coerce.number().int().min(1).max(100000000).optional(),

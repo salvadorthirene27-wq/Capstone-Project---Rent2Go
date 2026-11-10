@@ -219,9 +219,10 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
         {(() => {
           const content = <>
           <p>
-            Ownership evidence stays private. Only photos in an approved
-            published revision can appear publicly. Maximum 8 MB per file and 10
-            current photos.
+            {initial.ownership === "CONSIGNED"
+              ? "Submit your vehicle registration and driver's license. Vehicle photos are optional. Registration and license documents stay private."
+              : "Ownership evidence stays private. Upload at least one vehicle photo before submitting."}
+            {" "}Only approved photos can appear publicly. Maximum 8 MB per file and 10 current photos.
           </p>
           <ul className="vehicle-files">
             {initial.files
@@ -230,9 +231,7 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
                 <li key={f.id}>
                   <span>
                     <strong>
-                      {f.purpose === "OWNERSHIP"
-                        ? "Ownership evidence"
-                        : "Vehicle photo"}
+                      {f.purpose === "OWNERSHIP" ? "Vehicle registration" : f.purpose === "DRIVER_LICENSE" ? "Driver's license" : "Vehicle photo"}
                     </strong>
                     <a
                       target="_blank"
@@ -277,8 +276,9 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
                 Evidence purpose
                 <select name="purpose" defaultValue={compact ? "PHOTO" : "OWNERSHIP"}>
                   <option value="OWNERSHIP">
-                    Ownership / vehicle registration
+                    Vehicle registration
                   </option>
+                  {initial.ownership === "CONSIGNED" && <option value="DRIVER_LICENSE">Driver's license</option>}
                   <option value="PHOTO">Vehicle photo (PNG or JPEG)</option>
                 </select>
               </label>

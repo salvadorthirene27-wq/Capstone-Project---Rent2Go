@@ -50,9 +50,15 @@ function ConditionForm({line,phase,blocked,mutate,upload}:{line:Line;phase:"PRE"
  </form>;
 }
 function ServiceControls({line,blocked,mutate,inWindow}:{line:Line;blocked:boolean;mutate:Mutate;inWindow:boolean}){
- const [handover,setHandover]=useState(false),[attendance,setAttendance]=useState(""),[note,setNote]=useState("");
+ const [handover,setHandover]=useState(false),[idsVerified,setIdsVerified]=useState(false),[attendance,setAttendance]=useState(""),[note,setNote]=useState("");
  return <>
-  {line.canRelease&&inWindow&&<fieldset disabled={blocked}><legend>Actual vehicle handover</legend><label className="fulfillment-checkbox"><input type="checkbox" checked={handover} onChange={e=>setHandover(e.target.checked)}/>I confirm the vehicle is being handed over now to the renter under the accepted inspection.</label><button type="button" className="button" disabled={blocked||!handover} onClick={()=>mutate({action:"RELEASE_RENTAL",lineId:line.id,inspectionId:line.pre!.id,digest:line.pre!.digest})}>Record vehicle handover</button></fieldset>}
+  {line.canRelease&&inWindow&&<fieldset disabled={blocked}>
+   <legend>Actual vehicle handover</legend>
+   <label className="fulfillment-checkbox"><input type="checkbox" checked={handover} onChange={e=>setHandover(e.target.checked)}/>I confirm the vehicle is being handed over now to the renter under the accepted inspection.</label>
+   {line.requiresTwoIdsAtHandover&&<label className="fulfillment-checkbox"><input type="checkbox" checked={idsVerified} onChange={e=>setIdsVerified(e.target.checked)}/>I verified two valid renter IDs in person.</label>}
+   <button type="button" className="button" disabled={blocked||!handover||(line.requiresTwoIdsAtHandover&&!idsVerified)}
+    onClick={()=>mutate({action:"RELEASE_RENTAL",lineId:line.id,inspectionId:line.pre!.id,digest:line.pre!.digest,...(line.requiresTwoIdsAtHandover?{renterIdsVerified:true}:{})})}>Record vehicle handover</button>
+  </fieldset>}
   {line.canStartTour&&inWindow&&<fieldset disabled={blocked}><legend>Confirm guests and start tour</legend><label className="field">Guests present<input inputMode="numeric" value={attendance} onChange={e=>setAttendance(e.target.value)}/></label><label className="field">Attendance note<textarea maxLength={2000} value={note} onChange={e=>setNote(e.target.value)}/></label><p>Record attendance within the booked party of {line.partySize}. No vehicle inspection applies to a tour-only service.</p><button type="button" className="button" disabled={blocked||!/^\d+$/.test(attendance)||Number(attendance)<1||Number(attendance)>line.partySize||!note.trim()} onClick={()=>mutate({action:"START_TOUR",lineId:line.id,attendance:Number(attendance),note})}>Record tour start</button></fieldset>}
   {line.canCompleteTour&&<fieldset disabled={blocked}><legend>Complete this tour</legend><label className="field">Tour completion note<textarea maxLength={2000} value={note} onChange={e=>setNote(e.target.value)}/></label><button type="button" className="button" disabled={blocked||!note.trim()} onClick={()=>mutate({action:"COMPLETE_TOUR",lineId:line.id,note})}>Record tour completion</button></fieldset>}
  </>;

@@ -11,6 +11,9 @@ export async function grantRuntimePrivileges(client:Pick<PoolClient,"query">){
    GRANT SELECT,INSERT ON account_preferences TO rent2go_app;
    GRANT UPDATE(phone,emergency_contact,address,payment_preference) ON account_preferences TO rent2go_app;
   END IF;
+  IF to_regclass('public.account_photo') IS NOT NULL THEN
+   GRANT SELECT,INSERT,UPDATE,DELETE ON account_photo TO rent2go_app;
+  END IF;
   IF to_regclass('public.paymongo_notification') IS NOT NULL THEN
    GRANT SELECT,INSERT ON paymongo_notification,paymongo_notification_state,paymongo_notification_conflict,paymongo_notification_result TO rent2go_app;
    GRANT UPDATE(next_attempt_at) ON paymongo_notification_state TO rent2go_app;

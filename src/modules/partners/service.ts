@@ -87,6 +87,8 @@ async function notify(
 export async function createApplication(actor: Actor) {
   return transaction(async (c) => {
     const user = await storedActor(actor, c);
+    if (user.role === "COSIGNER")
+      throw new DomainError("Cosigners submit their vehicles through My vehicles.", 403);
     const policy = await readPolicy(c);
     const result = await c.query(
       "INSERT INTO partner_application(id,owner_id,payload,platform_defaults_revision) VALUES($1,$2,$3,$4) ON CONFLICT(owner_id) DO NOTHING RETURNING *",

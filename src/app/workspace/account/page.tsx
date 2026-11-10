@@ -4,6 +4,7 @@ import {Workspace} from '@/components/workspace';
 import {AccountSecurity} from '@/components/account-security';
 import {AccountPrivacy} from '@/components/account-privacy';
 import {pageActor} from '@/lib/page-actor';
+import {db} from '@/lib/db';
 import {accountIdentity} from '@/modules/account/service';
 import {privacyIdentity} from '@/modules/governance/identity';
 import {DomainError} from '@/modules/partners/workflow';
@@ -19,8 +20,12 @@ export default async function Page({searchParams}:{searchParams:Promise<Record<s
  }
  const actor=await pageActor();
  if(section==='profile'||section==='payment'){
-  const [identity,preferences]=await Promise.all([accountIdentity(),accountPreferences(actor)]);
-  return <Workspace actor={actor}><AccountProfile key={section} identity={identity} initial={preferences} payment={section==='payment'}/></Workspace>;
+  const [identity,preferences,photo]=await Promise.all([
+   accountIdentity(),
+   accountPreferences(actor),
+   section==='profile' ? db.query<{revision:string}>('SELECT revision FROM account_photo WHERE actor_id=$1',[actor.id]) : null,
+  ]);
+  return <Workspace actor={actor}><AccountProfile key={`${actor.id}:${section}`} identity={identity} initial={preferences} payment={section==='payment'} photoRevision={photo?.rows[0]?.revision??null}/></Workspace>;
  }
  return <Workspace actor={actor}><AccountSecurity key={actor.id} initial={await accountIdentity()} onboarding={parseOnboardingPath(query.onboarding)}/></Workspace>;
 }

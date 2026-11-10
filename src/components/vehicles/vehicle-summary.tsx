@@ -30,7 +30,7 @@ export function VehicleSummary({
             {money(terms.rateCentavos)}{" "}
             {
               {
-                "24_HOUR": "per 24 hours",
+                "12_HOUR": "per 12 hours", "24_HOUR": "per 24 hours",
                 CALENDAR_DAY: "per calendar day",
                 HOUR: "per hour",
               }[terms.billingUnit]

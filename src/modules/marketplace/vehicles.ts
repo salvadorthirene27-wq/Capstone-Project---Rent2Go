@@ -58,6 +58,7 @@ export async function searchVehicles(
     end = `${bind(q.endAt)}::timestamptz`;
     bufferedEnd = `(${end}+COALESCE((ar.payload->>'bufferMinutes')::int,0)*interval '1 minute')`;
     clauses.push(
+      `(r.terms->>'billingUnit'<>'12_HOUR' OR (${end}-${start})>=interval '12 hours')`,
       `NOT EXISTS(SELECT 1 FROM resource_occupation oc WHERE oc.resource_id=v.id AND oc.cancelled_at IS NULL AND oc.period && tstzrange(${start},${bufferedEnd},'[)'))`,
       `NOT booking_actual_resource_conflict(v.id,${start},${bufferedEnd})`,
     );
@@ -76,9 +77,10 @@ export async function searchVehicles(
     driverUnits = "NULL::bigint";
   if (start && end) {
     const hours = `ceil(extract(epoch FROM (${end}-${start}))/3600)::bigint`,
+      halfDays = `ceil(extract(epoch FROM (${end}-${start}))/43200)::bigint`,
       days = `ceil(extract(epoch FROM (${end}-${start}))/86400)::bigint`,
       calendar = `(((${end}-interval '1 microsecond') AT TIME ZONE 'Asia/Manila')::date-(${start} AT TIME ZONE 'Asia/Manila')::date+1)::bigint`;
-    rentalUnits = `CASE r.terms->>'billingUnit' WHEN 'HOUR' THEN ${hours} WHEN 'CALENDAR_DAY' THEN ${calendar} ELSE ${days} END`;
+    rentalUnits = `CASE r.terms->>'billingUnit' WHEN 'HOUR' THEN ${hours} WHEN '12_HOUR' THEN ${halfDays} WHEN 'CALENDAR_DAY' THEN ${calendar} ELSE ${days} END`;
     driverUnits = `CASE WHEN (${selected})='SELF_DRIVE' THEN 0 ELSE CASE r.terms->>'driverFeeUnit' WHEN 'PER_BOOKING' THEN 1 WHEN 'PER_24_HOURS' THEN ${days} WHEN 'PER_CALENDAR_DAY' THEN ${calendar} WHEN 'PER_HOUR' THEN ${hours} WHEN 'PER_RENTAL_UNIT' THEN (${rentalUnits}) END END`;
   }
   const cte = `WITH eligible AS(SELECT o.id,o.agency_id,r.facts||jsonb_strip_nulls(jsonb_build_object('make',o.display_make,'model',o.display_model)) AS facts,r.terms,r.revision,COALESCE(a.display_name,ar.payload->>'businessName') AS agency_name,ar.payload->>'serviceAreas' AS service_areas,(${selected}) AS effective_mode,(${rentalUnits})*(r.terms->>'rateCentavos')::bigint+(${driverUnits})*COALESCE((r.terms->>'driverFeeCentavos')::bigint,0) AS service_centavos,COALESCE((SELECT jsonb_agg(f.id ORDER BY f.created_at,f.id) FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id WHERE rf.offer_id=o.id AND rf.revision=o.approved_revision AND f.purpose='PHOTO'),'[]'::jsonb) AS photo_ids FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN resource ON resource.vehicle_id=v.id JOIN agency a ON a.id=o.agency_id JOIN partner_revision ar ON ar.application_id=a.application_id AND ar.revision=a.approved_revision JOIN app_actor ao ON ao.id=a.owner_id LEFT JOIN app_actor vo ON vo.id=v.owner_actor_id JOIN vehicle_revision r ON r.offer_id=o.id AND r.revision=o.approved_revision WHERE ${clauses.join(" AND ")})`;

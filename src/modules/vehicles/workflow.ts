@@ -1,6 +1,10 @@
 import { z } from "zod";
 import { DomainError, type Actor } from "../partners/workflow";
 export type VehicleOwnership = "CONSIGNED" | "AGENCY_OWNED";
+export function requiredVehicleEvidence(ownership: VehicleOwnership, purposes: string[]) {
+  const required = ownership === "CONSIGNED" ? ["OWNERSHIP", "DRIVER_LICENSE"] : ["OWNERSHIP", "PHOTO"];
+  return required.filter(purpose => !purposes.includes(purpose));
+}
 export type VehicleState =
   | "DRAFT"
   | "SUBMITTED"

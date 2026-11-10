@@ -527,7 +527,7 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                         )
                       }
                     >
-                      <option value="24_HOUR">Per 24 hours</option>
+                      <option value="12_HOUR">Per 12 hours</option><option value="24_HOUR">Per 24 hours</option>
                       <option value="CALENDAR_DAY">Per calendar day</option>
                       <option value="HOUR">Per hour</option>
                     </select>
@@ -667,6 +667,11 @@ export function PartnerForm({ initial }: { initial: Detail }) {
                     Adjust the starting agreement to suit your agency and
                     Cosigner. Total must equal 100%.
                   </p>
+                  {data.nonConsignedShares && <p>
+                    Agency-owned rentals use a {data.nonConsignedShares.platform / 100}% platform share and a {data.nonConsignedShares.maintenance / 100}% maintenance reserve.
+                    Tours use a {data.nonConsignedShares.platform / 100}% platform share.
+                  </p>}
+                  {data.minimumTourHours && <p>Minimum tour schedule: {data.minimumTourHours} hours.</p>}
                   <div className="split-inputs">
                     {(
                       Object.keys(

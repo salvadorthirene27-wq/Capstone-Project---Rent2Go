@@ -14,6 +14,7 @@ import {
   createVehicleSchema,
   vehicleFactsSchema,
   vehicleTermsSchema,
+  vehicleFilePurpose,
   vehicleActionSchema,
   validatedTerms,
   type VehicleFacts,
@@ -21,6 +22,7 @@ import {
 } from "./schema";
 import {
   normalizeRegistration,
+  requiredVehicleEvidence,
   decideVehicleTransition,
   type VehicleState,
   type VehicleOwnership,
@@ -120,7 +122,7 @@ export async function createVehicleOffer(actor: Actor, input: unknown) {
         shares:
           data.ownership === "CONSIGNED"
             ? p.split
-            : agencyOwnedShares(p.split),
+            : agencyOwnedShares({ ...p.split, ...p.nonConsignedShares }),
         allocationBasis: "SERVICE_REVENUE_EXCLUDING_REFUNDABLE_DEPOSIT",
       };
       const vehicleId = randomUUID(),
@@ -301,12 +303,13 @@ async function snapshot(
             [row.id, copyFrom],
           )
         ).rows;
-  if (
-    !files.some((f) => f.purpose === "OWNERSHIP") ||
-    !files.some((f) => f.purpose === "PHOTO")
-  )
+  // Existing submissions can continue through a proposal on the same evidence.
+  // A new owner submission must meet the current evidence policy.
+  if (copyFrom === undefined && requiredVehicleEvidence(row.ownership, files.map(f => f.purpose)).length)
     throw new DomainError(
-      "Upload ownership evidence and at least one vehicle photo before submitting.",
+      row.ownership === "CONSIGNED"
+        ? "Upload the vehicle registration and your driver's license before submitting."
+        : "Upload ownership evidence and at least one vehicle photo before submitting.",
     );
   const digest = createHash("sha256")
     .update(
@@ -695,7 +698,7 @@ export async function authorizeVehicleUpload(
 const fileMetadataSchema = z
   .object({
     id: z.uuid(),
-    purpose: z.enum(["OWNERSHIP", "PHOTO"]),
+    purpose: vehicleFilePurpose,
     name: z.string().min(1).max(160),
     mime: z.enum(["application/pdf", "image/png", "image/jpeg"]),
     size: z.number().int().min(1).max(8388608),
@@ -715,6 +718,8 @@ export async function attachVehicleFile(
     throw new DomainError("A vehicle photo must be PNG or JPEG.");
   return transaction(async (c) => {
     const { row, user } = await editableVehicle(c, actor, id, version);
+    if (f.purpose === "DRIVER_LICENSE" && row.ownership !== "CONSIGNED")
+      throw new DomainError("Driver's license evidence is only used for cosigner submissions.");
     if (
       f.purpose === "PHOTO" &&
       Number(
@@ -727,10 +732,10 @@ export async function attachVehicleFile(
       ) >= 10
     )
       throw new DomainError("Keep at most 10 current vehicle photos.");
-    if (f.purpose === "OWNERSHIP")
+    if (f.purpose !== "PHOTO")
       await c.query(
-        "UPDATE vehicle_file SET is_current=false WHERE vehicle_id=$1 AND purpose='OWNERSHIP' AND is_current",
-        [row.vehicle_id],
+        "UPDATE vehicle_file SET is_current=false WHERE vehicle_id=$1 AND purpose=$2 AND is_current",
+        [row.vehicle_id, f.purpose],
       );
     await c.query(
       "INSERT INTO vehicle_file(id,vehicle_id,uploader_id,purpose,object_key,original_name,mime,size_bytes,sha256,backend) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",

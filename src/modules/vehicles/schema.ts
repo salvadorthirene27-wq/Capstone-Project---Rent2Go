@@ -1,6 +1,7 @@
 import { z } from "zod";
 import { driverFeeUnitSchema } from "../pricing/units";
 import { validateVehicleShares, type VehicleOwnership } from "./workflow";
+export const vehicleFilePurpose = z.enum(["OWNERSHIP", "DRIVER_LICENSE", "PHOTO"]);
 export const vehicleFactsSchema = z
   .object({
     make: z.string().trim().min(1).max(80),
@@ -36,7 +37,7 @@ export const vehicleTermsSchema = z
   .object({
     rateCentavos: cents.refine((n) => n > 0, "Enter a positive vehicle rate."),
     depositCentavos: cents,
-    billingUnit: z.enum(["24_HOUR", "CALENDAR_DAY", "HOUR"]),
+    billingUnit: z.enum(["12_HOUR", "24_HOUR", "CALENDAR_DAY", "HOUR"]),
     modes: z
       .array(z.enum(["SELF_DRIVE", "WITH_DRIVER"]))
       .min(1)

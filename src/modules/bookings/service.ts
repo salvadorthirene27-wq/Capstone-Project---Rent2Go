@@ -48,6 +48,7 @@ async function snapshots(c: PoolClient, q: CartQuote) {
       "acceptedMethods",
       "holdHours",
       "bufferMinutes",
+      "renterIdsAtHandover",
     ].map((key) => [key, p[key]]),
   );
   if (q.selection.kind === "RENTAL") {

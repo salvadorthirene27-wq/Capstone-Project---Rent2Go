@@ -1,5 +1,5 @@
 import { randomUUID, createHash } from "node:crypto";
-import { z } from "zod";
+import { vehicleFilePurpose } from "@/modules/vehicles/schema";
 import { requireActor } from "@/lib/auth";
 import {
   apiError,
@@ -41,7 +41,7 @@ export async function POST(
       throw new DomainError("Invalid upload form. Choose the file again.");
     }
     const file = form.get("file"),
-      purpose = z.enum(["OWNERSHIP", "PHOTO"]).parse(form.get("purpose")),
+      purpose = vehicleFilePurpose.parse(form.get("purpose")),
       version = versionSchema.parse(Number(form.get("version")));
     if (!(file instanceof File))
       throw new DomainError("Choose a file to upload.");

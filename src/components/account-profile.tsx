@@ -5,17 +5,41 @@ import { useRef, useState } from "react";
 import { Banknote, CreditCard, UserRound } from "lucide-react";
 import type { AccountIdentity } from "@/modules/account/service";
 import type { AccountPreferences } from "@/modules/account/preferences";
+import { ProfileAvatar, profilePhotoChanged } from "./profile-avatar";
 
-export function AccountProfile({ identity, initial, payment }: {
+export function AccountProfile({ identity, initial, payment, photoRevision }: {
   identity: AccountIdentity;
   initial: AccountPreferences;
   payment: boolean;
+  photoRevision?: string | null;
 }) {
   const [preferences, setPreferences] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [saved, setSaved] = useState(false);
   const saving = useRef(false);
+  const [photo, setPhoto] = useState(photoRevision ?? null);
+  const [photoBusy, setPhotoBusy] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [photoStatus, setPhotoStatus] = useState("");
+  async function updatePhoto(file?: File) {
+    if (photoBusy) return;
+    setPhotoBusy(true);
+    setPhotoError("");
+    setPhotoStatus("");
+    try {
+      const result = await fetch("/api/account/photo", file
+        ? { method: "PUT", headers: { "Content-Type": file.type }, body: file }
+        : { method: "DELETE" });
+      const payload = await result.json();
+      if (!result.ok) throw Error(payload.error || "Unable to save your profile photo.");
+      setPhoto(payload.revision);
+      profilePhotoChanged(payload.revision);
+      setPhotoStatus(file ? "Profile photo updated." : "Profile photo removed.");
+    } catch (error) {
+      setPhotoError(error instanceof Error ? error.message : "Unable to save your profile photo.");
+    } finally { setPhotoBusy(false); }
+  }
   async function submit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     if (saving.current) return;
@@ -56,7 +80,22 @@ export function AccountProfile({ identity, initial, payment }: {
     <h1>{payment ? "Payment methods" : "Profile management"}</h1>
     <form className={payment ? "figma-panel figma-payment-preferences" : "figma-panel figma-profile-layout"} onSubmit={submit}>
       {!payment && <aside className="figma-profile-summary">
-        <span className="avatar"><UserRound size={55} aria-hidden="true"/></span>
+        <ProfileAvatar initial={photoRevision} fallback={<UserRound size={55} aria-hidden="true"/>}/>
+        <div className="profile-photo-actions">
+          <label className="button secondary profile-photo-picker">
+            {photoBusy ? "Saving photo…" : photo ? "Change photo" : "Upload photo"}
+            <input type="file" accept="image/jpeg,image/png,image/webp" disabled={photoBusy} className="sr-only"
+              onChange={event => {
+                const file = event.currentTarget.files?.[0];
+                event.currentTarget.value = "";
+                if (file) void updatePhoto(file);
+              }}/>
+          </label>
+          {photo && <button type="button" className="button secondary" disabled={photoBusy} onClick={() => void updatePhoto()}>Remove photo</button>}
+        </div>
+        <small>JPEG, PNG or WebP · Up to 5 MB</small>
+        {photoError && <p role="alert">{photoError}</p>}
+        {photoStatus && <p role="status">{photoStatus}</p>}
         <h2>{identity.name}</h2>
         <p>{identity.emailVerified ? "Verified email" : "Email verification pending"}</p>
         <p>Member since {new Intl.DateTimeFormat("en-PH", {month:"long", year:"numeric", timeZone:"Asia/Manila"}).format(new Date(initial.joined))}</p>

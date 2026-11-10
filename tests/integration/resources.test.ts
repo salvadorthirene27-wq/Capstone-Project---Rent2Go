@@ -352,7 +352,7 @@ it("does not let an agency release an owner's unavailability or an owner complet
     registration: `OB${randomUUID().replaceAll("-", "").slice(0, 9)}`,
     facts,
   });
-  for (const purpose of ["OWNERSHIP", "PHOTO"])
+  for (const purpose of ["OWNERSHIP", "DRIVER_LICENSE", "PHOTO"])
     await db.query(
       "INSERT INTO vehicle_file(id,vehicle_id,uploader_id,purpose,object_key,original_name,mime,size_bytes,sha256,backend) VALUES($1,$2,$3,$4,$5,'synthetic.png','image/png',10,'test','local')",
       [

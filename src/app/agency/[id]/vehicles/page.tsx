@@ -12,7 +12,7 @@ import { vehicleFactsSchema, vehicleTermsSchema } from "@/modules/vehicles/schem
 import { DomainError } from "@/modules/partners/workflow";
 
 const filterKeys = ["pending","make","model","year","bodyType","transmission","billingUnit","availability","minRate","maxRate"] as const;
-const units = {"24_HOUR":"Per 24 hours", CALENDAR_DAY:"Per calendar day", HOUR:"Per hour"};
+const units = {"12_HOUR":"Per 12 hours", "24_HOUR":"Per 24 hours", CALENDAR_DAY:"Per calendar day", HOUR:"Per hour"};
 const label = (value: string) => value[0] + value.slice(1).replaceAll("_"," ").toLowerCase();
 function centavos(value?: string) {
   if (!value) return undefined;

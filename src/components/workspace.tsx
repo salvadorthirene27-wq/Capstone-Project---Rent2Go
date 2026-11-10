@@ -1,4 +1,5 @@
 import { WorkspaceNavigation } from "./workspace-navigation";
+import { ProfileAvatar } from "./profile-avatar";
 import {Suspense} from 'react';
 import {WorkspaceSections} from './workspace-sections';
 import type { Actor } from "@/modules/partners/workflow";
@@ -17,7 +18,7 @@ export async function Workspace({
     <div className="workspace figma-workspace">
       <aside className="sidebar">
         <div className="identity">
-          <span className="avatar">{(actor.name || "A")[0]}</span>
+          {limited ? <span className="avatar">{(actor.name || "A")[0]}</span> : <ProfileAvatar key={actor.id} fallback={(actor.name || "A")[0]}/>}
           <div>
             <strong>{actor.name}</strong>
             <small>{actor.role.replaceAll("_", " ").toLowerCase()}</small>

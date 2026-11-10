@@ -23,7 +23,7 @@ export default async function Page({
   const cars = await publicVehicles(undefined, agency.id);
   const rates = agency.startingRates,
     unit = {
-      "24_HOUR": "per 24 hours",
+      "12_HOUR": "per 12 hours", "24_HOUR": "per 24 hours",
       CALENDAR_DAY: "per calendar day",
       HOUR: "per hour",
     }[rates.billingUnit];

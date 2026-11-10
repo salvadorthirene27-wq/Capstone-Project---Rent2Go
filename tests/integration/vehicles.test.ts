@@ -40,7 +40,7 @@ const facts = {
 };
 let agencyId: string;
 async function evidence(offer: any) {
-  for (const purpose of ["OWNERSHIP", "PHOTO"])
+  for (const purpose of offer.ownership === "CONSIGNED" ? ["OWNERSHIP", "DRIVER_LICENSE", "PHOTO"] : ["OWNERSHIP", "PHOTO"])
     await db.query(
       "INSERT INTO vehicle_file(id,vehicle_id,uploader_id,purpose,object_key,original_name,mime,size_bytes,sha256,backend) VALUES($1,$2,$3,$4,$5,'synthetic.png','image/png',10,'test','local')",
       [
@@ -164,7 +164,7 @@ it("requires active agency membership for agency-owned inventory even with a for
   expect(offer.terms.shares.cosigner).toBe(0);
   expect(offer.terms.shares.agency).toBe(8000);
 });
-it("blocks submission without ownership evidence and a vehicle photo", async () => {
+it("blocks a cosigner submission without the registration and driver's license", async () => {
   const offer = await personal();
   await expect(
     transitionVehicleOffer(owner, offer.id, {
@@ -472,7 +472,7 @@ it("discovers only authorized owned, agency and independent compliance queues", 
 });
 it("binds upload metadata to the owning draft and exposes only approved published photo revisions", async () => {
   let o = await personal();
-  const metadata = (purpose: "PHOTO" | "OWNERSHIP") => ({
+  const metadata = (purpose: "PHOTO" | "OWNERSHIP" | "DRIVER_LICENSE") => ({
     id: randomUUID(),
     purpose,
     name: "synthetic-evidence.png",
@@ -493,6 +493,13 @@ it("binds upload metadata to the owning draft and exposes only approved publishe
   const photo = metadata("PHOTO");
   saved = await attachVehicleFile(owner, o.id, o.version, photo);
   o.version = saved.version;
+  await expect(transitionVehicleOffer(owner, o.id, {
+    action: "SUBMIT", version: o.version, revision: o.revision,
+  })).rejects.toThrow(/driver's license/);
+  const license = metadata("DRIVER_LICENSE");
+  o.version = (await attachVehicleFile(owner, o.id, o.version, license)).version;
+  await expect(vehicleFileForRead(null, license.id)).rejects.toMatchObject({status:404});
+  await expect(vehicleFileForRead(other, license.id)).rejects.toMatchObject({status:404});
   await expect(
     attachVehicleFile(owner, o.id, o.version - 1, metadata("PHOTO")),
   ).rejects.toMatchObject({ status: 409 });
@@ -566,7 +573,7 @@ it("binds upload metadata to the owning draft and exposes only approved publishe
 }, 30000);
 it("keeps personal draft evidence private and shares corrected content only after resubmission", async () => {
   let o = await personal();
-  const file = (purpose: "PHOTO" | "OWNERSHIP") => ({
+  const file = (purpose: "PHOTO" | "OWNERSHIP" | "DRIVER_LICENSE") => ({
     id: randomUUID(),
     purpose,
     name: "private-draft.png",
@@ -579,6 +586,7 @@ it("keeps personal draft evidence private and shares corrected content only afte
   o.version = (await attachVehicleFile(owner, o.id, o.version, first)).version;
   const photo = file("PHOTO");
   o.version = (await attachVehicleFile(owner, o.id, o.version, photo)).version;
+  o.version = (await attachVehicleFile(owner, o.id, o.version, file("DRIVER_LICENSE"))).version;
   await expect(vehicleDetail(operator, o.id)).rejects.toMatchObject({
     status: 404,
   });
