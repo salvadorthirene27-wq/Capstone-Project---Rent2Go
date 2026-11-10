@@ -22,7 +22,10 @@
   text-decoration: none;
 }
 .figma-worksearch { display: flex; align-items: center; gap: 12px; padding: 0 19px; border: 1px solid #dedede; border-radius: 30px; background: white; }
-.figma-worksearch input { width: 100%; min-width: 0; height: 48px; padding: 0; border: 0; background: transparent; }
+.figma-worksearch input[name="search"] { width:100%; min-width:0; height:48px; padding:0; border:0; box-shadow:none; background:transparent; }
+.figma-worksearch:focus-within { outline:2px solid var(--forest); outline-offset:2px; }
+.figma-workbar .notification-bell { display:grid; place-items:center; position:relative; width:44px; height:44px; border:0; border-radius:50%; background:#eeeeee; color:var(--deep); cursor:pointer; }
+.figma-workbar .notification-bell:hover { background:var(--soft); }
 .figma-worksearch img { display: block; flex: none; }
 .figma-worktools { display: flex; align-items: center; justify-content: flex-end; gap: clamp(10px, 1.5vw, 25px); }
 .figma-workcart { display: inline-flex; align-items: center; gap: 7px; text-decoration: none; white-space: nowrap; color: #24463d; }
@@ -239,17 +242,24 @@
 .agency-overlay-heading { display:grid; align-items:center; grid-template-columns:1fr auto; gap:12px; margin-bottom:14px; }
 .agency-overlay-heading h2 { margin:0; color:var(--forest); font-size:21px; }
 .agency-overlay-heading :is(a,button) { display:inline-flex; align-items:center; justify-content:center; min-height:44px; border:0; background:transparent; color:var(--ink); padding-inline:8px; cursor:pointer; }
-.agency-edit-dialog { width:min(810px,calc(100vw - 32px)); max-height:calc(100svh - 32px); overflow:auto; overscroll-behavior:contain; padding:18px clamp(16px,4vw,52px) 28px; border:1px solid var(--line); border-radius:16px; color:var(--ink); background:var(--surface); box-shadow:0 5px 22px #183a3035; }
+.agency-edit-dialog { width:min(660px,calc(100vw - 32px)); max-height:calc(100svh - 32px); overflow:auto; overscroll-behavior:contain; padding:12px clamp(16px,3.4vw,40px) 20px; border:1px solid var(--line); border-radius:16px; color:var(--ink); background:var(--surface); box-shadow:0 5px 22px #183a3035; }
 .agency-edit-dialog::backdrop { background:#202e2a38; }
 .agency-edit-dialog .agency-overlay-heading { grid-template-columns:1fr auto 1fr; }
 .agency-edit-dialog .agency-overlay-heading h2 { grid-column:2; text-align:center; }
 .agency-edit-dialog .agency-overlay-heading a { justify-self:end; }
-.agency-edit-preview { display:flex; justify-content:center; margin-block:0 14px; }
-.agency-edit-preview img { width:min(270px,100%); height:135px; border-radius:9px; object-fit:contain; }
+.agency-edit-preview { display:flex; justify-content:center; align-items:center; flex-wrap:wrap; gap:12px 20px; margin-block:0 8px; }
+.agency-edit-preview img,.agency-edit-no-photo { width:min(200px,100%); height:94px; border-radius:9px; object-fit:contain; }
+.agency-edit-no-photo { display:grid; place-content:center; justify-items:center; gap:4px; background:var(--soft); color:var(--forest); font-size:12px; }
 .agency-vehicle-editor .page-title { margin:0; }
 .agency-vehicle-editor .page-title h3 { margin:0; }
 .agency-vehicle-editor .vehicle-editor-fields { margin-inline:0; padding:0; }
-.agency-vehicle-editor .context-section { margin-block:14px; padding:12px 0; }
+.agency-vehicle-editor .context-section { margin-block:8px; padding:4px 0; }
+.agency-vehicle-editor .field-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:7px 9px; }
+.agency-vehicle-editor form label { margin-block:0 5px; font-size:13px; }
+.agency-vehicle-editor form :is(input:not([type="checkbox"]),select) { min-height:36px; padding:6px 8px; font-size:14px; }
+.agency-edit-extra { margin-block:7px; padding:3px 8px; border:1px solid var(--line); border-radius:7px; font-size:13px; }
+.agency-edit-extra summary { padding-block:4px; color:var(--forest); cursor:pointer; }
+.agency-edit-extra[open] summary { margin-bottom:8px; }
 .agency-vehicle-editor form .button[type="submit"] { width:100%; }
 .agency-listings .figma-listing-photo { background:var(--soft); }
 .agency-listings .figma-listing-rate strong { color:#127025; }
@@ -257,7 +267,9 @@
 .agency-listings .status[data-availability="RESERVED"] { background:#edf7ed; color:#275e2b; border:1px solid #b5d7b8; }
 .agency-listings .status[data-availability="MAINTENANCE"] { background:#fff5e6; color:#784608; border:1px solid #f1d4a8; }
 @media(min-width:1130px){.agency-listings .figma-fleet-grid { grid-template-columns:repeat(4,minmax(0,1fr)); }}
-@media(max-width:510px){.agency-listing-filter { position:static; }.agency-listing-actions { position:relative; gap:8px; }.agency-listing-actions .button { padding-inline:10px; font-size:13px; }.agency-filter-popup { right:auto; left:0; }}
+.figma-workspace .full-inbox h1 { font-size:clamp(23px,2vw,28px); }
+.figma-workspace .full-inbox-search input[type="search"] { padding:6px 12px 6px 0; border:0; box-shadow:none; background:none; }
+@media(max-width:510px){.agency-listing-filter { position:static; }.agency-listing-actions { position:relative; gap:8px; }.agency-listing-actions .button { padding-inline:10px; font-size:13px; }.agency-filter-popup { right:auto; left:0; }.agency-vehicle-editor .field-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }}
 
 .figma-checkout-columns { display: grid; grid-template-columns: minmax(0,1.35fr) minmax(0,1fr); gap: 20px; align-items: start; margin-block: 20px; }
 .figma-checkout-columns > * { min-width: 0; }

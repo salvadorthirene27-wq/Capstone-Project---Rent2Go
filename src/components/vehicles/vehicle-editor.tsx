@@ -1,5 +1,6 @@
 "use client";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import { CarFront } from "lucide-react";
 import { useRouter } from "next/navigation";
 import type { vehicleDetail } from "@/modules/vehicles/service";
 import { VehicleFactsFields, VehicleTermsFields } from "./vehicle-fields";
@@ -16,6 +17,7 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
     [refreshing, setRefreshing] = useState(false),
     [actionBusy, setActionBusy] = useState(false),
     [error, setError] = useState("");
+  const evidence = useRef<HTMLDetailsElement>(null);
   const editable =
       initial.capabilities.isOwner &&
       ["DRAFT", "CHANGES_REQUESTED"].includes(initial.state),
@@ -78,7 +80,14 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
   const VehicleTitle = compact ? "h3" : "h1";
   return (
     <div className={compact ? "vehicle-editor agency-vehicle-editor" : "vehicle-editor"}>
-      {compact && photo && <div className="agency-edit-preview"><img src={`/api/vehicle-files/${photo.id}`} alt={initial.displayName}/></div>}
+      {compact && <div className="agency-edit-preview">
+        {photo ? <img src={`/api/vehicle-files/${photo.id}`} alt={initial.displayName}/> : <span className="agency-edit-no-photo"><CarFront size={36} aria-hidden="true"/>No vehicle photo</span>}
+        <button className="button secondary" type="button" disabled={busy || actionBusy} onClick={() => {
+          if (!evidence.current) return;
+          evidence.current.open = true;
+          evidence.current.querySelector("summary")?.focus();
+        }}>{editable ? "Manage photos" : "View photos and evidence"}</button>
+      </div>}
       <div className="page-title">
         <div>
           <VehicleTitle>
@@ -126,7 +135,7 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
       )}
       <fieldset disabled={busy || actionBusy} className="vehicle-editor-fields">
         <section className="context-section">
-          <h2>
+          <h2 className={compact && editable ? "sr-only" : undefined}>
             {editable
               ? "Vehicle and pricing"
               : proposal
@@ -135,6 +144,10 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
           </h2>
           {editable || proposal ? (
             <form
+              onInvalidCapture={event => {
+                const disclosure = (event.target as HTMLElement).closest("details");
+                if (disclosure) disclosure.open = true;
+              }}
               onSubmit={(e) => {
                 e.preventDefault();
                 request(
@@ -165,6 +178,7 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
               {editable ? (
                 <VehicleFactsFields
                   value={facts}
+                  compact={compact}
                   onChange={(v) => {
                     setFacts(v);
                     setDirty(true);
@@ -173,13 +187,14 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
               ) : (
                 <VehicleSummary facts={facts} terms={initial.terms} />
               )}
-              <h3>
+              <h3 className={compact && editable ? "sr-only" : undefined}>
                 {proposal
                   ? "Proposed owner–agency terms"
                   : "Rates and agreement defaults"}
               </h3>
               <VehicleTermsFields
                 value={terms}
+                compact={compact && editable}
                 onChange={(v) => {
                   setTerms(v);
                   setDirty(true);
@@ -201,8 +216,8 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
             <VehicleSummary facts={facts} terms={terms} />
           )}
         </section>
-        <section className="context-section">
-          <h2>Ownership evidence and vehicle photos</h2>
+        {(() => {
+          const content = <>
           <p>
             Ownership evidence stays private. Only photos in an approved
             published revision can appear publicly. Maximum 8 MB per file and 10
@@ -260,7 +275,7 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
             >
               <label>
                 Evidence purpose
-                <select name="purpose">
+                <select name="purpose" defaultValue={compact ? "PHOTO" : "OWNERSHIP"}>
                   <option value="OWNERSHIP">
                     Ownership / vehicle registration
                   </option>
@@ -287,7 +302,11 @@ export function VehicleEditor({ initial, compact = false }: { initial: Detail; c
               {dirty && <p>Save draft changes before uploading.</p>}
             </form>
           )}
-        </section>
+          </>;
+          return compact
+            ? <details className="agency-edit-extra" ref={evidence}><summary>Ownership evidence and vehicle photos</summary>{content}</details>
+            : <section className="context-section"><h2>Ownership evidence and vehicle photos</h2>{content}</section>;
+        })()}
         <VehicleActions
           offer={initial}
           dirty={dirty}

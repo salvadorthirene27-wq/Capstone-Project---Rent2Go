@@ -1,4 +1,5 @@
 "use client";
+import type { ReactNode } from "react";
 import type { VehicleFacts, VehicleTerms } from "@/modules/vehicles/schema";
 import { driverFeeUnitLabels } from "@/modules/pricing/units";
 export const emptyFacts: VehicleFacts = {
@@ -13,12 +14,18 @@ export const emptyFacts: VehicleFacts = {
   features: [],
   pickupInstructions: "",
 };
+function OptionalDisclosure({ compact, title, children }: { compact: boolean; title: string; children: ReactNode }) {
+  if (!compact) return children;
+  return <details className="agency-edit-extra"><summary>{title}</summary>{children}</details>;
+}
 export function VehicleFactsFields({
   value,
   onChange,
+  compact = false,
 }: {
   value: VehicleFacts;
   onChange: (v: VehicleFacts) => void;
+  compact?: boolean;
 }) {
   const text = (
     key: "make" | "model" | "description" | "pickupInstructions",
@@ -102,6 +109,7 @@ export function VehicleFactsFields({
           </label>
         ))}
       </div>
+      <OptionalDisclosure compact={compact} title="Vehicle description and pickup instructions">
       {text("description", "Vehicle description", true)}
       {text("pickupInstructions", "Pickup instructions", true)}
       <label>
@@ -114,15 +122,18 @@ export function VehicleFactsFields({
           }
         />
       </label>
+      </OptionalDisclosure>
     </>
   );
 }
 export function VehicleTermsFields({
   value,
   onChange,
+  compact = false,
 }: {
   value: VehicleTerms;
   onChange: (v: VehicleTerms) => void;
+  compact?: boolean;
 }) {
   function cash(
     key: "rateCentavos" | "depositCentavos" | "driverFeeCentavos",
@@ -153,12 +164,7 @@ export function VehicleTermsFields({
       </label>
     );
   }
-  return (
-    <>
-      <div className="field-grid">
-        {cash("rateCentavos", "Vehicle rate (PHP)")}
-        {cash("depositCentavos", "Refundable deposit (PHP)")}
-        <label>
+  const billingUnit = <label>
           Billing unit
           <select
             value={value.billingUnit}
@@ -173,7 +179,18 @@ export function VehicleTermsFields({
             <option value="CALENDAR_DAY">Per calendar day</option>
             <option value="HOUR">Per hour</option>
           </select>
-        </label>
+  </label>;
+  return (
+    <>
+      {compact && <div className="field-grid">
+        {cash("rateCentavos", "Vehicle rate (PHP)")}
+        {billingUnit}
+      </div>}
+      <OptionalDisclosure compact={compact} title="Deposits, driver fees, agreement and revenue allocation">
+      <div className="field-grid">
+        {!compact && cash("rateCentavos", "Vehicle rate (PHP)")}
+        {cash("depositCentavos", "Refundable deposit (PHP)")}
+        {!compact && billingUnit}
         {cash("driverFeeCentavos", "Driver charge (PHP; 0 if included)")}
         <label>
           Driver fee unit
@@ -270,6 +287,7 @@ export function VehicleTermsFields({
           </label>
         ))}
       </div>
+      </OptionalDisclosure>
     </>
   );
 }
