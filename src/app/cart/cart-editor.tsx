@@ -117,7 +117,7 @@ export function CartEditor({
 }) {
   if (!cart.totalItems)
     return (
-      <section className="context-section">
+      <section className="figma-panel">
         <h2>Plan your next journey</h2>
         <p>
           Your cart is empty. Select dates and guests on a listing, review its
@@ -132,20 +132,22 @@ export function CartEditor({
       </section>
     );
   return (
-    <>
-      {cart.groups.map((g) => (
-        <section className="context-section" key={g.agencyId}>
-          <h2>
-            <Link href={`/agencies/${g.agencyId}`}>{g.name}</Link>
-          </h2>
-          {g.items.map((line) => (
-            <Line key={`${line.id}:${line.version}`} line={line} />
-          ))}
-        </section>
-      ))}
-      <section className="cart-totals">
+    <div className="figma-checkout-columns figma-cart-columns">
+      <div className="figma-cart-groups">
+        {cart.groups.map((g) => (
+          <section className="figma-panel" key={g.agencyId}>
+            <h2>
+              <Link href={`/agencies/${g.agencyId}`}>{g.name}</Link>
+            </h2>
+            {g.items.map((line) => (
+              <Line key={`${line.id}:${line.version}`} line={line} />
+            ))}
+          </section>
+        ))}
+      </div>
+      <section className="figma-panel figma-checkout-summary">
         <h2>Saved estimates</h2>
-        <dl>
+        <dl className="payment-totals">
           <div>
             <dt>Service subtotal</dt>
             <dd>{money(cart.totals.serviceCentavos)}</dd>
@@ -169,11 +171,11 @@ export function CartEditor({
           review. It does not reserve inventory or collect payment.
         </p>
         {cart.readyToRequest && (
-          <Link className="button" href="/checkout">
+          <Link className="button figma-summary-action" href="/checkout">
             Review booking requests
           </Link>
         )}
       </section>
-    </>
+    </div>
   );
 }

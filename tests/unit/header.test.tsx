@@ -137,8 +137,8 @@ it('takes signed-in agencies directly to the combined application and guide',()=
 });
 
 
-it("keeps role navigation, payment settings and the mobile cart available in the workspace header", async () => {
-  state.pathname = "/workspace/account";
+it.each(["/workspace/account", "/cart", "/closed-credits/demo"])("keeps role navigation, payment settings and the mobile cart available on %s", async (pathname) => {
+  state.pathname = pathname;
   render(<Header />);
   const summary = screen.getByLabelText("Account menu");
   await userEvent.setup().click(summary);
@@ -146,7 +146,8 @@ it("keeps role navigation, payment settings and the mobile cart available in the
   const nav = screen.getByRole("navigation", {name:"Account navigation"});
   expect(nav.querySelector('a[href="/workspace/start"]')).toBeTruthy();
   expect(nav.querySelector('a[href="/workspace/account?section=payment"]')).toBeTruthy();
-  expect(nav.querySelector('a[href="/cart"]')).toBeTruthy();
+  expect(nav.querySelector('a[href="/cart"]')?.getAttribute("aria-current")).toBe(pathname === "/cart" ? "page" : null);
+  expect(nav.querySelector('a[href="/rentals"]')).toBeTruthy();
   expect(screen.getByRole("button", {name:"Notifications"})).toBeDefined();
   await userEvent.setup().keyboard("{Escape}");
   expect(summary.closest("details")?.open).toBe(false);

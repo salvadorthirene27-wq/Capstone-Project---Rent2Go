@@ -4,7 +4,7 @@ import {NotificationBell} from "./notification-bell";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { ArrowLeft, ChevronDown, LogOut, Menu, Search, ShoppingCart, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, LogOut, Menu, ShoppingCart, X } from "lucide-react";
 
 const links = [
   ["/", "Home"], ["/rentals", "Rentals"], ["/tours", "Tours"],
@@ -75,18 +75,19 @@ export function Header() {
     {brand}<Link href={accountPortal ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{accountPortal ? "Back to marketplace" : "Back to workspace"}</Link>
   </header>;
   const workspace = pathname.startsWith("/workspace") || pathname.startsWith("/agency/") ||
-    pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/checkout";
+    pathname === "/admin" || pathname.startsWith("/admin/") ||
+    pathname === "/cart" || pathname === "/checkout" || pathname.startsWith("/closed-credits/");
   if (workspace && session?.user) {
     const name = session.user.name || "Your account";
     const initials = name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
     return <header className="figma-workbar">
       <Link className="figma-workbrand" href="/" aria-label="Rent2Go home">RENT2GO</Link>
       <form className="figma-worksearch" action="/rentals">
-        <Search size={21} aria-hidden="true"/>
+        <img src="/figma/catalog/workbar-search.svg" alt=""/>
         <input name="search" aria-label="Search car rentals" placeholder="Search" maxLength={120}/>
       </form>
       <div className="figma-worktools">
-        <Link className="figma-workcart" href="/cart"><ShoppingCart size={20} aria-hidden="true"/>Cart{cartCount !== null ? ` (${cartCount})` : ""}</Link>
+        <Link className="figma-workcart" href="/cart" aria-current={selected("/cart") ? "page" : undefined}><ShoppingCart size={20} aria-hidden="true"/>Cart{cartCount !== null ? ` (${cartCount})` : ""}</Link>
         <NotificationBell userId={session.user.id}/>
         <details className="figma-account-menu" key={pathname} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.open = false; }} onKeyDown={e => {
           if (e.key === "Escape" && e.currentTarget.open) {
@@ -102,11 +103,13 @@ export function Header() {
             <Link href="/workspace/account?section=profile">Profile management</Link>
             <Link href="/workspace/bookings">My bookings</Link>
             <Link href="/workspace/bookings?view=HISTORY">Booking history</Link>
-            <Link href="/cart" className="figma-account-cart"><ShoppingCart size={16} aria-hidden="true"/>Cart{cartCount !== null ? ` (${cartCount})` : ""}</Link>
+            <Link href="/cart" className="figma-account-cart" aria-current={selected("/cart") ? "page" : undefined}><ShoppingCart size={16} aria-hidden="true"/>Cart{cartCount !== null ? ` (${cartCount})` : ""}</Link>
             <Link href="/workspace/account">Account &amp; security</Link>
             <Link href="/workspace/account?section=payment">Payment methods</Link>
+            <Link href="/rentals">Browse cars</Link>
             <Link href="/tours">Browse tours</Link>
             <Link href="/agencies">Browse agencies</Link>
+            <Link href="/workspace/application">For agencies</Link>
             <Link href="/help">Help center</Link>
             <button type="button" disabled={busy} onClick={signOut}><LogOut size={16} aria-hidden="true"/>{busy ? "Signing out…" : "Sign out"}</button>
             {error && <p role="alert">{error}</p>}
@@ -116,7 +119,7 @@ export function Header() {
     </header>;
   }
   return <>
-    <header className={`site-header unified-header${userId?" has-notification-bell":""}${open ? " navigation-expanded" : ""}`}
+    <header className={`site-header unified-header${pathname === "/" ? "" : " figma-marketplace-header"}${userId?" has-notification-bell":""}${open ? " navigation-expanded" : ""}`}
       onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}
       onKeyDown={e => { if (e.key === "Escape" && open) { setOpen(false); toggle.current?.focus(); } }}>
       {brand}

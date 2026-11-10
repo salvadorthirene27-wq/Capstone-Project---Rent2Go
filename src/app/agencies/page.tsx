@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MapPin, ArrowRight, Search } from "lucide-react";
+import { MapPin, ArrowRight } from "lucide-react";
 import { publicAgencies, agencySearchSchema } from "@/modules/agencies/service";
 import { serviceOptions } from "@/modules/partners/schema";
 import { serviceLabels } from "@/modules/partners/presentation";
@@ -21,14 +21,11 @@ export default async function Page({
   const pageHref = (page: number) =>
     `/agencies?${new URLSearchParams({ search: query.search, ...(query.service ? { service: query.service } : {}), page: String(page) })}`;
   return (
-    <main id="main-content" className="public-main directory-main">
+    <main id="main-content" className="public-main directory-main figma-catalog">
+      <Link className="back-link" href="/">Back to home page</Link>
       <div className="directory-heading">
         <div>
-          <h1>
-            Good journeys start
-            <br />
-            with the right agency.
-          </h1>
+<h1>Browse Agencies</h1>
           <p>
             Explore approved partners, their service areas, and the terms that
             work for your trip.
@@ -38,31 +35,27 @@ export default async function Page({
           Bring your agency to Rent2Go <ArrowRight size={17} />
         </Link>
       </div>
-      <form className="directory-filters" action="/agencies">
-        <label>
-          Agency or service area
-          <div className="search-field">
-            <Search size={19} />
-            <input
-              name="search"
-              maxLength={120}
-              defaultValue={query.search}
-              placeholder="Search by name or destination"
-            />
-          </div>
-        </label>
-        <label>
-          Service
-          <select name="service" defaultValue={query.service ?? ""}>
-            <option value="">All services</option>
-            {serviceOptions.map((s) => (
-              <option key={s} value={s}>
-                {serviceLabels[s]}
-              </option>
-            ))}
-          </select>
-        </label>
-        <button className="button">Find agencies</button>
+      <form className="marketplace-form figma-search-panel" action="/agencies">
+        <div className="figma-search-row">
+          <label className="figma-search-field">
+            <span className="sr-only">Agency or service area</span>
+            <img src="/figma/catalog/search.svg" alt="" />
+            <input name="search" maxLength={120} defaultValue={query.search} placeholder="Search by name or destination" />
+          </label>
+          <label className="figma-sort-field">
+            Service
+            <select name="service" defaultValue={query.service ?? ""}>
+              <option value="">All services</option>
+              {serviceOptions.map((service) => (
+                <option key={service} value={service}>{serviceLabels[service]}</option>
+              ))}
+            </select>
+          </label>
+        </div>
+        <div className="figma-catalog-actions">
+          <button className="button">Find agencies</button>
+          <Link href="/agencies">Clear filters</Link>
+        </div>
       </form>
       {!parsed.success && (
         <p role="alert">

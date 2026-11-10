@@ -31,18 +31,19 @@ export default async function Page({
     return `/tours?${queryString({ ...query, page })}`;
   }
   return (
-    <main id="main-content" className="public-main directory-main">
+    <main id="main-content" className="public-main directory-main figma-catalog">
+      <Link className="back-link" href="/">Back to home page</Link>
       <div className="directory-heading">
         <div>
           <p className="page-eyebrow">Tours & packages</p>
-          <h1>Find your next experience.</h1>
+          <h1>Browse Tours &amp; Packages</h1>
           <p>
             Join a scheduled group tour or choose a private experience for your
             party. Compare the itinerary, inclusions and agency terms.
           </p>
         </div>
       </div>
-      <form action="/tours" className="marketplace-form">
+      <form action="/tours" className="marketplace-form figma-search-panel">
         {query.agencyId && (
           <>
             <input type="hidden" name="agencyId" value={query.agencyId} />
@@ -52,10 +53,14 @@ export default async function Page({
             </p>
           </>
         )}
-        <div className="marketplace-filter-grid">
-          <label>
-            Package or destination
-            <input name="search" maxLength={120} defaultValue={query.search} />
+        {query.maxPriceCentavos !== undefined && (
+          <input type="hidden" name="maxPriceCentavos" value={query.maxPriceCentavos} />
+        )}
+        <div className="figma-search-row">
+          <label className="figma-search-field">
+            <span className="sr-only">Package or destination</span>
+            <img src="/figma/catalog/search.svg" alt="" />
+            <input name="search" maxLength={120} defaultValue={query.search} placeholder="Search packages or destinations" />
           </label>
           <label>
             Tour model
@@ -65,38 +70,46 @@ export default async function Page({
               <option value="PRIVATE">Private · per party</option>
             </select>
           </label>
-          <label>
-            Guests
-            <input
-              name="partySize"
-              type="number"
-              min={1}
-              max={500}
-              defaultValue={query.partySize}
-            />
-          </label>
-          <label>
-            Departure from (Manila)
-            <input type="date" name="dateFrom" defaultValue={query.dateFrom} />
-          </label>
-          <label>
-            Departure through (Manila)
-            <input type="date" name="dateTo" defaultValue={query.dateTo} />
-          </label>
-          <label>
-            Preferred whole-party budget (PHP; set guests)
-            <input
-              type="number"
-              name="budgetPHP"
-              min="0.01"
-              max="1000000"
-              step="0.01"
-              defaultValue={
-                query.budgetCentavos ? query.budgetCentavos / 100 : ""
-              }
-            />
-          </label>
-          <label>
+        </div>
+        <details className="policy-disclosure" open={Boolean(query.partySize || query.dateFrom || query.dateTo || query.budgetCentavos)}>
+          <summary>Departure dates, guests and budget</summary>
+          <div className="marketplace-filter-grid">
+            <label>
+              Guests
+              <input
+                name="partySize"
+                type="number"
+                min={1}
+                max={500}
+                defaultValue={query.partySize}
+              />
+            </label>
+            <label>
+              Departure from (Manila)
+              <input type="date" name="dateFrom" defaultValue={query.dateFrom} />
+            </label>
+            <label>
+              Departure through (Manila)
+              <input type="date" name="dateTo" defaultValue={query.dateTo} />
+            </label>
+            <label>
+              Preferred whole-party budget (PHP; set guests)
+              <input
+                type="number"
+                name="budgetPHP"
+                min="0.01"
+                max="1000000"
+                step="0.01"
+                defaultValue={
+                  query.budgetCentavos ? query.budgetCentavos / 100 : ""
+                }
+              />
+            </label>
+          </div>
+          <p>Departure dates use Manila time. Recommendations compare the whole-party service estimate with your budget.</p>
+        </details>
+        <div className="figma-catalog-actions">
+          <label className="figma-sort-field">
             Sort
             <select name="sort" defaultValue={query.sort}>
               <option value="RECOMMENDED">Recommended for your party</option>
@@ -105,15 +118,9 @@ export default async function Page({
               <option value="PRICE_DESC">Unit price: high to low</option>
             </select>
           </label>
-        </div>
-        <div className="marketplace-search-actions">
           <button className="button">Find tours</button>
           <Link href="/tours">Clear filters</Link>
         </div>
-        <p>
-          Departure dates use Manila. Recommendations compare actual whole-party
-          service estimates and your preferred budget.
-        </p>
       </form>
       {!parsed.success && (
         <p role="alert">
