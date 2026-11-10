@@ -33,6 +33,6 @@ export function NotificationBell({userId,onNavigate}:{userId:string;onNavigate?:
    <Bell size={21} aria-hidden="true"/>{count!==null&&count>0&&<span className="notification-dot" aria-hidden="true"/>}
    <span className="sr-only" role="status" aria-live="polite" aria-atomic="true">{count===null?'':count>0?`${count} unread notifications`:'All notifications are read'}</span>
   </button>
-  {open&&<NotificationPanel key={userId} close={()=>close(true)}/>}
+  {open&&<NotificationPanel key={userId} close={()=>close(true)} fullHref={path.match(/^\/agency\/[a-f0-9-]{36}(?=\/|$)/i)?.[0].concat('/notifications')}/>}
  </div>;
 }

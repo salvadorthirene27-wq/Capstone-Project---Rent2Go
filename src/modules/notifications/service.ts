@@ -4,6 +4,7 @@ import {transaction} from '../../lib/db';
 import {storedActor} from '../partners/service';
 import {DomainError,type Actor} from '../partners/workflow';
 import {inboxQuery,readNotifications,notificationAction,type NotificationSource} from './schema';
+import {notificationLabels} from './presentation';
 
 async function userContext(c:PoolClient,actor:Actor,lock=false){
  if(lock)await c.query('SELECT id FROM app_actor WHERE id=$1 FOR UPDATE',[actor.id]);
@@ -41,9 +42,12 @@ const source=`WITH delivered AS(${delivered}),inbox AS(SELECT n.*,COALESCE(r.rea
 export async function notificationEmailPermitted(c:PoolClient,user:Actor,kind:string,id:string){return Boolean((await c.query(`WITH delivered AS(${delivered}) SELECT permitted FROM delivered WHERE source=$3 AND id=$4`,[user.id,user.role,kind,id])).rows[0]?.permitted);}
 type Query=ReturnType<typeof inboxQuery.parse>;
 async function projection(c:PoolClient,user:Actor,q:Query){
- const params=[user.id,user.role,q.status,q.category],where="(($3::text='DELETED' AND hidden_at IS NOT NULL) OR ($3::text<>'DELETED' AND hidden_at IS NULL AND ($3::text='ALL' OR read_at IS NULL))) AND ($4::text='ALL' OR source=$4)",totals=(await c.query(`${source} SELECT count(*) FILTER(WHERE read_at IS NULL AND hidden_at IS NULL)::int unread,count(*) FILTER(WHERE ${where})::int total FROM inbox`,params)).rows[0];
- const pageCount=Math.max(1,Math.ceil(totals.total/20)),page=Math.min(q.page,pageCount),rows=(await c.query(`${source} SELECT source,id,CASE WHEN permitted THEN message ELSE 'Source access changed. This saved update is retained; private details are unavailable.' END message,created_at,read_at,CASE WHEN permitted THEN target ELSE NULL END link FROM inbox WHERE ${where} ORDER BY created_at DESC,id DESC,source LIMIT 20 OFFSET $5`,[...params,(page-1)*20])).rows;
- return {filters:{...q,page},unread:totals.unread as number,total:totals.total as number,pageCount,preparedAt:(await c.query('SELECT clock_timestamp() stamp')).rows[0].stamp.toISOString() as string,items:rows.map(r=>({source:r.source as NotificationSource,id:r.id as string,message:r.message as string,createdAt:(r.created_at as Date).toISOString(),readAt:r.read_at?(r.read_at as Date).toISOString():null,link:r.link as string|null}))};
+ const safeMessage="CASE WHEN permitted THEN message ELSE 'Source access changed. This saved update is retained; private details are unavailable.' END";
+ const params=[user.id,user.role,q.status,q.category,q.search??'',JSON.stringify(notificationLabels)];
+ const where=`(($3::text='DELETED' AND hidden_at IS NOT NULL) OR (hidden_at IS NULL AND ($3::text='ALL' OR ($3='READ' AND read_at IS NOT NULL) OR ($3='UNREAD' AND read_at IS NULL)))) AND ($4::text='ALL' OR source=$4) AND ($5::text='' OR strpos(lower(concat_ws(' ', $6::jsonb->>source, ${safeMessage})),lower($5))>0)`;
+ const totals=(await c.query(`${source} SELECT count(*) FILTER(WHERE read_at IS NULL AND hidden_at IS NULL)::int unread,count(*) FILTER(WHERE read_at IS NOT NULL AND hidden_at IS NULL)::int read,count(*) FILTER(WHERE ${where})::int total FROM inbox`,params)).rows[0];
+ const pageCount=Math.max(1,Math.ceil(totals.total/20)),page=Math.min(q.page,pageCount),rows=(await c.query(`${source} SELECT source,id,${safeMessage} message,created_at,read_at,CASE WHEN permitted THEN target ELSE NULL END link FROM inbox WHERE ${where} ORDER BY created_at DESC,id DESC,source LIMIT 20 OFFSET $7`,[...params,(page-1)*20])).rows;
+ return {filters:{...q,page},unread:totals.unread as number,read:totals.read as number,total:totals.total as number,pageCount,preparedAt:(await c.query('SELECT clock_timestamp() stamp')).rows[0].stamp.toISOString() as string,items:rows.map(r=>({source:r.source as NotificationSource,id:r.id as string,message:r.message as string,createdAt:(r.created_at as Date).toISOString(),readAt:r.read_at?(r.read_at as Date).toISOString():null,link:r.link as string|null}))};
 }
 export type NotificationInbox=Awaited<ReturnType<typeof projection>>;
 export async function getUnreadNotificationCount(actor:Actor){return transaction(async c=>{

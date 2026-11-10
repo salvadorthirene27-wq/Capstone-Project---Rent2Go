@@ -29,8 +29,18 @@ it('rejects a mixed foreign batch atomically and prevents receipt forgery or del
  const unread=(await getInbox(owner,{status:'UNREAD'})).items[0];await expect(markNotificationsRead(owner,{items:[{source:unread.source,id:unread.id},{source:'PARTNER',id:foreignId}]})).rejects.toMatchObject({status:404});expect((await getInbox(owner,{status:'UNREAD'})).items.some(n=>n.id===unread.id)).toBe(true);
  await expect(db.query("INSERT INTO notification_read_receipt(source,notification_id,recipient_id)VALUES('PARTNER',$1,$2)",[foreignId,owner.id])).rejects.toThrow(/delivered recipient/);await expect(db.query("UPDATE app_notification SET message='Altered' WHERE id=$1",[legacyId])).rejects.toThrow(/immutable/);await expect(db.query('DELETE FROM notification_read_receipt WHERE notification_id=$1',[financeId])).rejects.toThrow(/immutable/);
 });
+it('searches visible notification categories and messages while preserving global read counts', async () => {
+ const all = await getInbox(owner);
+ const read = await getInbox(owner, { status:'READ', search:'OWNER EARNINGS' });
+ expect(read.items.map(item => item.id)).toContain(financeId);
+ expect(read.items.every(item => Boolean(item.readAt))).toBe(true);
+ expect(read.unread).toBe(all.unread);
+ expect(read.read).toBe(all.read);
+ expect((await getInbox(owner, { status:'UNREAD', search:'Synthetic owner account update' })).total).toBe(0);
+ expect((await getInbox(owner, { search:'FOREIGN PRIVATE REASON' })).total).toBe(0);
+});
 it('redacts private source messages and links after membership revocation without deleting the delivered update',async()=>{
- expect((await getInbox(member)).items[0].message).toBe('PRIVATE MEMBER REVIEW REASON');await db.query('UPDATE agency_member SET active=false WHERE agency_id=$1 AND actor_id=$2',[agency,member.id]);try{const revoked=await getInbox(member);expect(revoked.items).toHaveLength(1);expect(revoked.items[0].link).toBeNull();expect(revoked.items[0].message).not.toContain('PRIVATE MEMBER');await markNotificationsRead(member,{items:[{source:'BOOKING',id:memberId}]});expect((await getInbox(member)).unread).toBe(0);}finally{await db.query('UPDATE agency_member SET active=true WHERE agency_id=$1 AND actor_id=$2',[agency,member.id]);}
+ expect((await getInbox(member)).items[0].message).toBe('PRIVATE MEMBER REVIEW REASON');await db.query('UPDATE agency_member SET active=false WHERE agency_id=$1 AND actor_id=$2',[agency,member.id]);try{const revoked=await getInbox(member);expect(revoked.items).toHaveLength(1);expect(revoked.items[0].link).toBeNull();expect(revoked.items[0].message).not.toContain('PRIVATE MEMBER');expect((await getInbox(member,{search:'PRIVATE MEMBER REVIEW REASON'})).total).toBe(0);await markNotificationsRead(member,{items:[{source:'BOOKING',id:memberId}]});expect((await getInbox(member)).unread).toBe(0);}finally{await db.query('UPDATE agency_member SET active=true WHERE agency_id=$1 AND actor_id=$2',[agency,member.id]);}
 });
 it('keeps historical owner updates accessible when an agency is inactive and blocks suspended actor reads',async()=>{
  await db.query('UPDATE agency SET active=false WHERE id=$1',[agency]);try{expect((await getInbox(owner)).items.find(n=>n.id===financeId)?.link).toContain('/workspace/earnings/');expect((await getInbox(operator)).items.filter(n=>n.source==='BOOKING').every(n=>n.link===null)).toBe(true);}finally{await db.query('UPDATE agency SET active=true WHERE id=$1',[agency]);}

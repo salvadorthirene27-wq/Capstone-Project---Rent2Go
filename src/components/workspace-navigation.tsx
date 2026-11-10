@@ -1,7 +1,7 @@
 "use client";
 import {useEffect,useRef,useState} from "react";
 import {usePathname} from "next/navigation";
-import {ChevronDown,Home,CircleHelp,Search,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet,ChartNoAxesCombined} from "lucide-react";
+import {Bell,ChevronDown,Home,CircleHelp,Search,CarFront,ClipboardList,CalendarDays,Building2,ShieldCheck,Map,LayoutDashboard,Wallet,ChartNoAxesCombined} from "lucide-react";
 import {WorkspaceLink as Link} from "./workspace-link";
 import type {Actor} from "@/modules/partners/workflow";
 
@@ -26,6 +26,7 @@ export function WorkspaceNavigation({role,limited=false,showVehicles=role!=='REN
     <Link href={`/agency/${agency}/accounting`}><Wallet size={19} aria-hidden="true"/>Owner earnings & payouts</Link>
     <Link href={`/agency/${agency}/remittances`}><Building2 size={19} aria-hidden="true"/>Rent2Go remittances</Link>
     <Link href={`/agency/${agency}/reports`}><ChartNoAxesCombined size={19} aria-hidden="true"/>Agency reports</Link>
+    {path===`/agency/${agency}/notifications`&&<Link href={path} exact><Bell size={19} aria-hidden="true"/>Notifications</Link>}
    </div>}
    {role==='SUPER_ADMIN'&&<div className="workspace-nav-group"><p>Platform workspace</p>
     <Link href="/admin" exact><ShieldCheck size={19} aria-hidden="true"/>Partner reviews</Link>
