@@ -2,21 +2,28 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState, type FormEvent } from "react";
-import { Eye, EyeOff } from "lucide-react";
+import { ChevronDown, Eye, EyeOff } from "lucide-react";
 import { authClient } from "@/lib/auth-client";
 import { onboardingPaths, parseOnboardingPath, type OnboardingPath } from "@/modules/account/onboarding";
 
 type EntryMode = "login" | "signup" | "recover";
-type Mode = EntryMode | "reset-code" | "reset" | "updated";
+type Mode = EntryMode | "signup-details" | "reset-code" | "reset" | "updated";
 
 const headings: Record<Mode, string> = {
   login: "Welcome back to Rent2Go!",
   signup: "WELCOME TO Rent2Go!",
+  "signup-details": "Finish registration",
   recover: "Forgot password?",
   "reset-code": "Enter code",
   reset: "Set new password",
   updated: "Password updated",
 };
+
+const roles = [
+  ["agency", "Car Rental Agency"],
+  ["cosigner", onboardingPaths.cosigner.label],
+  ["renter", "Customer"],
+] as const satisfies ReadonlyArray<readonly [OnboardingPath, string]>;
 
 export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
   const [mode, setMode] = useState<Mode>(initialMode ?? "login");
@@ -28,6 +35,10 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
   const [visible, setVisible] = useState(false);
   const [wait, setWait] = useState(0);
   const [code, setCode] = useState("");
+  const [role, setRole] = useState<OnboardingPath>();
+  const [rolesOpen, setRolesOpen] = useState(false);
+  const roleButton = useRef<HTMLButtonElement>(null);
+  const signupDraft = useRef<{email: string; password: string; onboarding: OnboardingPath} | null>(null);
   const [formRevision, setFormRevision] = useState(0);
   const active = useRef(true);
   const pending = useRef(false);
@@ -54,6 +65,8 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
   function change(next: Mode) {
     if (pending.current) return;
     verifiedCode.current = "";
+    signupDraft.current = null;
+    setRolesOpen(false);
     setCode("");
     setMode(next);
     setError("");
@@ -85,7 +98,7 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
     const form = event.currentTarget;
     const values = new FormData(form);
     const target = (mode === "reset-code" || mode === "reset" ? recoveryEmail : email).trim();
-    const password = String(values.get("password") ?? "");
+    const password = mode === "signup-details" ? signupDraft.current?.password ?? "" : String(values.get("password") ?? "");
     let resetSubmitted = false;
 
     try {
@@ -109,23 +122,36 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
         setVisible(false);
         return;
       }
-      if (mode === "signup" || mode === "reset") {
+      if (mode === "signup") {
+        if (password.length < 12 || password.length > 128) throw Error("Use a password with 12 to 128 characters.");
+        const onboarding = parseOnboardingPath(role);
+        if (!onboarding) throw Error("Choose a role to continue.");
+        signupDraft.current = { email: target, password, onboarding };
+        setRolesOpen(false);
+        setVisible(false);
+        setMode("signup-details");
+        return;
+      }
+      if (mode === "signup-details" || mode === "reset") {
         if (password.length < 12 || password.length > 128) throw Error("Use a password with 12 to 128 characters.");
         if (password !== values.get("confirmPassword")) throw Error("The passwords do not match.");
       }
-      if (mode === "signup") {
+      if (mode === "signup-details") {
+        const draft = signupDraft.current;
+        if (!draft) { setMode("signup"); throw Error("Enter your registration details again."); }
         const name = String(values.get("name") ?? "").trim();
         if (name.length < 2) throw Error("Enter your full name.");
-        const onboarding = parseOnboardingPath(values.get("onboarding")) ?? "renter";
-        const result = await authClient.signUp.email({ email: target, password, name });
+        const {email: signupEmail, onboarding} = draft;
+        const result = await authClient.signUp.email({ email: signupEmail, password, name });
         if (result.error) {
           throw Error("Unable to create the account. Check your details, or sign in or recover an existing account.");
         }
         if (!active.current) return;
+        signupDraft.current = null;
         if (result.data?.token) {
           window.location.assign(`/workspace/account?onboarding=${onboarding}`);
         } else {
-          createdAccount.current = { email: target.toLowerCase(), onboarding };
+          createdAccount.current = { email: signupEmail.toLowerCase(), onboarding };
           setMode("login");
           setVisible(false);
           setMessage("Your account is created. Sign in to open Account & security and verify your email.");
@@ -208,7 +234,7 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
       {mode !== "signup" && (mode === "login"
         ? <Link className="figma-auth-back" href="/"><BackArrow />Back</Link>
         : <button className="figma-auth-back" type="button" disabled={busy}
-            onClick={() => change(mode === "reset" ? "reset-code" : mode === "reset-code" ? "recover" : "login")}>
+            onClick={() => change(mode === "signup-details" ? "signup" : mode === "reset" ? "reset-code" : mode === "reset-code" ? "recover" : "login")}>
             <BackArrow />Back
           </button>)}
       <div className="figma-auth-content">
@@ -222,6 +248,7 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
         {mode === "signup" && <p className="figma-auth-intro">
           Choose <strong>Car Rental Agency</strong> to apply as a partner, <strong>Cosigner</strong> to offer a vehicle, or <strong>Customer</strong> to explore and book services.
         </p>}
+        {mode === "signup-details" && <p className="figma-auth-intro">Enter your name and confirm your password to create your {roles.find(([value]) => value === role)?.[1]} account.</p>}
         {mode === "recover" && <p className="figma-auth-intro">Enter your account email to receive a code.</p>}
         {mode === "reset-code" && <p className="figma-auth-intro">Sent to <strong>{recoveryEmail}</strong></p>}
         {mode === "reset" && <p className="figma-auth-intro">Use 12 to 128 characters and choose a different password.</p>}
@@ -234,12 +261,12 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
           <form key={`${mode}:${formRevision}`} onSubmit={submit}>
             <fieldset disabled={busy} className="figma-auth-fields">
               <legend className="sr-only">{headings[mode]}</legend>
-              {mode === "signup" && (
+              {mode === "signup-details" && (
                 <label className="figma-auth-field">Full name
                   <input name="name" placeholder="Full name" autoComplete="name" required minLength={2} maxLength={120} />
                 </label>
               )}
-              {mode !== "reset" && (
+              {mode !== "reset" && mode !== "signup-details" && (
                 <label className={mode === "reset-code" ? "sr-only" : "figma-auth-field"}>
                   <span className={mode === "signup" ? undefined : "sr-only"}>Email address</span>
                   <input name="email" type="email" placeholder="Email address" autoComplete="email"
@@ -279,21 +306,29 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
                   </div>
                 </div>
               )}
-              {(mode === "signup" || mode === "reset") && (
+              {(mode === "signup-details" || mode === "reset") && (
                 <label className="figma-auth-field">
-                  <span className={mode === "signup" ? undefined : "sr-only"}>Confirm new password</span>
+                  <span className={mode === "signup-details" ? undefined : "sr-only"}>Confirm new password</span>
                   <input name="confirmPassword" placeholder="Confirm new password" type={visible ? "text" : "password"}
                     autoComplete="new-password" minLength={12} maxLength={128} required />
                 </label>
               )}
               {mode === "signup" && (
-                <div>
-                  <label className="figma-auth-field">Role
-                    <select name="onboarding" defaultValue="renter" aria-describedby="signup-path-hint">
-                      {Object.entries(onboardingPaths).map(([value, path]) => <option key={value} value={value}>{path.label}</option>)}
-                    </select>
-                  </label>
-                  <small id="signup-path-hint">Agency access follows approval.</small>
+                <div className="figma-auth-role figma-auth-field"
+                  onBlur={event => { if (!event.currentTarget.contains(event.relatedTarget)) setRolesOpen(false); }}
+                  onKeyDown={event => { if (event.key === "Escape" && rolesOpen) { setRolesOpen(false); roleButton.current?.focus(); } }}>
+                  <span id="auth-role-label">Role</span>
+                  <button type="button" className="figma-auth-role-trigger" ref={roleButton}
+                    aria-labelledby="auth-role-label auth-role-value" aria-expanded={rolesOpen}
+                    aria-controls={rolesOpen ? "auth-roles" : undefined} onClick={() => setRolesOpen(open => !open)}>
+                    <span id="auth-role-value">{roles.find(([value]) => value === role)?.[1]}</span>
+                    <ChevronDown size={17} aria-hidden="true" />
+                  </button>
+                  {rolesOpen && <div id="auth-roles" className="figma-auth-role-options" role="group" aria-labelledby="auth-role-label">
+                    {roles.map(([value,label]) => <button type="button" key={value} aria-pressed={role === value} onClick={() => {
+                      setRole(value); setRolesOpen(false); roleButton.current?.focus();
+                    }}>{label}</button>)}
+                  </div>}
                 </div>
               )}
               {(error || message) && (
@@ -302,7 +337,7 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
                 </p>
               )}
               <button className="figma-auth-primary" disabled={busy || (mode === "recover" && wait > 0)}>
-                {busy ? "Please wait…" : mode === "signup" ? "Register" : mode === "recover"
+                {busy ? "Please wait…" : mode === "signup" ? "Register" : mode === "signup-details" ? "Create account" : mode === "recover"
                   ? (wait ? `Request another code in ${wait}s` : "Send Code") : mode === "reset-code"
                     ? "Verify Code" : mode === "reset" ? "Reset Password" : "Login"}
               </button>
@@ -323,7 +358,7 @@ export function AuthForm({ initialMode }: { initialMode?: EntryMode }) {
         </div>
       </div>
       <div className="figma-auth-panel-footer">
-        {mode === "signup" ? <>Already have an account? <button type="button" disabled={busy} onClick={() => change("login")}>Login</button></>
+        {mode === "signup" || mode === "signup-details" ? <>Already have an account? <button type="button" disabled={busy} onClick={() => change("login")}>Login</button></>
           : mode === "login" ? <>Don’t have an account? <button type="button" disabled={busy} onClick={() => change("signup")}>Register</button></>
             : <>Need help? <Link href="/help">Support</Link></>}
       </div>
