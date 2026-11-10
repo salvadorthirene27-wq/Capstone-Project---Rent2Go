@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { MapPin, Search } from "lucide-react";
 import { searchVehicles } from "@/modules/marketplace/vehicles";
 import {
   rentalFilters,
@@ -9,6 +10,15 @@ import {
 import { RentalFleetCard } from "@/components/rental-fleet-card";
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Find a rental" };
+const bodyTypes = {
+  SEDAN: "Sedan",
+  SUV: "SUV",
+  MPV: "MPV",
+  VAN: "Van",
+  HATCHBACK: "Hatchback",
+  PICKUP: "Pickup",
+  OTHER: "Other",
+} as const;
 const units = {
   "24_HOUR": "per 24 hours",
   CALENDAR_DAY: "per calendar day",
@@ -23,19 +33,15 @@ export default async function Page({
     result = await searchVehicles(query),
     pageHref = (page: number) => `/rentals?${queryString({ ...query, page })}`;
   return (
-    <main id="main-content" className="public-main directory-main">
+    <main id="main-content" className="public-main directory-main figma-catalog">
+      <Link className="back-link" href="/">Back to home page</Link>
       <div className="directory-heading">
         <div>
-          <p className="page-eyebrow">Car rentals</p>
-          <h1>A car that fits your journey.</h1>
-          <p>
-            Compare approved agency vehicles, choose your dates and understand
-            the cost before requesting a booking.
-          </p>
+          <h1>Browse cars</h1>
         </div>
         <Link href="/agencies">Browse by agency</Link>
       </div>
-      <form action="/rentals" className="marketplace-form">
+      <form action="/rentals" className="marketplace-form figma-search-panel">
         {query.agencyId && (
           <>
             <input type="hidden" name="agencyId" value={query.agencyId} />
@@ -45,20 +51,39 @@ export default async function Page({
             </p>
           </>
         )}
-        <div className="marketplace-filter-grid">
-          <label>
-            Make, model or keyword
-            <input name="search" maxLength={120} defaultValue={query.search} />
+        <div className="figma-search-row">
+          <label className="figma-search-field">
+            <span className="sr-only">Make, model or keyword</span>
+            <Search aria-hidden="true" size={19}/>
+            <input name="search" maxLength={120} defaultValue={query.search} placeholder="Search for cars…"/>
           </label>
-          <label>
-            Service area
-            <input
-              name="serviceArea"
-              maxLength={120}
-              defaultValue={query.serviceArea}
-              placeholder="e.g., Albay"
-            />
+          <label className="figma-search-field">
+            <span className="sr-only">Service area</span>
+            <MapPin aria-hidden="true" size={19}/>
+            <input name="serviceArea" maxLength={120} defaultValue={query.serviceArea} placeholder="Search your location…"/>
           </label>
+          <fieldset className="figma-price-range">
+            <legend>Listed rate (PHP)</legend>
+            <input aria-label="Minimum listed unit rate (PHP)" name="minRatePHP" type="number" min="0" max="1000000" step="0.01" placeholder="Min" defaultValue={query.minRateCentavos === undefined ? "" : query.minRateCentavos / 100}/>
+            <input aria-label="Maximum listed unit rate (PHP)" name="maxRatePHP" type="number" min="0.01" max="1000000" step="0.01" placeholder="Max" defaultValue={query.maxRateCentavos === undefined ? "" : query.maxRateCentavos / 100}/>
+          </fieldset>
+          <label className="figma-sort-field">Sort
+            <select name="sort" defaultValue={query.sort}>
+              <option value="RECOMMENDED">Recommended</option>
+              <option value="NAME">Vehicle name</option>
+              <option value="PRICE_ASC">Price: low to high</option>
+              <option value="PRICE_DESC">Price: high to low</option>
+            </select>
+          </label>
+          <button className="button">Find rentals</button>
+        </div>
+        <nav className="figma-filter-chips" aria-label="Vehicle categories">
+          <Link aria-current={!query.bodyType ? "page" : undefined} href={`/rentals?${queryString({...query, bodyType:undefined, page:1})}`}>All vehicles</Link>
+          {Object.entries(bodyTypes).map(([value,label])=><Link key={value} aria-current={query.bodyType===value?"page":undefined} href={`/rentals?${queryString({...query, bodyType:value, page:1})}`}>{label}</Link>)}
+        </nav>
+        <details className="policy-disclosure" open={Boolean(query.startAt || query.mode || query.transmission || query.fuel || query.billingUnit || query.partySize || query.budgetCentavos || query.preferredTransmission)}>
+          <summary>Dates, availability and more filters</summary>
+          <div className="marketplace-filter-grid">
           <label>
             Rental mode
             <select name="mode" defaultValue={query.mode ?? ""}>
@@ -93,10 +118,6 @@ export default async function Page({
               defaultValue={localInput(query.endAt)}
             />
           </label>
-        </div>
-        <details className="policy-disclosure">
-          <summary>Vehicle filters and budget preferences</summary>
-          <div className="marketplace-filter-grid">
             <label>
               Required transmission
               <select
@@ -123,19 +144,7 @@ export default async function Page({
               Body type
               <select name="bodyType" defaultValue={query.bodyType ?? ""}>
                 <option value="">Any body type</option>
-                {[
-                  "SEDAN",
-                  "HATCHBACK",
-                  "SUV",
-                  "MPV",
-                  "VAN",
-                  "PICKUP",
-                  "OTHER",
-                ].map((v) => (
-                  <option key={v} value={v}>
-                    {v}
-                  </option>
-                ))}
+                {Object.entries(bodyTypes).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
               </select>
             </label>
             <label>
@@ -161,19 +170,6 @@ export default async function Page({
               </select>
             </label>
             <label>
-              Maximum listed unit rate (PHP)
-              <input
-                name="maxRatePHP"
-                type="number"
-                min="0.01"
-                max="1000000"
-                step="0.01"
-                defaultValue={
-                  query.maxRateCentavos ? query.maxRateCentavos / 100 : ""
-                }
-              />
-            </label>
-            <label>
               Preferred service budget (PHP; add dates)
               <input
                 name="budgetPHP"
@@ -188,28 +184,11 @@ export default async function Page({
             </label>
           </div>
           <p>
-            Recommendations prioritize budget fit, then your transmission
-            preference and service estimate. Deposits are separate. No
-            popularity or ratings are inferred.
+            Times use Manila (UTC+08:00). An agency driver occupies one seat in addition to your party.
+            Recommendations use budget fit, your transmission preference and service estimates. Deposits are separate.
           </p>
         </details>
-        <div className="marketplace-search-actions">
-          <label>
-            Sort results
-            <select name="sort" defaultValue={query.sort}>
-              <option value="RECOMMENDED">Recommended for these filters</option>
-              <option value="NAME">Vehicle name</option>
-              <option value="PRICE_ASC">Listed unit rate: low to high</option>
-              <option value="PRICE_DESC">Listed unit rate: high to low</option>
-            </select>
-          </label>
-          <button className="button">Find rentals</button>
-          <Link href="/rentals">Clear filters</Link>
-        </div>
-        <p>
-          Times use Manila (UTC+08:00). For with-driver rentals, the agency
-          driver occupies one seat in addition to your party.
-        </p>
+        <Link className="figma-clear-filters" href="/rentals">Clear filters</Link>
       </form>
       {error && (
         <p className="notice" role="alert">

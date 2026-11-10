@@ -9,7 +9,7 @@ export default async function Page({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; state?: string }>;
 }) {
   const actor = await pageActor(),
     agency = await pageAgency(actor, (await params).id),
@@ -37,6 +37,7 @@ export default async function Page({
         scope="AGENCY"
         agencyId={agency.id}
         page={page}
+        state={q.state}
         basePath={`/agency/${agency.id}/vehicles`}
       />
     </Workspace>

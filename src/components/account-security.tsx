@@ -4,7 +4,8 @@ import {EmailUpdates} from './email-settings';
 import {useEffect,useRef,useState} from 'react';
 import {MailCheck,ShieldCheck} from 'lucide-react';
 import type {AccountIdentity} from '@/modules/account/service';
-export function AccountSecurity({initial}:{initial:AccountIdentity}){
+import {onboardingPaths,type OnboardingPath} from '@/modules/account/onboarding';
+export function AccountSecurity({initial,onboarding}:{initial:AccountIdentity;onboarding?:OnboardingPath}){
  const [data,setData]=useState<AccountIdentity|null>(initial),[busy,setBusy]=useState(false),[code,setCode]=useState(''),[wait,setWait]=useState(0),[error,setError]=useState(''),[message,setMessage]=useState('');
  const pending=useRef(false),active=useRef(true),request=useRef<AbortController|null>(null),feedback=useRef<HTMLParagraphElement>(null);
  useEffect(()=>{active.current=true;return()=>{active.current=false;request.current?.abort();};},[]);
@@ -25,6 +26,9 @@ export function AccountSecurity({initial}:{initial:AccountIdentity}){
   <p>Keep your email verified so you can receive account codes and choose email updates.</p>
   {(error||message)&&<p ref={feedback} tabIndex={-1} role={error?'alert':'status'} className={error?'error-box':'notice'}>{error||message}</p>}
   {!data?<p><Link href="/login">Sign in again</Link> to continue managing your account.</p>:<>
+   {onboarding&&<section className="context-section"><h2>Get started</h2>
+    <Link className="button secondary" href={onboardingPaths[onboarding].href}>{onboardingPaths[onboarding].action}</Link>
+   </section>}
    <section className="context-section"><h2><MailCheck size={22} aria-hidden="true"/> Email verification</h2><p><strong>{data.email}</strong></p><p className="account-verification-state"><ShieldCheck size={18} aria-hidden="true"/>{data.emailVerified?'Email verified':'Email not yet verified'}</p>
     {data.emailVerified?<p>Your email ownership is confirmed. Identity documents and agency approval still have their own reviews.</p>:<>
      <p>Request a code for the email on this account, then enter it below. Paste and password-manager autofill are supported. A new code may replace an earlier code.</p>

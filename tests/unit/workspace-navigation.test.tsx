@@ -40,7 +40,7 @@ it("closes the menu with Escape and restores focus to its toggle",async()=>{
 });
 it("closes on a selected link, an external focus change, and a route change",async()=>{
  const view=render(<><WorkspaceNavigation role="RENTER"/><button>Outside</button></>),user=userEvent.setup(),toggle=screen.getByRole("button",{name:"Workspace menu"});
- const home=screen.getByRole("link",{name:"Workspace home"});home.addEventListener("click",e=>e.preventDefault());
+ const home=screen.getByRole("link",{name:"Dashboard"});home.addEventListener("click",e=>e.preventDefault());
  await user.click(toggle);await user.click(home);expect(toggle.getAttribute("aria-expanded")).toBe("false");
  await user.click(toggle);await user.click(screen.getByRole("button",{name:"Outside"}));expect(toggle.getAttribute("aria-expanded")).toBe("false");
  await user.click(toggle);state.path="/workspace/bookings";view.rerender(<><WorkspaceNavigation role="RENTER"/><button>Outside</button></>);

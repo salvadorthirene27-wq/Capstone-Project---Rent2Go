@@ -3,9 +3,10 @@ import {z} from 'zod';
 import {transaction} from '../../lib/db';
 import {storedActor} from '../partners/service';
 import type {Actor} from '../partners/workflow';
+import {closedBookingStatuses as terminal} from '../bookings/schema';
 import type {CartQuote} from '../cart/pricing';
 const query=z.object({activePage:z.coerce.number().int().min(1).max(10000).default(1),historyPage:z.coerce.number().int().min(1).max(10000).default(1)}).strict();
-const terminal=['COMPLETED','CANCELLED','REJECTED','QUOTE_DECLINED','HOLD_EXPIRED'];
+
 // A legacy renter may already own vehicles or operate an agency. Navigation
 // follows those saved relationships; it never grants authority to an API.
 export const hasVehicleWorkspace=cache(async(id:string,role:Actor['role'])=>{

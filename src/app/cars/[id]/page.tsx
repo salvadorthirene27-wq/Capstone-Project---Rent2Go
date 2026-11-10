@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { CarFront, Fuel, Settings2, Users } from "lucide-react";
 import { notFound } from "next/navigation";
 import { publicVehicle } from "@/modules/vehicles/service";
 import { DomainError } from "@/modules/partners/workflow";
@@ -36,21 +37,11 @@ export default async function Page({
         ).items[0]
       : null;
   return (
-    <main id="main-content" className="public-main agency-profile">
+    <main id="main-content" className="public-main agency-profile figma-vehicle">
       <nav className="page-navigation" aria-label="Vehicle navigation">
         <Link href={`/rentals?${queryString(query)}`}>Back to car rentals</Link>
         <Link href="/cart">Your cart</Link>
       </nav>
-      <Link className="back-link" href={`/agencies/${car.agencyId}`}>
-        View {car.agencyName}
-      </Link>
-      <h1>
-        {car.facts.make} {car.facts.model}
-      </h1>
-      <p>
-        {car.facts.year} · {car.facts.seats} seats ·{" "}
-        {car.facts.transmission.toLowerCase()} · {car.facts.fuel.toLowerCase()}
-      </p>
       {error && (
         <p className="notice" role="alert">
           {error}
@@ -87,7 +78,7 @@ export default async function Page({
           </Link>
         </section>
       )}
-      <div className="vehicle-photo-grid">
+      <div className={`vehicle-photo-grid figma-gallery figma-gallery-${Math.min(car.photoIds.length, 3)}`}>
         {car.photoIds.map((id) => (
           <img
             key={id}
@@ -98,8 +89,20 @@ export default async function Page({
           />
         ))}
       </div>
-      <div className="profile-layout">
+      <div className="profile-layout figma-vehicle-details">
         <section>
+          <h1>{car.facts.make} {car.facts.model}</h1>
+          <p>{car.facts.year}</p>
+          <ul className="figma-specs" aria-label="Vehicle specifications">
+            <li><CarFront size={17} aria-hidden="true"/>{car.facts.bodyType}</li>
+            <li><Users size={17} aria-hidden="true"/>{car.facts.seats} seats</li>
+            <li><Settings2 size={17} aria-hidden="true"/>{car.facts.transmission.toLowerCase()}</li>
+            <li><Fuel size={17} aria-hidden="true"/>{car.facts.fuel.toLowerCase()}</li>
+          </ul>
+          <div className="figma-panel figma-vehicle-agency">
+            <span className="avatar" aria-hidden="true">{car.agencyName[0]}</span>
+            <div><strong>{car.agencyName}</strong><br/><Link href={`/agencies/${car.agencyId}`}>Agency terms and contacts</Link></div>
+          </div>
           <h2>About this vehicle</h2>
           <p className="preserve-lines">{car.facts.description}</p>
           <p>{car.facts.features.join(" · ")}</p>
@@ -111,7 +114,17 @@ export default async function Page({
           <p className="preserve-lines">{car.pricing.exclusions}</p>
         </section>
         <aside id="rental-booking" className="profile-contact">
-          <h2>Plan this rental</h2>
+          <h2>{money(car.pricing.rateCentavos)}</h2>
+          <p>
+            {
+              {
+                "24_HOUR": "Per 24 hours",
+                CALENDAR_DAY: "Per calendar day",
+                HOUR: "Per hour",
+              }[car.pricing.billingUnit]
+            }
+          </p>
+          <h3>Booking details</h3>
           <CartSelection
             key={`${car.id}:${car.revision}:${query.startAt}:${query.endAt}:${query.mode}:${query.partySize}`}
             initial={{
@@ -128,16 +141,6 @@ export default async function Page({
             modes={car.pricing.modes}
             maxParty={car.facts.seats}
           />
-          <h2>{money(car.pricing.rateCentavos)}</h2>
-          <p>
-            {
-              {
-                "24_HOUR": "Per 24 hours",
-                CALENDAR_DAY: "Per calendar day",
-                HOUR: "Per hour",
-              }[car.pricing.billingUnit]
-            }
-          </p>
           <p>Refundable deposit: {money(car.pricing.depositCentavos)}</p>
           {car.pricing.modes.includes("WITH_DRIVER") && (
             <p>
@@ -156,9 +159,7 @@ export default async function Page({
             Confirm dates and availability with the agency. Final charges and
             conditions are defined by the approved quotation and agreement.
           </p>
-          <Link className="button" href={`/agencies/${car.agencyId}`}>
-            Agency terms and contacts
-          </Link>
+
         </aside>
       </div>
     </main>

@@ -116,3 +116,21 @@ export async function exportReport(actor:Actor,input:unknown){
   return {filename:`rent2go-${ctx.scope.type.toLowerCase()}-${w.filters.record.toLowerCase()}-${w.filters.environment.toLowerCase()}-${w.filters.from}-${w.filters.to}.csv`,csv:csvDocument(headers,rows),rowCount:data.total,asOf:w.asOf};
  });}catch(e){if(['40001','40P01'].includes((e as {code?:string}).code??''))throw new DomainError('Reporting records or access changed. Refresh before exporting.',409);throw e;}
 }
+
+export async function dashboardTrend(actor:Actor, scope:Exclude<ReportScope,{type:"PLATFORM"}>) {
+ return transaction(async client=>{
+  const context=await authorize(client,actor,scope);
+  const agency=context.scope.type==='AGENCY';
+  const events=agency
+   ? "SELECT created_at AS stamp,1 AS amount FROM booking_request r WHERE r.agency_id=$1::uuid AND EXISTS(SELECT 1 FROM app_actor a WHERE a.id=r.renter_id AND NOT a.is_test_fixture)"
+   : "SELECT f.created_at AS stamp,e.amount_centavos AS amount FROM booking_revenue_entry e JOIN booking_financial_close f ON f.id=e.close_id WHERE e.beneficiary_actor_id=$1 AND e.recipient='COSIGNER' AND e.environment='MANUAL'";
+  const {rows}=await client.query<{day:string;amount:string}>(`WITH dates AS (
+   SELECT (current_timestamp AT TIME ZONE 'Asia/Manila')::date-i AS day FROM generate_series(0,6) i
+  ), activity AS (${events})
+  SELECT d.day::text AS day,coalesce(sum(a.amount),0)::text AS amount
+  FROM dates d LEFT JOIN activity a ON a.stamp >= (d.day::timestamp AT TIME ZONE 'Asia/Manila')
+   AND a.stamp < ((d.day+1)::timestamp AT TIME ZONE 'Asia/Manila')
+  GROUP BY d.day ORDER BY d.day`,[agency?context.agencyId:context.ownerId]);
+  return rows.map(row=>({day:row.day,amount:money(row.amount)}));
+ });
+}

@@ -6,7 +6,7 @@ export const dynamic = "force-dynamic";
 export default async function Page({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string }>;
+  searchParams: Promise<{ page?: string; state?: string }>;
 }) {
   const actor = await pageActor(),
     p = await searchParams,
@@ -29,6 +29,7 @@ export default async function Page({
         actor={actor}
         scope="OWNED"
         page={page}
+        state={p.state}
         basePath="/workspace/vehicles"
       />
     </Workspace>

@@ -1,19 +1,12 @@
 "use client";
+
 import Link from "next/link";
+import { StatusScreen } from "@/components/status-screen";
+
 export default function ErrorPage({ retry }: { retry: () => void }) {
-  return (
-    <main id="main-content" className="public-main">
-      <section className="notice public-section">
-        <h1>We couldn’t load this page</h1>
-        <p>
-          The service may be temporarily unavailable. Check your connection
-          and try again, or return to the marketplace home page.
-        </p>
-        <button type="button" className="button" onClick={retry}>
-          Try again
-        </button>
-        <p><Link href="/">Return to marketplace home</Link></p>
-      </section>
-    </main>
-  );
+  return <StatusScreen code={500} title="Something went wrong"
+    detail="We couldn’t load this page. Please try again in a moment.">
+    <button type="button" className="button" onClick={retry}>Try again</button>
+    <Link href="/">Back to home</Link>
+  </StatusScreen>;
 }

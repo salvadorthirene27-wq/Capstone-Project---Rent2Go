@@ -4,7 +4,7 @@ import {NotificationBell} from "./notification-bell";
 import { usePathname } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { authClient } from "@/lib/auth-client";
-import { ArrowLeft, LogOut, Menu, ShoppingCart, X } from "lucide-react";
+import { ArrowLeft, ChevronDown, LogOut, Menu, Search, ShoppingCart, X } from "lucide-react";
 
 const links = [
   ["/", "Home"], ["/rentals", "Rentals"], ["/tours", "Tours"],
@@ -22,7 +22,7 @@ export function Header() {
       (href === "/rentals" && pathname.startsWith("/cars/")) ||
       (href === "/cart" && pathname === "/checkout"));
   const { data: session, isPending } = authClient.useSession();
-  const compact = (accountPortal && (!portalAccess?.active || portalAccess.id!==session?.user?.id)) || pathname === "/login" || documentRoutes.some(route => pathname.startsWith(route));
+  const compact = (accountPortal && (!portalAccess?.active || portalAccess.id!==session?.user?.id)) || documentRoutes.some(route => pathname.startsWith(route));
   const [open, setOpen] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -46,7 +46,7 @@ export function Header() {
   useEffect(()=>{if(open)navigation.current?.querySelector<HTMLElement>("a")?.focus();},[open]);
   useEffect(() => {
     setCartCount(null);
-    if (!userId || compact) return;
+    if (!userId || compact || pathname === "/login") return;
     let active = true;
     async function refresh() {
       try {
@@ -70,9 +70,51 @@ export function Header() {
     } catch { setError("Unable to sign out. Please try again."); setBusy(false); }
   }
   const brand = <Link className="wordmark" href="/" aria-label="Rent2Go home">Rent2Go<span>.</span></Link>;
+  if (pathname === "/login") return null;
   if (compact) return <header className="site-header unified-header compact-header">
-    {brand}<Link href={(pathname === "/login" || accountPortal) ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{(pathname === "/login" || accountPortal) ? "Back to marketplace" : "Back to workspace"}</Link>
+    {brand}<Link href={accountPortal ? "/" : "/workspace"} className="compact-back"><ArrowLeft size={17} aria-hidden="true" />{accountPortal ? "Back to marketplace" : "Back to workspace"}</Link>
   </header>;
+  const workspace = pathname.startsWith("/workspace") || pathname.startsWith("/agency/") ||
+    pathname === "/admin" || pathname.startsWith("/admin/") || pathname === "/checkout";
+  if (workspace && session?.user) {
+    const name = session.user.name || "Your account";
+    const initials = name.trim().split(/\s+/).slice(0, 2).map(part => part[0]).join("").toUpperCase();
+    return <header className="figma-workbar">
+      <Link className="figma-workbrand" href="/" aria-label="Rent2Go home">RENT2GO</Link>
+      <form className="figma-worksearch" action="/rentals">
+        <Search size={21} aria-hidden="true"/>
+        <input name="search" aria-label="Search car rentals" placeholder="Search" maxLength={120}/>
+      </form>
+      <div className="figma-worktools">
+        <Link className="figma-workcart" href="/cart"><ShoppingCart size={20} aria-hidden="true"/>Cart{cartCount !== null ? ` (${cartCount})` : ""}</Link>
+        <NotificationBell userId={session.user.id}/>
+        <details className="figma-account-menu" key={pathname} onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) e.currentTarget.open = false; }} onKeyDown={e => {
+          if (e.key === "Escape" && e.currentTarget.open) {
+            e.currentTarget.open = false;
+            e.currentTarget.querySelector("summary")?.focus();
+          }
+        }}>
+          <summary aria-label="Account menu"><span className="avatar">{initials}</span><span className="figma-account-name">{name}</span><ChevronDown size={17} aria-hidden="true"/></summary>
+          <nav aria-label="Account navigation" onClick={e => {
+            if ((e.target as Element).closest("a")) e.currentTarget.closest("details")?.removeAttribute("open");
+          }}>
+            <Link href="/workspace/start">Dashboard</Link>
+            <Link href="/workspace/account?section=profile">Profile management</Link>
+            <Link href="/workspace/bookings">My bookings</Link>
+            <Link href="/workspace/bookings?view=HISTORY">Booking history</Link>
+            <Link href="/cart" className="figma-account-cart"><ShoppingCart size={16} aria-hidden="true"/>Cart{cartCount !== null ? ` (${cartCount})` : ""}</Link>
+            <Link href="/workspace/account">Account &amp; security</Link>
+            <Link href="/workspace/account?section=payment">Payment methods</Link>
+            <Link href="/tours">Browse tours</Link>
+            <Link href="/agencies">Browse agencies</Link>
+            <Link href="/help">Help center</Link>
+            <button type="button" disabled={busy} onClick={signOut}><LogOut size={16} aria-hidden="true"/>{busy ? "Signing out…" : "Sign out"}</button>
+            {error && <p role="alert">{error}</p>}
+          </nav>
+        </details>
+      </div>
+    </header>;
+  }
   return <>
     <header className={`site-header unified-header${userId?" has-notification-bell":""}${open ? " navigation-expanded" : ""}`}
       onBlur={e => { if (!e.currentTarget.contains(e.relatedTarget)) setOpen(false); }}

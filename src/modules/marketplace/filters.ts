@@ -15,6 +15,7 @@ export function rentalFilters(raw: RawFilters) {
       "fuel",
       "bodyType",
       "billingUnit",
+      "minRateCentavos",
       "maxRateCentavos",
       "budgetCentavos",
       "sort",
@@ -34,6 +35,7 @@ export function rentalFilters(raw: RawFilters) {
         input[key] = manilaInputToIso(raw[field] as string);
       }
     for (const [field, key] of [
+      ["minRatePHP", "minRateCentavos"],
       ["maxRatePHP", "maxRateCentavos"],
       ["budgetPHP", "budgetCentavos"],
     ])

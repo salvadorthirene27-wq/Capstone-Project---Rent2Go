@@ -1,3 +1,4 @@
+import {accountPreferences} from "@/modules/account/preferences";
 import {BookingClosedCredits} from "@/components/closed-credits";
 import {BookingSettlement} from "@/components/booking-settlement";
 import {BookingRefunds} from "@/components/booking-refunds";
@@ -27,6 +28,7 @@ export default async function Page({
       throw e;
     });
   if (!booking.isOwnRequest) notFound();
+  const { preference } = await accountPreferences(actor);
   return (
     <Workspace actor={actor}>
       <Link className="back-link" href="/workspace/bookings">
@@ -37,7 +39,7 @@ export default async function Page({
       <BookingRequirements key={`requirements-${booking.version}`} requestId={(await params).id} />
       <BookingQuotation key={`quotation-${booking.version}`} requestId={(await params).id} />
       <BookingAgreement key={`agreement-${booking.version}`} requestId={(await params).id} />
-      <BookingPayments key={`payments-${booking.version}`} requestId={(await params).id} />
+      <BookingPayments key={`payments-${booking.version}`} requestId={booking.id} preference={preference} />
       <BookingFulfillment key={`fulfillment-${booking.version}`} requestId={(await params).id} />
       <BookingRefunds key={`refunds-${booking.version}`} requestId={(await params).id} />
       <BookingAssessments key={`assessments-${booking.version}`} requestId={(await params).id} />

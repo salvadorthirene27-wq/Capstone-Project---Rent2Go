@@ -33,9 +33,14 @@ export const checkoutSchema = z
       .strict(),
   })
   .strict();
+export const closedBookingStatuses = ["COMPLETED", "CANCELLED", "REJECTED", "QUOTE_DECLINED", "HOLD_EXPIRED"];
+
 export const bookingListSchema = z
   .object({
     agencyId: z.uuid().optional(),
+    view: z.enum(["CURRENT", "HISTORY", "COMPLETED", "CANCELLED"]).optional(),
+    search: z.string().trim().max(120).optional(),
+    year: z.coerce.number().int().min(2000).max(2100).optional(),
     page: z.coerce.number().int().min(1).max(10000).default(1),
   })
   .strict();

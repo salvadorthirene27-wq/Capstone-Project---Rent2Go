@@ -9,7 +9,7 @@ it("shows each request's actual lifecycle status in the renter and agency queue"
       id: String(index), agencyId: "agency", agencyName: "Synthetic agency", status,
       version: 2, contact: { name: "Synthetic renter", email: "test@example.test", phone: "", notes: "" },
       createdAt: "2026-11-05T00:00:00Z",
-      paymentEnvironment: null,
+      preview: null, paymentEnvironment: null,
     })), total: 8, page: 1, pageCount: 1,
   };
   for (const base of ["/workspace/bookings", "/agency/agency/bookings"]) {

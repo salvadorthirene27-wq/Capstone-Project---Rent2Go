@@ -21,6 +21,7 @@ export const vehicleSearchSchema = z
       .enum(["SEDAN", "HATCHBACK", "SUV", "MPV", "VAN", "PICKUP", "OTHER"])
       .optional(),
     billingUnit: z.enum(["24_HOUR", "CALENDAR_DAY", "HOUR"]).optional(),
+    minRateCentavos: z.coerce.number().int().min(0).max(100000000).optional(),
     maxRateCentavos: z.coerce.number().int().min(1).max(100000000).optional(),
     budgetCentavos: z.coerce.number().int().min(1).max(100000000).optional(),
     startAt: instant.optional(),
@@ -49,6 +50,12 @@ export const vehicleSearchSchema = z
         code: "custom",
         path: ["startAt"],
         message: "Choose a future pickup and a later return.",
+      });
+    if (v.minRateCentavos !== undefined && v.maxRateCentavos !== undefined && v.minRateCentavos > v.maxRateCentavos)
+      c.addIssue({
+        code: "custom",
+        path: ["maxRateCentavos"],
+        message: "Maximum rate must be at least the minimum rate.",
       });
     if (v.budgetCentavos && !v.startAt)
       c.addIssue({

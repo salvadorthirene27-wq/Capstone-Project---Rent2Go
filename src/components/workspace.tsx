@@ -14,7 +14,7 @@ export async function Workspace({
 }) {
   const showVehicles=!limited&&await hasVehicleWorkspace(actor.id,actor.role);
   return (
-    <div className="workspace">
+    <div className="workspace figma-workspace">
       <aside className="sidebar">
         <div className="identity">
           <span className="avatar">{(actor.name || "A")[0]}</span>

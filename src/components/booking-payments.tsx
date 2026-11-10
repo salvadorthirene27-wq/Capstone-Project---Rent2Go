@@ -32,7 +32,7 @@ function centavos(value: string) {
   return Number.isSafeInteger(result) && result > 0 ? result : null;
 }
 
-export function BookingPayments({ requestId }: { requestId: string }) {
+export function BookingPayments({ requestId, preference }: { requestId: string; preference?: "PAYMONGO" | "AGENCY" | null }) {
   const router = useRouter();
   const endpoint = `/api/booking-requests/${encodeURIComponent(requestId)}/payments`;
   const [data, setData] = useState<PaymentState | null>(null);
@@ -157,12 +157,20 @@ export function BookingPayments({ requestId }: { requestId: string }) {
     {data&&["FULFILLMENT_RECONCILIATION_PENDING","CANCELLED_RECONCILIATION_PENDING","PAYMENT_RECONCILIATION_REQUIRED","CANCELLED","COMPLETED","HOLD_EXPIRED"].includes(data.status)&&<p className="notice">These are the original quotation payment records. Quoted balances are historical references; use <a href="#settlement-heading">Settlement</a> for current retained charges, additional balances and refunds.</p>}
     <div className="payment-section-heading"><h2 id="payments-heading">Booking payments</h2><button type="button" className="button secondary" disabled={busy} onClick={reload}>Reload payments</button></div>
     <p>{data?.channel === "PAYMONGO" ? "Online payment results are verified with PayMongo. Rent2Go holds the funds; deposits and agency disbursements remain separate." : "Record payment against the signed agreement. GCash evidence needs agency review; cash is recorded by the receiving agency."}</p>
-    {data&&(data.methods.includes("PAYMONGO")||data.channel==="PAYMONGO")&&<HostedPayment requestId={requestId} source={data}/>}
+
     {error && <p role="alert" className="error-message">{error}</p>}
     {message && <p role="status">{message}</p>}
     {!data && !error && <p role="status">Loading payments…</p>}
     {data && <>
+      <div className="figma-checkout-columns figma-payment-layout">
+        <div>
+          {data.isOwner && data.agreement && preference && <p className="figma-payment-preference">Preferred method: {preference === "PAYMONGO" ? "PayMongo" : "Agency payment"}. <Link href="/workspace/account?section=payment">Manage preference</Link></p>}
+          {(data.methods.includes("PAYMONGO") || data.channel==="PAYMONGO") && <HostedPayment requestId={requestId} source={data}/>}
+          {data.isOwner && data.agreement && data.channel !== "PAYMONGO" && <p>Available methods and instructions are listed below.</p>}
+        </div>
+        <div className={data.agreement ? "figma-panel figma-checkout-summary" : undefined}>
       {!data.agreement ? <p>Sign the current agreement before making a payment. No payable balance is available yet.</p> : <>
+        <h3>Final payment breakdown</h3>
         <dl className="payment-totals">
           <div><dt>Quoted services</dt><dd>{money(data.totals.serviceCentavos)}</dd></div>
           <div><dt>Refundable deposits</dt><dd>{money(data.totals.refundableDepositCentavos)}</dd></div>
@@ -174,6 +182,8 @@ export function BookingPayments({ requestId }: { requestId: string }) {
         <p>Both quoted services and refundable deposits must be fully covered before service readiness. Deposits remain separate from service revenue.</p>
         {data.totals.creditCentavos > 0 && <p>Overpayment is held as unapplied credit for reconciliation.</p>}
       </>}
+        </div>
+      </div>
       {data.requiresReconciliation && <p className="notice"><strong>Reconciliation required.</strong> Funds recorded after the allocation expired cannot authorize service release. The agency must reconcile this payment.</p>}
       {data.allocationCommitted ? <p className="notice">Inventory allocation is committed. A partial payment retains the allocation but does not authorize service release.</p> : data.agreement && (!data.holdActive || expired) && <p className="notice">The temporary allocation has expired. Reload payments to check the current booking. Submitted evidence remains available for agency review.</p>}
       {data.agreement && data.channel !== "PAYMONGO" && <fieldset className="payment-environment" disabled={blocked}>

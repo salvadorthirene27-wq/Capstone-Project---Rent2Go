@@ -71,7 +71,7 @@ it("uses identical marketplace links and account controls on home and inner page
   expect(routes()).toEqual(home);
   expect(screen.getByRole("link", { name:"Agencies" }).getAttribute("aria-current")).toBe("page");
 });
-it.each(["/login", "/booking-agreements/demo", "/booking-inspections/demo", "/booking-payments/demo", "/booking-refunds/demo", "/owner-payouts/demo", "/platform-records/RECEIPT/demo"])("uses a compact header for %s", pathname => {
+it.each(["/booking-agreements/demo", "/booking-inspections/demo", "/booking-payments/demo", "/booking-refunds/demo", "/owner-payouts/demo", "/platform-records/RECEIPT/demo"])("uses a compact header for %s", pathname => {
   state.pathname = pathname; render(<Header />);
   expect(screen.queryByRole("navigation", { name:"Main navigation" })).toBeNull();
   expect(screen.queryByRole("button", { name:"Open navigation" })).toBeNull();
@@ -134,4 +134,20 @@ it.each([{ok:false,id:"demo"},{ok:true,id:"another-account"}])("keeps denied or 
 
 it('takes signed-in agencies directly to the combined application and guide',()=>{
  render(<Header/>);expect(screen.getByRole('link',{name:'For agencies'}).getAttribute('href')).toBe('/workspace/application');expect(screen.getByRole('button',{name:'Notifications'}).closest('nav')).toBeNull();
+});
+
+
+it("keeps role navigation, payment settings and the mobile cart available in the workspace header", async () => {
+  state.pathname = "/workspace/account";
+  render(<Header />);
+  const summary = screen.getByLabelText("Account menu");
+  await userEvent.setup().click(summary);
+  expect(summary.closest("details")?.open).toBe(true);
+  const nav = screen.getByRole("navigation", {name:"Account navigation"});
+  expect(nav.querySelector('a[href="/workspace/start"]')).toBeTruthy();
+  expect(nav.querySelector('a[href="/workspace/account?section=payment"]')).toBeTruthy();
+  expect(nav.querySelector('a[href="/cart"]')).toBeTruthy();
+  expect(screen.getByRole("button", {name:"Notifications"})).toBeDefined();
+  await userEvent.setup().keyboard("{Escape}");
+  expect(summary.closest("details")?.open).toBe(false);
 });

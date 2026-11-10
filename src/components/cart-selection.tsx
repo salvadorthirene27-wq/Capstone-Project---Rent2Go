@@ -42,11 +42,13 @@ export function CartSelection({
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [saved, setSaved] = useState(false),
-    [login, setLogin] = useState(false);
+    [login, setLogin] = useState(false),
+    [conflict, setConflict] = useState(false);
   function changed() {
     setQuote(null);
     setSaved(false);
     setError("");
+    setConflict(false);
   }
   async function preview(e: React.FormEvent) {
     e.preventDefault();
@@ -54,6 +56,7 @@ export function CartSelection({
     setQuote(null);
     setBusy(true);
     setLogin(false);
+    setConflict(false);
     try {
       const selection: Selection =
         initial.kind === "RENTAL"
@@ -79,6 +82,7 @@ export function CartSelection({
         data = await res.json();
       if (!res.ok) {
         setLogin(res.status === 401);
+        setConflict(res.status === 409);
         throw Error(data.error || "Unable to check this selection. Try again.");
       }
       setQuote(data);
@@ -96,6 +100,7 @@ export function CartSelection({
     if (!quote) return;
     setBusy(true);
     setError("");
+    setConflict(false);
     try {
       const payload = { selection: quote.selection, quoteDigest: quote.digest };
       const res = await fetch(item ? `/api/cart/${item.id}` : "/api/cart", {
@@ -108,8 +113,10 @@ export function CartSelection({
           ),
         }),
         data = await res.json();
-      if (!res.ok)
+      if (!res.ok) {
+        setConflict(res.status === 409);
         throw Error(data.error || "Unable to save your cart. Try again.");
+      }
       setSaved(true);
       setQuote(null);
       window.dispatchEvent(new Event("rent2go:cart-changed"));
@@ -219,6 +226,7 @@ export function CartSelection({
       {error && (
         <p role="alert" className="notice">
           {error}
+          {conflict && <> <Link href={initial.kind==="RENTAL"?"/rentals":"/tours"}>Browse alternatives</Link></>}
           {login && (
             <>
               {" "}

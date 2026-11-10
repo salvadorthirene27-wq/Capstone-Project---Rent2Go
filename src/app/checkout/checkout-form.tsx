@@ -5,9 +5,11 @@ import type { readCart } from "@/modules/cart/service";
 export function CheckoutForm({
   cart,
   name,
+  phone = "",
 }: {
   cart: Awaited<ReturnType<typeof readCart>>;
   name: string;
+  phone?: string;
 }) {
   const [key] = useState(() => crypto.randomUUID()),
     [busy, setBusy] = useState(false),
@@ -104,6 +106,7 @@ export function CheckoutForm({
             minLength={7}
             maxLength={30}
             placeholder="+63…"
+            defaultValue={phone}
           />
         </label>
         <label>

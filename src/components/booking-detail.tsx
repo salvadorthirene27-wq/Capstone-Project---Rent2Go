@@ -29,6 +29,7 @@ export function BookingDetail({
         expiry; service release requires approval, a signed agreement, confirmed
         payment and the required delivery checks.
       </p>
+      <div className="figma-checkout-columns"><div>
       <section className="context-section">
         <h2>Contact details</h2>
         <p>
@@ -70,7 +71,8 @@ export function BookingDetail({
           </details>
         </section>
       ))}
-      <section className="cart-totals">
+      </div>
+      <section className="cart-totals figma-panel figma-checkout-summary">
         <h2>Submitted estimates</h2>
         <p>
           Services {money(booking.totals.serviceCentavos)}
@@ -81,6 +83,7 @@ export function BookingDetail({
         </p>
         <p>These are submitted estimates. The quotation, agreement and payment records below show accepted amounts and the current balance.</p>
       </section>
+      </div>
       <details id="booking-history" className="context-section booking-history">
         <summary>Booking history · {booking.events.length} updates</summary>
         <ol>

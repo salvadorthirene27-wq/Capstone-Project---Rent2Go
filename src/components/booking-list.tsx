@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { WorkspaceServicePhoto } from "./workspace-service-photo";
 import type { listBookingRequests } from "@/modules/bookings/service";
 import { date } from "@/modules/partners/presentation";
 export const statusLabels: Record<string, string> = {
@@ -41,12 +42,16 @@ export function BookingList({
       ) : (
         <div className="directory-list">
           {list.items.map((r) => (
-            <Link className="context-link" href={`${base}/${r.id}`} key={r.id}>
-              <span>
-                <strong>{r.agencyName}</strong>
+            <Link className="context-link figma-booking-card" href={`${base}/${r.id}`} key={r.id}>
+              <span className="figma-booking-card-detail">
+                {r.preview && <WorkspaceServicePhoto title={r.preview.title} src={r.preview.photoId ? `/api/${r.preview.kind === "RENTAL" ? "vehicle-files" : "tour-photos"}/${r.preview.photoId}` : null}/>}
+                <span>
+                <strong>{r.preview?.title ?? r.agencyName}</strong>
+                {r.preview && <small>{r.agencyName} · {date(r.preview.startAt)} – {date(r.preview.endAt)}</small>}
                 <small>
                   {r.contact.name} · {date(r.createdAt)}
                 </small>
+                </span>
               </span>
               <span>{statusLabels[r.status] ?? r.status.replaceAll("_", " ")}{r.paymentEnvironment==="DEMO"&&<small>Simulated payment · no charge</small>}</span>
             </Link>

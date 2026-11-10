@@ -42,6 +42,10 @@ export async function searchVehicles(
     if (q[key]) clauses.push(`r.facts->>'${key}'=${bind(q[key])}`);
   if (q.billingUnit)
     clauses.push(`r.terms->>'billingUnit'=${bind(q.billingUnit)}`);
+  if (q.minRateCentavos)
+    clauses.push(
+      `(r.terms->>'rateCentavos')::bigint>=${bind(q.minRateCentavos)}::bigint`,
+    );
   if (q.maxRateCentavos)
     clauses.push(
       `(r.terms->>'rateCentavos')::bigint<=${bind(q.maxRateCentavos)}::bigint`,

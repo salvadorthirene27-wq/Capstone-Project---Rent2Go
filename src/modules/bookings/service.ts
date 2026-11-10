@@ -11,7 +11,7 @@ import {
 } from "../cart/service";
 import { digest, type CartQuote } from "../cart/pricing";
 import type { Selection } from "../cart/schema";
-import { checkoutSchema, bookingListSchema } from "./schema";
+import { checkoutSchema, bookingListSchema, closedBookingStatuses } from "./schema";
 type CheckoutResult = {
   requests: {
     id: string;
@@ -263,6 +263,7 @@ type RequestRow = {
   contact: { name: string; phone: string; email: string; notes: string };
   created_at: Date;
   payment_environment?: "MANUAL"|"DEMO"|null;
+  preview_quote?: (Pick<CartQuote, "title" | "photoId" | "startAt" | "endAt"> & { kind: CartQuote["selection"]["kind"] }) | null;
 };
 const paymentEnvironmentSql="(SELECT a.environment FROM booking_quotation q LEFT JOIN booking_payment_account a ON a.quote_id=q.id WHERE q.request_id=r.id ORDER BY q.revision DESC LIMIT 1)";
 const summary = (r: RequestRow) => ({
@@ -334,23 +335,35 @@ export async function listBookingRequests(actor: Actor, input: unknown = {}) {
       if (!agency.operatesAgency)
         throw new DomainError("Active agency access required.", 403);
     }
-    const where = q.agencyId ? "agency_id=$1" : "renter_id=$1",
-      value = q.agencyId ?? user.id;
+    const where = `${q.agencyId ? "r.agency_id=$1" : "r.renter_id=$1"}
+      AND CASE $2::text
+        WHEN 'CURRENT' THEN r.status<>ALL($3::text[])
+        WHEN 'HISTORY' THEN r.status=ANY($3::text[])
+        WHEN 'COMPLETED' THEN r.status='COMPLETED'
+        WHEN 'CANCELLED' THEN r.status='CANCELLED'
+        ELSE true END
+      AND ($4::int IS NULL OR EXTRACT(YEAR FROM r.created_at AT TIME ZONE 'Asia/Manila')=$4)
+      AND ($5::text IS NULL OR strpos(lower(r.agency_name),lower($5))>0 OR EXISTS (
+        SELECT 1 FROM booking_request_line l WHERE l.request_id=r.id
+        AND strpos(lower(l.public_quote->>'title'),lower($5))>0))`;
+    const values = [q.agencyId ?? user.id, q.view ?? null, closedBookingStatuses, q.year ?? null, q.search || null];
     const total = Number(
       (
-        await c.query(`SELECT count(*) n FROM booking_request WHERE ${where}`, [
-          value,
-        ])
+        await c.query(`SELECT count(*) n FROM booking_request r WHERE ${where}`, values)
       ).rows[0].n,
     );
     const rows = (
       await c.query<RequestRow>(
-        `SELECT r.*,${paymentEnvironmentSql} AS payment_environment FROM booking_request r WHERE ${where} ORDER BY r.created_at DESC,r.id LIMIT 20 OFFSET $2`,
-        [value, (q.page - 1) * 20],
+        `SELECT r.*,${paymentEnvironmentSql} AS payment_environment,
+          (SELECT jsonb_build_object('title',l.public_quote->>'title','photoId',l.public_quote->>'photoId',
+            'startAt',l.public_quote->>'startAt','endAt',l.public_quote->>'endAt','kind',l.public_quote->'selection'->>'kind')
+           FROM booking_request_line l WHERE l.request_id=r.id ORDER BY l.created_at,l.id LIMIT 1) AS preview_quote
+          FROM booking_request r WHERE ${where} ORDER BY r.created_at DESC,r.id LIMIT 20 OFFSET $6`,
+        [...values, (q.page - 1) * 20],
       )
     ).rows;
     return {
-      items: rows.map(summary),
+      items: rows.map(row => ({...summary(row),preview:row.preview_quote ?? null})),
       total,
       page: q.page,
       pageCount: Math.max(1, Math.ceil(total / 20)),

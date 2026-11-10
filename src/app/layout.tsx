@@ -14,6 +14,7 @@ import "./navigation.css";
 import "./fleet.css";
 import "./contacts.css";
 import "./notifications.css";
+import "./figma-marketplace.css";
 import { Header } from "@/components/header";
 import { SiteFooter } from "@/components/site-footer";
 export const metadata: Metadata = {

@@ -9,6 +9,6 @@ it("uses Next's retry callback to refetch a failed page and provides a working e
  const retry=vi.fn();render(<ErrorPage retry={retry}/>);
  await userEvent.setup().click(screen.getByRole("button",{name:"Try again"}));
  expect(retry).toHaveBeenCalledTimes(1);
- expect(screen.getByRole("link",{name:"Return to marketplace home"}).getAttribute("href")).toBe("/");
- expect(screen.getByRole("heading",{level:1}).textContent).toBe("We couldn’t load this page");
+ expect(screen.getByRole("link",{name:"Back to home"}).getAttribute("href")).toBe("/");
+ expect(screen.getByRole("heading",{level:1,name:"Something went wrong"})).toBeDefined();
 });

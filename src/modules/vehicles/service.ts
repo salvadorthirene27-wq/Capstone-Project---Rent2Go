@@ -576,9 +576,13 @@ export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
           agency_name: string;
           submitted_facts: VehicleFacts | null;
           submitted_terms: VehicleTerms | null;
+          photo_id: string | null;
         }
       >(
-        `SELECT o.*,v.ownership,v.owner_actor_id,v.owner_agency_id,v.registration_normalized,COALESCE(a.display_name,ap.payload->>'businessName') AS agency_name,vr.facts AS submitted_facts,vr.terms AS submitted_terms ${joins} WHERE ${where} ORDER BY o.updated_at DESC,o.id LIMIT $3 OFFSET $4`,
+        `SELECT o.*,v.ownership,v.owner_actor_id,v.owner_agency_id,v.registration_normalized,COALESCE(a.display_name,ap.payload->>'businessName') AS agency_name,vr.facts AS submitted_facts,vr.terms AS submitted_terms,
+          (SELECT f.id FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id
+           WHERE o.state='PUBLISHED' AND rf.offer_id=o.id AND rf.revision=o.approved_revision AND f.purpose='PHOTO'
+           ORDER BY f.created_at,f.id LIMIT 1) AS photo_id ${joins} WHERE ${where} ORDER BY o.updated_at DESC,o.id LIMIT $3 OFFSET $4`,
         [...params, q.pageSize, (q.page - 1) * q.pageSize],
       )
     ).rows;
@@ -598,6 +602,7 @@ export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
             : r,
         ),
         agencyName: r.agency_name,
+        photoId: r.photo_id,
       })),
       total,
       page: q.page,
