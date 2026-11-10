@@ -13,6 +13,7 @@ import { DomainError, type Actor } from "../partners/workflow";
 import {
   createVehicleSchema,
   vehicleFactsSchema,
+  vehicleTermsSchema,
   vehicleActionSchema,
   validatedTerms,
   type VehicleFacts,
@@ -515,6 +516,22 @@ export async function publicVehicles(id?: string, agencyId?: string) {
   return (await searchVehicles({ id, agencyId, pageSize: 100 })).items;
 }
 
+const listingRate = z.coerce.number().int().min(0).max(100_000_000);
+export const agencyListingFilters = z.object({
+  pending: z.literal("1").optional(),
+  make: vehicleFactsSchema.shape.make.optional(),
+  model: vehicleFactsSchema.shape.model.optional(),
+  year: z.coerce.number().pipe(vehicleFactsSchema.shape.year).optional(),
+  bodyType: vehicleFactsSchema.shape.bodyType.optional(),
+  transmission: vehicleFactsSchema.shape.transmission.optional(),
+  billingUnit: vehicleTermsSchema.shape.billingUnit.optional(),
+  availability: z.enum(["AVAILABLE", "RESERVED", "MAINTENANCE", "UNAVAILABLE"]).optional(),
+  minRate: listingRate.optional(),
+  maxRate: listingRate.optional(),
+}).refine(q => q.minRate === undefined || q.maxRate === undefined || q.minRate <= q.maxRate,
+  { path: ["maxRate"], message: "Maximum rate must be at least the minimum rate." });
+export type AgencyListingFilters = z.infer<typeof agencyListingFilters>;
+
 export const vehicleQueueSchema = z
   .object({
     scope: z.enum(["OWNED", "AGENCY", "COMPLIANCE"]).default("OWNED"),
@@ -534,6 +551,7 @@ export const vehicleQueueSchema = z
       .optional(),
     page: z.coerce.number().int().min(1).max(10000).default(1),
     pageSize: z.coerce.number().int().min(1).max(48).default(12),
+    filters: agencyListingFilters.optional(),
   })
   .strict();
 export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
@@ -565,7 +583,33 @@ export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
     );
     const joins =
       "FROM vehicle_offer o JOIN physical_vehicle v ON v.id=o.vehicle_id JOIN agency a ON a.id=o.agency_id JOIN app_actor ao ON ao.id=a.owner_id JOIN partner_revision ap ON ap.application_id=a.application_id AND ap.revision=a.approved_revision LEFT JOIN vehicle_revision vr ON vr.offer_id=o.id AND vr.revision=o.revision";
-    const where = `(${scope}) AND NOT ao.is_test_fixture AND ($2::text IS NULL OR o.state=$2)`;
+    let where = `(${scope}) AND NOT ao.is_test_fixture AND ($2::text IS NULL OR o.state=$2)`;
+    const availability = q.scope === "AGENCY" ? `CASE WHEN o.state <> 'PUBLISHED' OR NOT EXISTS
+      (SELECT 1 FROM resource r WHERE r.id=v.id AND r.active) THEN 'UNAVAILABLE'
+      ELSE COALESCE((SELECT CASE claim.kind WHEN 'BOOKING' THEN 'RESERVED' WHEN 'MAINTENANCE' THEN 'MAINTENANCE' ELSE 'UNAVAILABLE' END
+        FROM resource_occupation claim WHERE claim.resource_id=v.id AND claim.cancelled_at IS NULL
+        AND claim.period @> now()), 'AVAILABLE') END` : "NULL::text";
+    if (q.scope === "AGENCY" && q.filters) {
+      const f = q.filters;
+      params.push(user.id);
+      // Match the queue's visible snapshot; filtering must not reveal private owner edits.
+      const facts = "(CASE WHEN v.ownership='CONSIGNED' AND v.owner_actor_id<>$3 AND vr.facts IS NOT NULL AND vr.terms IS NOT NULL THEN vr.facts ELSE o.draft_facts END)";
+      const terms = "(CASE WHEN v.ownership='CONSIGNED' AND v.owner_actor_id<>$3 AND vr.facts IS NOT NULL AND vr.terms IS NOT NULL THEN vr.terms ELSE o.draft_terms END)";
+      where += " AND $3::text IS NOT NULL";
+      if (f.pending) where += " AND o.state IN ('SUBMITTED','AGREEMENT_PENDING','COMPLIANCE_REVIEW','CHANGES_REQUESTED')";
+      const add = (value: string | number | undefined, clause: (ref: string) => string) => {
+        if (value !== undefined) where += ` AND ${clause(`$${params.push(value)}`)}`;
+      };
+      add(f.make, ref => `strpos(lower(${facts}->>'make'),lower(${ref}::text))>0`);
+      add(f.model, ref => `strpos(lower(${facts}->>'model'),lower(${ref}::text))>0`);
+      add(f.year, ref => `(${facts}->>'year')::int=${ref}::int`);
+      add(f.bodyType, ref => `${facts}->>'bodyType'=${ref}::text`);
+      add(f.transmission, ref => `${facts}->>'transmission'=${ref}::text`);
+      add(f.billingUnit, ref => `${terms}->>'billingUnit'=${ref}::text`);
+      add(f.availability, ref => `(${availability})=${ref}::text`);
+      add(f.minRate, ref => `(${terms}->>'rateCentavos')::int>=${ref}::int`);
+      add(f.maxRate, ref => `(${terms}->>'rateCentavos')::int<=${ref}::int`);
+    }
     const total = Number(
       (await c.query(`SELECT count(*) AS n ${joins} WHERE ${where}`, params))
         .rows[0].n,
@@ -577,12 +621,13 @@ export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
           submitted_facts: VehicleFacts | null;
           submitted_terms: VehicleTerms | null;
           photo_id: string | null;
+          availability: AgencyListingFilters["availability"] | null;
         }
       >(
-        `SELECT o.*,v.ownership,v.owner_actor_id,v.owner_agency_id,v.registration_normalized,COALESCE(a.display_name,ap.payload->>'businessName') AS agency_name,vr.facts AS submitted_facts,vr.terms AS submitted_terms,
+        `SELECT o.*,v.ownership,v.owner_actor_id,v.owner_agency_id,v.registration_normalized,COALESCE(a.display_name,ap.payload->>'businessName') AS agency_name,vr.facts AS submitted_facts,vr.terms AS submitted_terms,(${availability}) AS availability,
           (SELECT f.id FROM vehicle_revision_file rf JOIN vehicle_file f ON f.id=rf.file_id
            WHERE o.state='PUBLISHED' AND rf.offer_id=o.id AND rf.revision=o.approved_revision AND f.purpose='PHOTO'
-           ORDER BY f.created_at,f.id LIMIT 1) AS photo_id ${joins} WHERE ${where} ORDER BY o.updated_at DESC,o.id LIMIT $3 OFFSET $4`,
+           ORDER BY f.created_at,f.id LIMIT 1) AS photo_id ${joins} WHERE ${where} ORDER BY o.updated_at DESC,o.id LIMIT $${params.length + 1} OFFSET $${params.length + 2}`,
         [...params, q.pageSize, (q.page - 1) * q.pageSize],
       )
     ).rows;
@@ -603,6 +648,7 @@ export async function listVehicleOffers(actor: Actor, input: unknown = {}) {
         ),
         agencyName: r.agency_name,
         photoId: r.photo_id,
+        availability: r.availability,
       })),
       total,
       page: q.page,

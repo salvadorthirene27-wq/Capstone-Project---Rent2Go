@@ -602,7 +602,7 @@ it("keeps personal draft evidence private and shares corrected content only afte
     reason: "Please replace the unreadable ownership evidence.",
   });
   o = await saveVehicleDraft(owner, o.id, o.version, {
-    facts: { ...facts, description: "PRIVATE UNSUBMITTED CORRECTION" },
+    facts: { ...facts, model: "Confidential Draft Model", description: "PRIVATE UNSUBMITTED CORRECTION" },
     terms: o.terms,
   });
   const replacement = file("OWNERSHIP");
@@ -611,6 +611,11 @@ it("keeps personal draft evidence private and shares corrected content only afte
   ).version;
   const agencyView = await vehicleDetail(operator, o.id);
   expect(agencyView.facts.description).toBe(facts.description);
+  const filters = { pending: "1", make: facts.make, year: facts.year, bodyType: facts.bodyType, transmission: facts.transmission, billingUnit: o.terms.billingUnit, minRate: o.terms.rateCentavos, maxRate: o.terms.rateCentavos };
+  const matching = await listVehicleOffers(operator, { scope: "AGENCY", agencyId, filters: { ...filters, model: facts.model } });
+  expect(matching.items.find(item => item.id === o.id)?.availability).toBe("UNAVAILABLE");
+  const hidden = await listVehicleOffers(operator, { scope: "AGENCY", agencyId, filters: { ...filters, model: "Confidential Draft Model" } });
+  expect(hidden.total).toBe(0);
   expect(agencyView.files.some((f) => f.id === replacement.id)).toBe(false);
   expect(agencyView.files.some((f) => f.id === first.id && f.is_current)).toBe(
     true,

@@ -7,7 +7,7 @@ import { VehicleSummary } from "./vehicle-summary";
 import { VehicleActions } from "./vehicle-actions";
 import { date } from "@/modules/partners/presentation";
 type Detail = Awaited<ReturnType<typeof vehicleDetail>>;
-export function VehicleEditor({ initial }: { initial: Detail }) {
+export function VehicleEditor({ initial, compact = false }: { initial: Detail; compact?: boolean }) {
   const router = useRouter(),
     [facts, setFacts] = useState(initial.facts),
     [terms, setTerms] = useState(initial.terms),
@@ -74,13 +74,16 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
       setBusy(false);
     }
   }
+  const photo = initial.files.find(f => f.is_current && f.purpose === "PHOTO");
+  const VehicleTitle = compact ? "h3" : "h1";
   return (
-    <div className="vehicle-editor">
+    <div className={compact ? "vehicle-editor agency-vehicle-editor" : "vehicle-editor"}>
+      {compact && photo && <div className="agency-edit-preview"><img src={`/api/vehicle-files/${photo.id}`} alt={initial.displayName}/></div>}
       <div className="page-title">
         <div>
-          <h1>
+          <VehicleTitle>
             {initial.displayName}
-          </h1>
+          </VehicleTitle>
           <p>
             Registration {initial.registration} ·{" "}
             {initial.ownership === "CONSIGNED"
@@ -185,7 +188,7 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
               <button className="button" type="submit">
                 {proposal
                   ? "Send proposal to vehicle owner"
-                  : "Save vehicle draft"}
+                  : compact ? "Save Changes" : "Save vehicle draft"}
               </button>
               {proposal && (
                 <p>
@@ -298,7 +301,7 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
         />
       </fieldset>
       {busy && <p role="status">Saving vehicle changes…</p>}
-      <section className="context-section">
+      {!compact && <><section className="context-section">
         <h2>Submitted versions and consent</h2>
         {!initial.revisions.length && <p>No submitted versions yet.</p>}
         {initial.revisions.map((r) => (
@@ -347,7 +350,7 @@ export function VehicleEditor({ initial }: { initial: Detail }) {
             </li>
           ))}
         </ol>
-      </section>
+      </section></>}
     </div>
   );
 }
