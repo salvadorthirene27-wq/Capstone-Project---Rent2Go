@@ -1,5 +1,4 @@
 import Link from "next/link";
-import { MapPin, Search } from "lucide-react";
 import { searchVehicles } from "@/modules/marketplace/vehicles";
 import {
   rentalFilters,
@@ -37,7 +36,7 @@ export default async function Page({
       <Link className="back-link" href="/">Back to home page</Link>
       <div className="directory-heading">
         <div>
-          <h1>Browse cars</h1>
+          <h1>Browse Cars</h1>
         </div>
         <Link href="/agencies">Browse by agency</Link>
       </div>
@@ -54,12 +53,12 @@ export default async function Page({
         <div className="figma-search-row">
           <label className="figma-search-field">
             <span className="sr-only">Make, model or keyword</span>
-            <Search aria-hidden="true" size={19}/>
+            <img src="/figma/catalog/search.svg" alt=""/>
             <input name="search" maxLength={120} defaultValue={query.search} placeholder="Search for cars…"/>
           </label>
           <label className="figma-search-field">
             <span className="sr-only">Service area</span>
-            <MapPin aria-hidden="true" size={19}/>
+            <img src="/figma/catalog/pin.png" width={21} height={21} alt=""/>
             <input name="serviceArea" maxLength={120} defaultValue={query.serviceArea} placeholder="Search your location…"/>
           </label>
           <fieldset className="figma-price-range">
@@ -75,11 +74,17 @@ export default async function Page({
               <option value="PRICE_DESC">Price: high to low</option>
             </select>
           </label>
-          <button className="button">Find rentals</button>
         </div>
-        <nav className="figma-filter-chips" aria-label="Vehicle categories">
-          <Link aria-current={!query.bodyType ? "page" : undefined} href={`/rentals?${queryString({...query, bodyType:undefined, page:1})}`}>All vehicles</Link>
-          {Object.entries(bodyTypes).map(([value,label])=><Link key={value} aria-current={query.bodyType===value?"page":undefined} href={`/rentals?${queryString({...query, bodyType:value, page:1})}`}>{label}</Link>)}
+        {query.bodyType && <input type="hidden" name="bodyType" value={query.bodyType}/>}
+        <nav className="figma-filter-chips figma-catalog-chips" aria-label="Vehicle categories">
+          <Link aria-current={!query.bodyType ? "page" : undefined} href={`/rentals?${queryString({...query, bodyType:undefined, page:1})}`}>
+            <span>All vehicles <small>{result.allCategories}</small></span>
+          </Link>
+          {Object.entries(bodyTypes).map(([value,label])=>(
+            <Link key={value} aria-current={query.bodyType===value?"page":undefined} href={`/rentals?${queryString({...query, bodyType:value, page:1})}`}>
+              <span>{label} <small>{result.categoryCounts[value] ?? 0}</small></span>
+            </Link>
+          ))}
         </nav>
         <details className="policy-disclosure" open={Boolean(query.startAt || query.mode || query.transmission || query.fuel || query.billingUnit || query.partySize || query.budgetCentavos || query.preferredTransmission)}>
           <summary>Dates, availability and more filters</summary>
@@ -141,13 +146,6 @@ export default async function Page({
               </select>
             </label>
             <label>
-              Body type
-              <select name="bodyType" defaultValue={query.bodyType ?? ""}>
-                <option value="">Any body type</option>
-                {Object.entries(bodyTypes).map(([value,label]) => <option key={value} value={value}>{label}</option>)}
-              </select>
-            </label>
-            <label>
               Fuel
               <select name="fuel" defaultValue={query.fuel ?? ""}>
                 <option value="">Any fuel</option>
@@ -188,7 +186,10 @@ export default async function Page({
             Recommendations use budget fit, your transmission preference and service estimates. Deposits are separate.
           </p>
         </details>
-        <Link className="figma-clear-filters" href="/rentals">Clear filters</Link>
+        <div className="figma-catalog-actions">
+          <button className="button">Find rentals</button>
+          <Link className="figma-clear-filters" href="/rentals">Clear filters</Link>
+        </div>
       </form>
       {error && (
         <p className="notice" role="alert">

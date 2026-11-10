@@ -118,6 +118,11 @@ it("filters the approved public projection and sorts before pagination", async (
   const q = { agencyId };
   const all = await searchVehicles({ ...q, sort: "PRICE_ASC", pageSize: 1 });
   expect(all.total).toBe(3);
+  expect(all.categoryCounts).toEqual({ SUV: 3 });
+  const emptyCategory = await searchVehicles({ ...q, bodyType: "SEDAN", minRateCentavos: 300000 });
+  expect(emptyCategory).toMatchObject({ total: 0, items: [], categoryCounts: { SUV: 2 }, allCategories: 2 });
+  const filteredCategory = await searchVehicles({ ...q, bodyType: "SUV", minRateCentavos: 300000 });
+  expect(filteredCategory.items.map(car=>car.id)).toEqual([cars[2].id, cars[1].id]);
   expect(all.items[0].id).toBe(cars[0].id);
   expect(
     (await searchVehicles({ ...q, sort: "PRICE_ASC", pageSize: 1, page: 2 }))

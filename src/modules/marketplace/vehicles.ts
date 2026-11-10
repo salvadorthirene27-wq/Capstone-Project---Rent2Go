@@ -38,7 +38,7 @@ export async function searchVehicles(
     clauses.push(
       `(r.facts->>'seats')::int-CASE WHEN (${selected})='WITH_DRIVER' THEN 1 ELSE 0 END>=${bind(q.partySize)}::int`,
     );
-  for (const key of ["transmission", "fuel", "bodyType"] as const)
+  for (const key of ["transmission", "fuel"] as const)
     if (q[key]) clauses.push(`r.facts->>'${key}'=${bind(q[key])}`);
   if (q.billingUnit)
     clauses.push(`r.terms->>'billingUnit'=${bind(q.billingUnit)}`);
@@ -85,14 +85,17 @@ export async function searchVehicles(
   const moneySafe = q.startAt
     ? "service_centavos+(terms->>'depositCentavos')::bigint<=100000000"
     : "true";
-  const total = Number(
-    (
-      await client.query(
-        `${cte} SELECT count(*) AS n FROM eligible WHERE ${moneySafe}`,
-        values,
-      )
-    ).rows[0].n,
+  const counts = await client.query<{ body_type: string; count: number }>(
+    `${cte} SELECT facts->>'bodyType' AS body_type, count(*)::int AS count
+      FROM eligible WHERE ${moneySafe} GROUP BY 1`,
+    values,
   );
+  const categoryCounts = Object.fromEntries(
+    counts.rows.map(({ body_type, count }) => [body_type, count]),
+  );
+  const allCategories = counts.rows.reduce((sum, row) => sum + row.count, 0);
+  const total = q.bodyType ? categoryCounts[q.bodyType] ?? 0 : allCategories;
+  const categoryFilter = q.bodyType ? `AND facts->>'bodyType'=${bind(q.bodyType)}` : "";
   const sort: string[] = [];
   if (q.sort === "RECOMMENDED") {
     if (q.budgetCentavos)
@@ -115,7 +118,7 @@ export async function searchVehicles(
   sort.push("id");
   const rows = (
     await client.query(
-      `${cte} SELECT * FROM eligible WHERE ${moneySafe} ORDER BY ${sort.join(",")} LIMIT ${bind(q.pageSize)} OFFSET ${bind((q.page - 1) * q.pageSize)}`,
+      `${cte} SELECT * FROM eligible WHERE ${moneySafe} ${categoryFilter} ORDER BY ${sort.join(",")} LIMIT ${bind(q.pageSize)} OFFSET ${bind((q.page - 1) * q.pageSize)}`,
       values,
     )
   ).rows;
@@ -180,6 +183,8 @@ export async function searchVehicles(
   return {
     items,
     total,
+    categoryCounts,
+    allCategories,
     page: q.page,
     pageCount: Math.max(1, Math.ceil(total / q.pageSize)),
   };
